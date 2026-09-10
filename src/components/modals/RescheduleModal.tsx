@@ -172,16 +172,16 @@ export const RescheduleModal: React.FC = () => {
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={handleSyncGoogleCalendar}
-                className="p-2.5 rounded-xl bg-[#14141E] hover:bg-[#1C1C28] border border-white/10 hover:border-[#FACC15]/40 text-xs text-white font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-[#14141E] dark:hover:bg-[#1C1C28] dark:border-white/10 hover:border-amber-400 dark:hover:border-[#FACC15]/40 text-xs text-slate-800 dark:text-white font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-[#FACC15]" />
+                <ExternalLink className="w-3.5 h-3.5 text-amber-600 dark:text-[#FACC15]" />
                 <span>Google Calendar</span>
               </button>
               <button
                 onClick={handleDownloadIcs}
-                className="p-2.5 rounded-xl bg-[#14141E] hover:bg-[#1C1C28] border border-white/10 hover:border-[#FACC15]/40 text-xs text-white font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-[#14141E] dark:hover:bg-[#1C1C28] dark:border-white/10 hover:border-amber-400 dark:hover:border-[#FACC15]/40 text-xs text-slate-800 dark:text-white font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
               >
-                <Download className="w-3.5 h-3.5 text-[#FACC15]" />
+                <Download className="w-3.5 h-3.5 text-amber-600 dark:text-[#FACC15]" />
                 <span>Export .ICS File</span>
               </button>
             </div>

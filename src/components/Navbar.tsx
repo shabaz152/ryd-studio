@@ -82,58 +82,62 @@ export const Navbar: React.FC = () => {
           </button>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 ml-4 pl-4 border-l border-white/10">
-            {navLinks.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
+          {viewMode !== 'mobile' && (
+            <nav className="hidden lg:flex items-center gap-1 ml-4 pl-4 border-l border-slate-200 dark:border-white/10">
+              {navLinks.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    sound.playClick();
-                    setActiveTab(tab.id);
-                  }}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'glossy-button-yellow font-black shadow-sm'
-                      : 'text-gray-300 hover:text-white hover:bg-white/[0.06]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                  {tab.badge && tab.badge > 0 && !isActive && (
-                    <span className="w-4 h-4 rounded-full bg-[#FFD000] text-black text-[9px] font-black flex items-center justify-center ml-0.5">
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      sound.playClick();
+                      setActiveTab(tab.id);
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:glossy-button-yellow font-black shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                    {tab.badge && tab.badge > 0 && !isActive && (
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[9px] font-black flex items-center justify-center ml-0.5">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </div>
 
         {/* Center: Live Status Indicator */}
-        <div className="hidden sm:flex items-center">
-          {isCheckedIn ? (
-            <div className="flex items-center gap-2 glossy-pill-yellow text-[#FFD000] px-4 py-1 rounded-full text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-[#FFD000] animate-ping shrink-0" />
-              <span className="truncate max-w-[180px] md:max-w-[240px]">
-                In Session: {checkedInSession?.batchName || 'Active'}
-              </span>
-            </div>
-          ) : isRunningLate ? (
-            <div className="flex items-center gap-2 bg-amber-500/15 border border-amber-500/40 text-amber-300 px-3.5 py-1 rounded-full text-xs font-bold">
-              <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-              <span>Late +{runningLateMinutes}m (Parents Notified)</span>
-            </div>
-          ) : (
-            <div className="hidden xl:flex items-center gap-2 bg-[#12121A]/80 border border-white/[0.08] text-gray-300 px-3.5 py-1 rounded-full text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-[#FFD000]" />
-              <span>Schedule Ready: 16:00 (Hip-Hop Juniors)</span>
-            </div>
-          )}
-        </div>
+        {viewMode !== 'mobile' && (
+          <div className="hidden sm:flex items-center">
+            {isCheckedIn ? (
+              <div className="flex items-center gap-2 bg-amber-100 border border-amber-300 text-amber-900 dark:glossy-pill-yellow dark:text-[#FFD000] px-4 py-1 rounded-full text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-[#FFD000] animate-ping shrink-0" />
+                <span className="truncate max-w-[180px] md:max-w-[240px]">
+                  In Session: {checkedInSession?.batchName || 'Active'}
+                </span>
+              </div>
+            ) : isRunningLate ? (
+              <div className="flex items-center gap-2 bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 px-3.5 py-1 rounded-full text-xs font-bold">
+                <Clock className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>Late +{runningLateMinutes}m (Parents Notified)</span>
+              </div>
+            ) : (
+              <div className="hidden xl:flex items-center gap-2 bg-white/90 border border-slate-200 text-slate-700 dark:bg-[#12121A]/80 dark:border-white/[0.08] dark:text-gray-300 px-3.5 py-1 rounded-full text-xs font-medium shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-[#FFD000]" />
+                <span>Schedule Ready: 16:00 (Hip-Hop Juniors)</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Right: Controls & Teacher Profile */}
         <div className="flex items-center gap-2 sm:gap-2.5">
@@ -143,8 +147,8 @@ export const Navbar: React.FC = () => {
             title={soundEnabled ? 'Mute Studio Audio' : 'Enable Studio Audio'}
             className={`p-2 rounded-xl border transition-all cursor-pointer ${
               soundEnabled
-                ? 'bg-[#151520] border-[#FFD000]/30 text-[#FFD000] hover:bg-[#FFD000]/10'
-                : 'bg-[#151520] border-white/10 text-gray-500 hover:text-white'
+                ? 'bg-white border-amber-300 text-amber-600 hover:bg-amber-50 dark:bg-[#151520] dark:border-[#FFD000]/30 dark:text-[#FFD000] dark:hover:bg-[#FFD000]/10 shadow-xs'
+                : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700 dark:bg-[#151520] dark:border-white/10 dark:text-gray-500 dark:hover:text-white shadow-xs'
             }`}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -156,8 +160,8 @@ export const Navbar: React.FC = () => {
             title={viewMode === 'mobile' ? 'Switch to Full Dashboard' : 'Preview as Mobile App Frame'}
             className={`p-2 rounded-xl border transition-all cursor-pointer ${
               viewMode === 'mobile'
-                ? 'glossy-button-yellow'
-                : 'bg-[#151520] border-white/10 text-gray-300 hover:text-[#FFD000]'
+                ? 'bg-amber-500 border-amber-600 text-white dark:glossy-button-yellow shadow-xs'
+                : 'bg-white border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] shadow-xs'
             }`}
           >
             {viewMode === 'mobile' ? <Monitor className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
@@ -169,7 +173,7 @@ export const Navbar: React.FC = () => {
             title={themeMode === 'light' ? 'Switch to Dark Obsidian Theme' : 'Switch to Subtle CRM Light Theme'}
             className={`p-2 rounded-xl border transition-all cursor-pointer ${
               themeMode === 'light'
-                ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 shadow-sm'
+                ? 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50 shadow-xs'
                 : 'bg-[#151520] border-white/10 text-gray-300 hover:text-[#FFD000]'
             }`}
           >
@@ -184,11 +188,11 @@ export const Navbar: React.FC = () => {
           <button
             onClick={() => setActiveTab('updates')}
             title="View Updates & Messages"
-            className="relative p-2 rounded-xl bg-[#151520] border border-white/10 text-gray-300 hover:text-[#FFD000] transition-colors cursor-pointer"
+            className="relative p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs"
           >
             <Bell className="w-4 h-4" />
             {updates.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FFD000] text-black text-[9px] font-black flex items-center justify-center shadow-sm">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[9px] font-black flex items-center justify-center shadow-sm">
                 {updates.length}
               </span>
             )}

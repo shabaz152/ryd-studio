@@ -339,7 +339,7 @@ export const HomeView: React.FC = () => {
                           sound.playClick();
                           openRescheduleForSession(session);
                         }}
-                        className="px-3 py-2 rounded-xl bg-[#14141E]/60 hover:bg-[#1A1A26] text-gray-300 hover:text-white text-xs font-medium border border-white/5 transition-all cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 dark:bg-[#14141E]/60 dark:hover:bg-[#1A1A26] dark:text-gray-300 dark:hover:text-white text-xs font-semibold dark:border-white/5 transition-all cursor-pointer shadow-xs"
                       >
                         Reschedule
                       </button>

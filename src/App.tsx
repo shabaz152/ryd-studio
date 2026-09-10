@@ -88,17 +88,17 @@ const MainLayout: React.FC = () => {
         {/* Device Frame */}
         <div className={`mobile-device-frame w-full max-w-[430px] h-[92vh] ${themeMode === 'light' ? 'bg-[#F8FAFC] border-slate-300 shadow-2xl' : 'glossy-black-viewport border-[#181822] shadow-2xl'} flex flex-col relative rounded-[48px] overflow-hidden`}>
           {/* Dynamic Island / Speaker notch */}
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-50 flex items-center justify-between px-3 border border-white/10">
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-50 flex items-center justify-between px-3 border border-white/10 pointer-events-none">
             <div className="w-2.5 h-2.5 rounded-full bg-[#111118] border border-white/5" />
             <div className="w-1.5 h-1.5 rounded-full bg-[#FFE500]/70" />
           </div>
 
-          <div className="flex-1 overflow-y-auto pt-6 pb-2 no-scrollbar">
+          <div className="flex-1 overflow-y-auto pt-10 pb-2 no-scrollbar">
             {appContent}
           </div>
 
           {/* Simulated Home Indicator Bar */}
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/30 rounded-full z-50 pointer-events-none" />
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-400/40 dark:bg-white/30 rounded-full z-50 pointer-events-none" />
         </div>
       </div>
     );

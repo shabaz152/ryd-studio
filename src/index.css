@@ -233,19 +233,19 @@ button:active {
 }
 
 /* Text Overrides for Clear Contrast */
-.crm-light .text-white {
+.crm-light .text-white:not(button):not(button *):not([class*="bg-red-500"] *):not([class*="bg-red-600"] *):not([class*="bg-emerald-500"] *):not([class*="bg-blue-600"] *) {
   color: #0F172A !important;
 }
-.crm-light .text-gray-300 {
+.crm-light .text-gray-300:not(button):not(button *) {
   color: #334155 !important;
 }
-.crm-light .text-gray-400 {
+.crm-light .text-gray-400:not(button):not(button *) {
   color: #64748B !important;
 }
-.crm-light .text-gray-500 {
+.crm-light .text-gray-500:not(button):not(button *) {
   color: #94A3B8 !important;
 }
-.crm-light .text-gray-600 {
+.crm-light .text-gray-600:not(button):not(button *) {
   color: #CBD5E1 !important;
 }
 
@@ -276,36 +276,176 @@ button:active {
   background: #F1F5F9 !important;
 }
 .crm-light header nav button.glossy-button-yellow {
-  background: #0F172A !important;
-  color: #FFFFFF !important;
-  border-color: #0F172A !important;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15) !important;
+  background: #FEF3C7 !important;
+  color: #92400E !important;
+  border: 1px solid #FCD34D !important;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15) !important;
+  font-weight: 800 !important;
+}
+.crm-light header nav button.glossy-button-yellow * {
+  color: #92400E !important;
 }
 
 /* Bottom Nav on Mobile */
-.crm-light nav.fixed.bottom-0 {
+.crm-light nav.fixed.bottom-0,
+.crm-light nav.sticky.bottom-0 {
   background: rgba(255, 255, 255, 0.96) !important;
   border-top: 1px solid #E2E8F0 !important;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03) !important;
 }
-.crm-light nav.fixed.bottom-0 button {
+.crm-light nav.fixed.bottom-0 button,
+.crm-light nav.sticky.bottom-0 button {
   color: #64748B !important;
 }
-.crm-light nav.fixed.bottom-0 button .text-\[\#FACC15\] {
+.crm-light nav.fixed.bottom-0 button .text-\[\#FACC15\],
+.crm-light nav.sticky.bottom-0 button .text-\[\#FACC15\] {
   color: #D97706 !important;
 }
 
-/* Buttons */
-.crm-light .glossy-button-yellow {
+/* ==========================================================================
+   BUTTON ARCHITECTURE FOR CRM LIGHT THEME
+   Guarantees 100% text visibility, high contrast, and refined CRM styling
+   ========================================================================== */
+
+/* 1. Universal Button Reset Guard */
+.crm-light button {
+  text-shadow: none !important;
+}
+
+/* 2. Secondary & Utility Action Buttons (White Card Button Style) */
+.crm-light button[class*="bg-[#181822]"],
+.crm-light button[class*="bg-[#14141E]"],
+.crm-light button[class*="bg-[#161622]"],
+.crm-light button[class*="bg-[#151520]"],
+.crm-light button[class*="bg-[#181820]"],
+.crm-light button[class*="bg-[#181824]"],
+.crm-light button[class*="bg-[#181826]"],
+.crm-light button[class*="bg-[#161624]"],
+.crm-light button[class*="bg-[#20202E]"],
+.crm-light button[class*="bg-[#1A1A26]"],
+.crm-light button[class*="bg-[#1C1C28]"],
+.crm-light button[class*="bg-[#101015]"],
+.crm-light button[class*="bg-[#101017]"],
+.crm-light button[class*="bg-[#121216]"],
+.crm-light button[class*="bg-[#12121A]"],
+.crm-light button[class*="bg-[#08080C]"],
+.crm-light button[class*="bg-[#0A0A10]"],
+.crm-light button.glossy-pill-dark {
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1 !important;
+  color: #0F172A !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+}
+
+.crm-light button[class*="bg-[#181822]"]:hover,
+.crm-light button[class*="bg-[#14141E]"]:hover,
+.crm-light button[class*="bg-[#161622]"]:hover,
+.crm-light button[class*="bg-[#151520]"]:hover,
+.crm-light button[class*="bg-[#181820]"]:hover,
+.crm-light button[class*="bg-[#181824]"]:hover,
+.crm-light button[class*="bg-[#181826]"]:hover,
+.crm-light button[class*="bg-[#161624]"]:hover,
+.crm-light button[class*="bg-[#20202E]"]:hover,
+.crm-light button[class*="bg-[#1A1A26]"]:hover,
+.crm-light button[class*="bg-[#1C1C28]"]:hover,
+.crm-light button[class*="bg-[#101015]"]:hover,
+.crm-light button[class*="bg-[#101017]"]:hover,
+.crm-light button[class*="bg-[#121216]"]:hover,
+.crm-light button[class*="bg-[#12121A]"]:hover,
+.crm-light button[class*="bg-[#08080C]"]:hover,
+.crm-light button[class*="bg-[#0A0A10]"]:hover,
+.crm-light button.glossy-pill-dark:hover {
+  background: #F8FAFC !important;
+  border-color: #94A3B8 !important;
+  color: #020617 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Secondary Button Text & Icons */
+.crm-light button[class*="bg-[#181822]"] span,
+.crm-light button[class*="bg-[#14141E]"] span,
+.crm-light button[class*="bg-[#161622]"] span,
+.crm-light button[class*="bg-[#151520]"] span,
+.crm-light button[class*="bg-[#181826]"] span,
+.crm-light button[class*="bg-[#161624]"] span,
+.crm-light button[class*="bg-[#20202E]"] span,
+.crm-light button[class*="bg-[#1A1A26]"] span,
+.crm-light button[class*="bg-[#1C1C28]"] span,
+.crm-light button.glossy-pill-dark span {
+  color: #0F172A !important;
+  font-weight: 600 !important;
+}
+
+.crm-light button[class*="bg-[#181822]"] svg,
+.crm-light button[class*="bg-[#14141E]"] svg,
+.crm-light button[class*="bg-[#161622]"] svg,
+.crm-light button[class*="bg-[#151520]"] svg,
+.crm-light button.glossy-pill-dark svg {
+  color: #D97706 !important;
+}
+
+/* 3. Primary Studio Amber / Gold Action Buttons */
+.crm-light .glossy-button-yellow,
+.crm-light button[class*="bg-[#FACC15]"],
+.crm-light button[class*="bg-[#FFD000]"],
+.crm-light button[class*="bg-[#FFE500]"] {
   background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%) !important;
   color: #0F172A !important;
-  border: 1px solid rgba(217, 119, 6, 0.35) !important;
+  border: 1px solid rgba(217, 119, 6, 0.4) !important;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
   font-weight: 800 !important;
 }
-.crm-light .glossy-button-yellow:hover {
+
+.crm-light .glossy-button-yellow *,
+.crm-light button[class*="bg-[#FACC15]"] *,
+.crm-light button[class*="bg-[#FFD000]"] *,
+.crm-light button[class*="bg-[#FFE500]"] * {
+  color: #0F172A !important;
+}
+
+.crm-light .glossy-button-yellow:hover,
+.crm-light button[class*="bg-[#FACC15]"]:hover,
+.crm-light button[class*="bg-[#FFD000]"]:hover,
+.crm-light button[class*="bg-[#FFE500]"]:hover {
   background: linear-gradient(180deg, #FCD34D 0%, #FBBF24 100%) !important;
+  color: #000000 !important;
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+/* 4. Delete & Destructive Action Buttons */
+.crm-light button[class*="bg-red-500/10"],
+.crm-light button[class*="bg-red-500/20"],
+.crm-light [class*="bg-red-500/10"] button,
+.crm-light [class*="bg-red-500/20"] button {
+  background: #FEF2F2 !important;
+  border: 1px solid #FECACA !important;
+  color: #DC2626 !important;
+}
+.crm-light button[class*="bg-red-500/10"]:hover,
+.crm-light button[class*="bg-red-500/20"]:hover {
+  background: #FEE2E2 !important;
+  border-color: #FCA5A5 !important;
+  color: #B91C1C !important;
+}
+.crm-light button[class*="bg-red-500/10"] *,
+.crm-light button[class*="bg-red-500/20"] * {
+  color: #DC2626 !important;
+}
+
+/* Solid Red Action Buttons (e.g. Confirm Cancellation) */
+.crm-light button.bg-red-500,
+.crm-light button.bg-red-600,
+.crm-light button[class*="bg-red-500"],
+.crm-light button[class*="bg-red-600"] {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #B91C1C !important;
+}
+.crm-light button.bg-red-500 *,
+.crm-light button.bg-red-600 *,
+.crm-light button[class*="bg-red-500"] *,
+.crm-light button[class*="bg-red-600"] * {
+  color: #FFFFFF !important;
 }
 
 .crm-light .shadow-gold-glow-sm {

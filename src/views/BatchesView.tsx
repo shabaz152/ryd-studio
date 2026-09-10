@@ -243,9 +243,9 @@ export const BatchesView: React.FC = () => {
                       sound.playClick();
                       setComposeUpdateModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#181822] hover:bg-[#20202E] border border-white/10 text-xs text-white font-semibold cursor-pointer transition-all"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-[#181822] dark:hover:bg-[#20202E] dark:border-white/10 text-xs text-slate-800 dark:text-white font-semibold cursor-pointer transition-all shadow-xs"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-[#FACC15]" />
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-[#FACC15]" />
                     <span>Message Parents</span>
                   </button>
 
@@ -254,9 +254,9 @@ export const BatchesView: React.FC = () => {
                       sound.playClick();
                       setOrderWorkbookModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#181822] hover:bg-[#20202E] border border-white/10 text-xs text-white font-semibold cursor-pointer transition-all"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-[#181822] dark:hover:bg-[#20202E] dark:border-white/10 text-xs text-slate-800 dark:text-white font-semibold cursor-pointer transition-all shadow-xs"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-[#FACC15]" />
+                    <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-[#FACC15]" />
                     <span>Order Workbooks</span>
                   </button>
                 </div>
