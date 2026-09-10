@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ShieldAlert,
   CalendarCheck,
+  LogOut,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -24,6 +25,8 @@ export const CheckInModal: React.FC = () => {
     batches,
     checkIn,
     isCheckedIn,
+    setCheckOutModalOpen,
+    openCheckOutForSession,
     openRescheduleForSession,
     cancelClass,
   } = useApp();
@@ -83,6 +86,29 @@ export const CheckInModal: React.FC = () => {
 
         {/* Body Content */}
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Active Session Check Out Prompt */}
+          {currentSession?.status === 'checked_in' && (
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 text-emerald-400 font-semibold">
+                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                <span>
+                  "{currentSession.batchName}" is currently active. Ready to finish class?
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setCheckInModalOpen(false);
+                  openCheckOutForSession(currentSession);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl glossy-button-yellow text-xs font-black shrink-0 cursor-pointer shadow-sm"
+              >
+                <LogOut className="w-3.5 h-3.5 text-black" />
+                <span>Check Out Now</span>
+              </button>
+            </div>
+          )}
+
           {/* Batch Selector */}
           <div>
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
@@ -337,15 +363,33 @@ export const CheckInModal: React.FC = () => {
             >
               Close
             </button>
-            <button
-              onClick={handleConfirmCheckIn}
-              disabled={isCheckedIn && currentSession?.status === 'checked_in'}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-bold shadow-gold-glow-sm transition-all disabled:opacity-50 cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isCheckedIn ? 'Session Active' : 'Confirm Check In'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {currentSession?.status === 'checked_in' ? (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setCheckInModalOpen(false);
+                  if (currentSession) {
+                    openCheckOutForSession(currentSession);
+                  } else {
+                    setCheckOutModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-black" />
+                <span>Proceed to Check Out & Attendance</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                onClick={handleConfirmCheckIn}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-bold shadow-gold-glow-sm transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Confirm Check In</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>

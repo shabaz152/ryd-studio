@@ -99,6 +99,9 @@ interface AppContextType {
   setCheckInModalOpen: (open: boolean) => void;
   checkOutModalOpen: boolean;
   setCheckOutModalOpen: (open: boolean) => void;
+  selectedSessionForCheckOut: Session | null;
+  setSelectedSessionForCheckOut: (session: Session | null) => void;
+  openCheckOutForSession: (session: Session) => void;
   runningLateModalOpen: boolean;
   setRunningLateModalOpen: (open: boolean) => void;
   rescheduleModalOpen: boolean;
@@ -298,6 +301,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Modals
   const [checkInModalOpen, setCheckInModalOpen] = useState<boolean>(false);
   const [checkOutModalOpen, setCheckOutModalOpen] = useState<boolean>(false);
+  const [selectedSessionForCheckOut, setSelectedSessionForCheckOut] = useState<Session | null>(null);
   const [runningLateModalOpen, setRunningLateModalOpen] = useState<boolean>(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState<boolean>(false);
   const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
@@ -619,13 +623,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCheckInModalOpen(false);
   };
 
-  const checkOut = (sessionId: string, attendance: AttendanceRecord[]) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
+  const openCheckOutForSession = (session: Session) => {
+    sound.playClick();
+    setSelectedSessionForCheckOut(session);
+    setCheckOutModalOpen(true);
+  };
+
+  const checkOut = (sessionId: string, attendance: AttendanceRecord[], _notes?: string) => {
+    let session = sessions.find((s) => s.id === sessionId);
+    if (!session && sessions.length > 0) {
+      session = sessions[0];
+      sessionId = session.id;
+    }
+    if (!session) {
+      setCheckOutModalOpen(false);
+      showToast({
+        type: 'alert',
+        title: 'No Session Found',
+        description: 'Unable to locate session to check out. Please schedule a class first.',
+      });
+      return;
+    }
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const hours = session.durationMinutes / 60;
-    const sessionEarnings = hours * teacher.hourlyRate;
+    const hours = (session.durationMinutes || 90) / 60;
+    const sessionEarnings = hours * (teacher.hourlyRate || 50);
 
     setSessions((prev) =>
       prev.map((s) =>
@@ -651,9 +673,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       rating: prev.rating === 0 ? 5.0 : prev.rating,
     }));
 
-    setIsCheckedIn(false);
-    setCheckedInSessionId(null);
-    setCheckInTime(null);
+    if (checkedInSessionId === sessionId || isCheckedIn) {
+      setIsCheckedIn(false);
+      setCheckedInSessionId(null);
+      setCheckInTime(null);
+    }
+    setSelectedSessionForCheckOut(null);
 
     sound.playSuccess();
 
@@ -1303,6 +1328,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCheckInModalOpen,
         checkOutModalOpen,
         setCheckOutModalOpen,
+        selectedSessionForCheckOut,
+        setSelectedSessionForCheckOut,
+        openCheckOutForSession,
         runningLateModalOpen,
         setRunningLateModalOpen,
         rescheduleModalOpen,

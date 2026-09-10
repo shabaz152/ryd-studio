@@ -22,6 +22,7 @@ import {
   Trash2,
   Footprints,
   MessageSquareText,
+  LogOut,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -36,6 +37,8 @@ export const HomeView: React.FC = () => {
     checkedInSession,
     setActiveTab,
     setCheckInModalOpen,
+    setCheckOutModalOpen,
+    openCheckOutForSession,
     openRescheduleForSession,
     deleteSession,
     clearAllSessions,
@@ -321,19 +324,32 @@ export const HomeView: React.FC = () => {
                   {/* Card Actions */}
                   <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          sound.playClick();
-                          setCheckInModalOpen(true);
-                        }}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          isSessionActive
-                            ? 'glossy-button-yellow shadow-gold-glow-sm'
-                            : 'glossy-pill-dark hover:border-[#FFD000]/40 text-white'
-                        }`}
-                      >
-                        {isSessionActive ? 'Active Session' : 'Check In'}
-                      </button>
+                      {isSessionActive || session.status === 'checked_in' ? (
+                        <button
+                          onClick={() => {
+                            openCheckOutForSession(session);
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black glossy-button-yellow shadow-gold-glow-sm transition-all cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-black" />
+                          <span>Check Out</span>
+                        </button>
+                      ) : session.status === 'completed' ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Done ({session.checkOutTime || 'Logged'})</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            setCheckInModalOpen(true);
+                          }}
+                          className="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer glossy-pill-dark hover:border-[#FFD000]/40 text-white"
+                        >
+                          Check In
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           sound.playClick();

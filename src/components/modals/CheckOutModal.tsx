@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { AttendanceRecord, AttendanceStatus } from '../../types';
+import { AttendanceRecord, AttendanceStatus, Batch } from '../../types';
 import {
   X,
   UserCheck,
@@ -8,6 +8,8 @@ import {
   CheckCircle,
   ShieldCheck,
   FileText,
+  Plus,
+  LogOut,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -20,18 +22,55 @@ export const CheckOutModal: React.FC = () => {
     checkedInSession,
     teacher,
     checkOut,
+    selectedSessionForCheckOut,
+    setNewSessionModalOpen,
   } = useApp();
 
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [sessionNotes, setSessionNotes] = useState('');
+
+  // Synchronize selected session on modal open
+  useEffect(() => {
+    if (checkOutModalOpen) {
+      if (selectedSessionForCheckOut) {
+        setSelectedSessionId(selectedSessionForCheckOut.id);
+      } else if (checkedInSession) {
+        setSelectedSessionId(checkedInSession.id);
+      } else {
+        const found =
+          sessions.find((s) => s.status === 'checked_in') ||
+          sessions.find((s) => s.status === 'scheduled') ||
+          sessions[0];
+        if (found) setSelectedSessionId(found.id);
+      }
+    }
+  }, [checkOutModalOpen, selectedSessionForCheckOut, checkedInSession, sessions]);
+
   const activeSession =
+    sessions.find((s) => s.id === selectedSessionId) ||
+    selectedSessionForCheckOut ||
     checkedInSession ||
     sessions.find((s) => s.status === 'checked_in') ||
     sessions.find((s) => s.status === 'scheduled') ||
     sessions[0];
 
-  const currentBatch = batches.find((b) => b.id === activeSession?.batchId);
-
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [sessionNotes, setSessionNotes] = useState('');
+  const matchingBatch = batches.find((b) => b.id === activeSession?.batchId);
+  const currentBatch: Batch = matchingBatch || {
+    id: activeSession?.batchId || 'custom-batch',
+    name: activeSession?.batchName || 'Studio Masterclass',
+    code: activeSession?.calendarCode || 'RYD-CLASS',
+    style: 'Studio Class',
+    level: 'Intermediate',
+    scheduleTime: activeSession?.timeSlot || '16:00 - 17:30',
+    days: ['Today'],
+    studioRoom: activeSession?.studioRoom || 'Studio Alpha - Hall 1',
+    locationName: activeSession?.locationName || 'RYD Downtown Central',
+    address: '742 Broadway Ave, Floor 3, Downtown',
+    mapCoordinates: { lat: 40.7128, lng: -74.0060 },
+    navigationUrl: 'https://maps.google.com/?q=742+Broadway+Ave+Downtown',
+    students: [],
+  };
 
   useEffect(() => {
     if (currentBatch) {
@@ -43,12 +82,53 @@ export const CheckOutModal: React.FC = () => {
       }));
       setAttendance(records);
     }
-  }, [currentBatch, checkOutModalOpen]);
+  }, [currentBatch.id, activeSession?.id, checkOutModalOpen]);
 
-  if (!checkOutModalOpen || !activeSession || !currentBatch) return null;
+  if (!checkOutModalOpen) return null;
 
-  const durationHours = activeSession.durationMinutes / 60;
-  const estimatedPay = durationHours * teacher.hourlyRate;
+  // Empty state: No sessions exist at all
+  if (!activeSession || sessions.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fade-in">
+        <div className="relative w-full max-w-lg bg-[#101017] border border-white/15 rounded-3xl overflow-hidden shadow-2xl my-auto top-sheen p-6 sm:p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-3xl bg-[#FACC15]/10 border border-[#FACC15]/20 text-[#FACC15] flex items-center justify-center mx-auto shadow-gold-glow-sm">
+            <Clock className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-base font-bold text-white">No Sessions Ready for Check Out</h3>
+            <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+              There are currently 0 active or scheduled sessions in today's timetable. All sessions may be completed, or none have been scheduled yet.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setCheckOutModalOpen(false);
+              }}
+              className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 hover:text-white border border-white/10 cursor-pointer transition-all"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setCheckOutModalOpen(false);
+                setNewSessionModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer transition-all"
+            >
+              <Plus className="w-4 h-4 text-black" />
+              <span>+ Add Schedule & Session</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const durationHours = (activeSession.durationMinutes || 90) / 60;
+  const estimatedPay = Math.round(durationHours * (teacher.hourlyRate || 50));
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     sound.playClick();
@@ -85,14 +165,19 @@ export const CheckOutModal: React.FC = () => {
         <div className="bg-[#151520] px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#FACC15] text-black flex items-center justify-center font-black shadow-gold-glow-sm">
-              <UserCheck className="w-5 h-5" />
+              <LogOut className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
-                Log Student Attendance & Session Check Out
+              <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Check Out & Log Attendance</span>
+                {activeSession.status === 'checked_in' && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wide border border-emerald-500/30">
+                    Currently Active
+                  </span>
+                )}
               </h2>
               <p className="text-[11px] text-gray-400">
-                Submitting updates student records & automatically calculates teacher working hours
+                Submitting updates student records and credits teaching hours to faculty payroll
               </p>
             </div>
           </div>
@@ -109,6 +194,47 @@ export const CheckOutModal: React.FC = () => {
 
         {/* Modal Body */}
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Session Selector (when more than 1 session exists) */}
+          {sessions.length > 1 && (
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                Select Session to Check Out:
+              </label>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1.5">
+                {sessions.map((sess) => {
+                  const isSelected = activeSession.id === sess.id;
+                  const isCheckedIn = sess.status === 'checked_in';
+                  const isDone = sess.status === 'completed';
+
+                  return (
+                    <button
+                      key={sess.id}
+                      onClick={() => {
+                        sound.playClick();
+                        setSelectedSessionId(sess.id);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 border ${
+                        isSelected
+                          ? 'bg-[#FACC15] text-black border-[#FACC15] shadow-gold-glow-sm font-bold'
+                          : 'bg-[#14141E] text-gray-300 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span>{sess.batchName}</span>
+                      <span className="text-[10px] opacity-75 font-mono">({sess.timeSlot})</span>
+                      {isCheckedIn && (
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-300 text-[9px] font-extrabold uppercase">
+                          Active
+                        </span>
+                      )}
+                      {isDone && (
+                        <span className="text-emerald-400 font-bold">✓</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* Automatic Working Hours & Pay Preview Banner */}
           <div className="p-4 rounded-3xl bg-gradient-to-r from-[#171722] to-[#121218] border border-[#FACC15]/30 shadow-card-dark flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
@@ -298,7 +424,7 @@ export const CheckOutModal: React.FC = () => {
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow transition-all cursor-pointer"
             >
               <CheckCircle className="w-4 h-4 fill-black text-[#FACC15]" />
-              <span>Submit Attendance & Log {durationHours} Hours</span>
+              <span>Complete Check Out & Log {durationHours} Hours</span>
             </button>
           </div>
         </div>

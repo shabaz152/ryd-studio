@@ -12,6 +12,7 @@ export const QuickActionBar: React.FC = () => {
     clearRunningLate,
     setCheckInModalOpen,
     setCheckOutModalOpen,
+    openCheckOutForSession,
     setRunningLateModalOpen,
   } = useApp();
 
@@ -95,7 +96,11 @@ export const QuickActionBar: React.FC = () => {
         <div
           onClick={() => {
             sound.playClick();
-            setCheckOutModalOpen(true);
+            if (checkedInSession) {
+              openCheckOutForSession(checkedInSession);
+            } else {
+              setCheckOutModalOpen(true);
+            }
           }}
           className={`relative p-5 rounded-3xl transition-all cursor-pointer top-sheen group ${
             isCheckedIn
@@ -121,23 +126,27 @@ export const QuickActionBar: React.FC = () => {
                   : 'glossy-pill-dark text-gray-400'
               }`}
             >
-              {isCheckedIn ? 'Attendance Prompt' : 'Step 2 • Departure'}
+              {isCheckedIn ? 'Ready to Check Out' : 'Step 2 • Departure'}
             </span>
           </div>
 
           <h3 className="text-base font-bold text-white group-hover:text-[#FFD000] transition-colors">
-            Check Out & Attendance
+            {isCheckedIn ? 'Complete Check Out' : 'Check Out & Attendance'}
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-            Logs student attendance and automatically calculates working hours
+            {isCheckedIn && checkedInSession
+              ? `Active: ${checkedInSession.batchName}. Tap to finalize attendance & log pay.`
+              : 'Logs student attendance and automatically calculates working hours'}
           </p>
 
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
             <span className="text-[11px] text-gray-400">
-              Auto Credit: <strong>1.5 hrs</strong>
+              {isCheckedIn && checkedInSession
+                ? `Active Session: ${checkedInSession.durationMinutes / 60} hrs`
+                : 'Auto Credit: 1.5 hrs'}
             </span>
             <span className="text-[#FFD000] font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-              <span>Log Sheet</span>
+              <span>{isCheckedIn ? 'Check Out Now' : 'Log Sheet'}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </span>
           </div>

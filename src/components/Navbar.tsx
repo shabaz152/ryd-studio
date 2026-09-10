@@ -29,6 +29,8 @@ export const Navbar: React.FC = () => {
     setTeacherName,
     isCheckedIn,
     checkedInSession,
+    setCheckOutModalOpen,
+    openCheckOutForSession,
     isRunningLate,
     runningLateMinutes,
     soundEnabled,
@@ -125,12 +127,26 @@ export const Navbar: React.FC = () => {
         {viewMode !== 'mobile' && (
           <div className="hidden sm:flex items-center">
             {isCheckedIn ? (
-              <div className="flex items-center gap-2 bg-amber-100 border border-amber-300 text-amber-900 dark:glossy-pill-yellow dark:text-[#FFD000] px-4 py-1 rounded-full text-xs font-bold">
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  if (checkedInSession) {
+                    openCheckOutForSession(checkedInSession);
+                  } else {
+                    setCheckOutModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-2 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 dark:glossy-pill-yellow dark:text-[#FFD000] px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shadow-xs hover:scale-[1.02]"
+                title="Active Session: Click to Check Out and log student attendance"
+              >
                 <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-[#FFD000] animate-ping shrink-0" />
                 <span className="truncate max-w-[180px] md:max-w-[240px]">
                   In Session: {checkedInSession?.batchName || 'Active'}
                 </span>
-              </div>
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-600 text-white dark:bg-[#FFD000] dark:text-black">
+                  Check Out
+                </span>
+              </button>
             ) : isRunningLate ? (
               <div className="flex items-center gap-2 bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 px-3.5 py-1 rounded-full text-xs font-bold">
                 <Clock className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
