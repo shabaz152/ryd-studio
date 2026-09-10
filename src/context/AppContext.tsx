@@ -592,6 +592,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Actions
   const checkIn = (sessionId: string) => {
+    // 1:1 Rule Enforcement: For every check-in there must be one check-out.
+    // Cannot check in to another session while one is already active.
+    if (isCheckedIn && checkedInSessionId && checkedInSessionId !== sessionId) {
+      const activeCurrent = sessions.find((s) => s.id === checkedInSessionId);
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Active Check-In in Progress',
+        description: `For every check-in, there has to be one check-out. Please check out of "${activeCurrent?.batchName || 'active session'}" before starting another class.`,
+      });
+      return;
+    }
+
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
@@ -617,8 +630,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playCheckIn();
     showToast({
       type: 'success',
-      title: 'Checked In Successfully',
-      description: `Active in ${session.batchName} at ${session.studioRoom}. Student attendance is ready to log upon session checkout.`,
+      title: 'Checked In Successfully (1:1 Pair Started)',
+      description: `Active in ${session.batchName} at ${session.studioRoom} (${timeString}). Ready for Check Out upon class completion.`,
     });
     setCheckInModalOpen(false);
   };
@@ -632,7 +645,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkOut = (sessionId: string, attendance: AttendanceRecord[], _notes?: string) => {
     let session = sessions.find((s) => s.id === sessionId);
     if (!session && sessions.length > 0) {
-      session = sessions[0];
+      session = sessions.find((s) => s.status === 'checked_in') || sessions[0];
       sessionId = session.id;
     }
     if (!session) {
@@ -642,6 +655,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: 'No Session Found',
         description: 'Unable to locate session to check out. Please schedule a class first.',
       });
+      return;
+    }
+
+    // 1:1 Rule Enforcement: For every check-in there has to be one check-out.
+    // Cannot check out a session that was not checked in.
+    if (session.status !== 'checked_in' && !isCheckedIn) {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Check-In Required Before Check-Out',
+        description: `For every check-in there has to be one check-out. Please check into "${session.batchName}" first.`,
+      });
+      setCheckOutModalOpen(false);
+      setCheckInModalOpen(true);
       return;
     }
 
@@ -655,6 +682,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? {
               ...s,
               status: 'completed',
+              checkInTime: s.checkInTime || timeString,
               checkOutTime: timeString,
               studentAttendance: attendance,
               teacherHoursLogged: hours,

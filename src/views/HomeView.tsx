@@ -35,6 +35,8 @@ export const HomeView: React.FC = () => {
     updates,
     leads,
     checkedInSession,
+    isCheckedIn,
+    showToast,
     setActiveTab,
     setCheckInModalOpen,
     setCheckOutModalOpen,
@@ -329,16 +331,38 @@ export const HomeView: React.FC = () => {
                           onClick={() => {
                             openCheckOutForSession(session);
                           }}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black glossy-button-yellow shadow-gold-glow-sm transition-all cursor-pointer"
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black glossy-button-yellow shadow-gold-glow-sm transition-all cursor-pointer animate-pulse"
                         >
                           <LogOut className="w-3.5 h-3.5 text-black" />
-                          <span>Check Out</span>
+                          <span>Check Out Now</span>
                         </button>
                       ) : session.status === 'completed' ? (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Done ({session.checkOutTime || 'Logged'})</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>
+                            1:1 Paired {session.checkInTime && session.checkOutTime ? `(${session.checkInTime} → ${session.checkOutTime})` : `(${session.checkOutTime || 'Completed'})`}
+                          </span>
                         </div>
+                      ) : isCheckedIn ? (
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            showToast({
+                              type: 'alert',
+                              title: '1:1 Check-In / Check-Out Rule',
+                              description: `You must check out of "${checkedInSession?.batchName || 'your active class'}" before checking into another class.`,
+                            });
+                            if (checkedInSession) {
+                              openCheckOutForSession(checkedInSession);
+                            } else {
+                              setCheckOutModalOpen(true);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-amber-500/10 border border-amber-500/25 text-amber-500 hover:bg-amber-500/20"
+                          title="Check out active class first to maintain 1:1 check-in and check-out pairing"
+                        >
+                          <span>Check In Locked</span>
+                        </button>
                       ) : (
                         <button
                           onClick={() => {

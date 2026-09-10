@@ -25,6 +25,8 @@ export const CheckInModal: React.FC = () => {
     batches,
     checkIn,
     isCheckedIn,
+    checkedInSession,
+    showToast,
     setCheckOutModalOpen,
     openCheckOutForSession,
     openRescheduleForSession,
@@ -380,13 +382,30 @@ export const CheckInModal: React.FC = () => {
                 <span>Proceed to Check Out & Attendance</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
+            ) : isCheckedIn ? (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setCheckInModalOpen(false);
+                  if (checkedInSession) {
+                    openCheckOutForSession(checkedInSession);
+                  } else {
+                    setCheckOutModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Check Out Active Class First</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             ) : (
               <button
                 onClick={handleConfirmCheckIn}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-bold shadow-gold-glow-sm transition-all cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm Check In</span>
+                <span>Confirm Check In (Step 1)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
