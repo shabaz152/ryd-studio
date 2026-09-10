@@ -17,6 +17,9 @@ import {
   Compass,
   Sun,
   Moon,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -38,6 +41,9 @@ export const Navbar: React.FC = () => {
     updates,
     activeTab,
     setActiveTab,
+    syncStatus,
+    lastSyncedAt,
+    triggerCloudSync,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -182,6 +188,42 @@ export const Navbar: React.FC = () => {
             ) : (
               <Moon className="w-4 h-4 text-[#FFD000]" />
             )}
+          </button>
+
+          {/* Real-Time Cross-Device Cloud Sync Button */}
+          <button
+            onClick={triggerCloudSync}
+            title={
+              syncStatus === 'syncing'
+                ? 'Syncing changes to cloud...'
+                : syncStatus === 'synced'
+                ? `Live Cloud Synced (Last synced: ${lastSyncedAt ? lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'just now'}) • Click to sync now`
+                : 'Offline mode • Click to retry sync'
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-semibold ${
+              syncStatus === 'syncing'
+                ? 'bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400'
+                : syncStatus === 'synced'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400 shadow-xs'
+                : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400'
+            }`}
+          >
+            {syncStatus === 'syncing' ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+            ) : syncStatus === 'synced' ? (
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            ) : (
+              <CloudOff className="w-3.5 h-3.5 text-red-500" />
+            )}
+            <span className="hidden md:inline text-[11px] font-bold">
+              {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Live Cloud' : 'Offline'}
+            </span>
           </button>
 
           {/* Notifications Bell */}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Batch,
   Session,
@@ -27,6 +27,11 @@ import {
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
+import {
+  fetchRemoteStudioState,
+  pushRemoteStudioState,
+  onOtherTabSync,
+} from '../utils/cloudSync';
 
 export interface ToastMessage {
   id: string;
@@ -145,6 +150,11 @@ interface AppContextType {
     specialty: string;
     notes?: string;
   }) => void;
+
+  // Real-Time Cross-Device Cloud Sync
+  syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
+  lastSyncedAt: Date | null;
+  triggerCloudSync: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -355,9 +365,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Sync to LocalStorage
+  // =========================================================================
+  // REAL-TIME CROSS-DEVICE CLOUD SYNC ENGINE
+  // Synchronizes sessions, cohorts, roster enrollments, CRM leads, and teacher
+  // progress across all devices (phones, laptops, tablets)
+  // =========================================================================
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(new Date());
+  const isInitialCloudLoadRef = useRef(false);
+  const isApplyingRemoteUpdateRef = useRef(false);
+  const localTimestampRef = useRef<number>(Date.now());
+
+  // Helper to load remote cloud state into local React state
+  const applyRemoteState = useCallback(
+    (data: any, remoteTimestamp: number, notifyUser: boolean = true) => {
+      isApplyingRemoteUpdateRef.current = true;
+      try {
+        if (data.teacher) setTeacher(data.teacher);
+        if (Array.isArray(data.batches)) setBatches(data.batches);
+        if (Array.isArray(data.sessions)) setSessions(data.sessions);
+        if (Array.isArray(data.leads)) setLeads(data.leads);
+        if (Array.isArray(data.updates)) setUpdates(data.updates);
+        if (Array.isArray(data.workbookOrders)) setWorkbookOrders(data.workbookOrders);
+        if (Array.isArray(data.freeSlots)) setFreeSlots(data.freeSlots);
+        if (Array.isArray(data.reviews)) setReviews(data.reviews);
+        if (data.referralStats) setReferralStats(data.referralStats);
+
+        localTimestampRef.current = remoteTimestamp;
+        setLastSyncedAt(new Date(remoteTimestamp));
+        setSyncStatus('synced');
+
+        if (notifyUser) {
+          sound.playNotification();
+          showToast({
+            type: 'info',
+            title: 'Live Cloud Sync',
+            description: 'Updated with latest sessions, cohorts & studio records from another device.',
+          });
+        }
+      } finally {
+        setTimeout(() => {
+          isApplyingRemoteUpdateRef.current = false;
+        }, 600);
+      }
+    },
+    []
+  );
+
+  // 1. Initial Cloud Boot: Fetch the latest global state on startup
   useEffect(() => {
+    let isMounted = true;
+    setSyncStatus('syncing');
+
+    fetchRemoteStudioState().then((res) => {
+      if (!isMounted) return;
+      if (res.success && res.data) {
+        applyRemoteState(res.data, res.timestamp, false);
+      }
+      isInitialCloudLoadRef.current = true;
+      setSyncStatus('synced');
+      setLastSyncedAt(new Date());
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [applyRemoteState]);
+
+  // 2. Push local state updates to Cloud Storage & LocalStorage
+  useEffect(() => {
+    // Save to local storage for offline resilience
     try {
+      localStorage.setItem(`${STORAGE_KEY}_teacher`, JSON.stringify(teacher));
       localStorage.setItem(`${STORAGE_KEY}_batches`, JSON.stringify(batches));
       localStorage.setItem(`${STORAGE_KEY}_sessions`, JSON.stringify(sessions));
       localStorage.setItem(`${STORAGE_KEY}_leads`, JSON.stringify(leads));
@@ -369,7 +448,141 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       // Ignored
     }
-  }, [batches, sessions, leads, updates, workbookOrders, freeSlots, reviews, referralStats]);
+
+    // Guard: Do not push if we haven't loaded initial cloud state yet,
+    // or if this update came from a remote sync event
+    if (!isInitialCloudLoadRef.current || isApplyingRemoteUpdateRef.current) {
+      return;
+    }
+
+    setSyncStatus('syncing');
+    const newTimestamp = Date.now();
+    localTimestampRef.current = newTimestamp;
+
+    const payload = {
+      teacher,
+      batches,
+      sessions,
+      leads,
+      updates,
+      workbookOrders,
+      freeSlots,
+      reviews,
+      referralStats,
+    };
+
+    pushRemoteStudioState(payload, (success, syncedTimestamp) => {
+      if (success) {
+        setSyncStatus('synced');
+        setLastSyncedAt(new Date(syncedTimestamp));
+        localTimestampRef.current = syncedTimestamp;
+      } else {
+        setSyncStatus('offline');
+      }
+    });
+  }, [batches, sessions, leads, updates, workbookOrders, freeSlots, reviews, referralStats, teacher]);
+
+  // 3. Real-Time Cross-Device Polling & Window Event Listeners
+  useEffect(() => {
+    // Multi-tab bus: Instant sync across tabs on same device
+    const unsubscribeBus = onOtherTabSync(() => {
+      fetchRemoteStudioState().then((res) => {
+        if (res.success && res.data && res.timestamp > localTimestampRef.current) {
+          applyRemoteState(res.data, res.timestamp, true);
+        }
+      });
+    });
+
+    // Cloud Polling Loop: Check every 3.5s when tab is active
+    const pollInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      fetchRemoteStudioState().then((res) => {
+        if (res.success && res.data && res.timestamp > localTimestampRef.current) {
+          applyRemoteState(res.data, res.timestamp, true);
+        }
+      });
+    }, 3500);
+
+    // Immediate sync when tab becomes visible or receives focus
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchRemoteStudioState().then((res) => {
+          if (res.success && res.data && res.timestamp > localTimestampRef.current) {
+            applyRemoteState(res.data, res.timestamp, true);
+          }
+        });
+      }
+    };
+
+    // When network reconnects
+    const handleOnline = () => {
+      setSyncStatus('syncing');
+      fetchRemoteStudioState().then((res) => {
+        if (res.success && res.data) {
+          if (res.timestamp > localTimestampRef.current) {
+            applyRemoteState(res.data, res.timestamp, true);
+          } else {
+            setSyncStatus('synced');
+          }
+        }
+      });
+    };
+
+    window.addEventListener('visibilitychange', handleFocusOrVisible);
+    window.addEventListener('focus', handleFocusOrVisible);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      unsubscribeBus();
+      clearInterval(pollInterval);
+      window.removeEventListener('visibilitychange', handleFocusOrVisible);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [applyRemoteState]);
+
+  // 4. Manual Sync Trigger (Button in Navbar)
+  const triggerCloudSync = async () => {
+    sound.playClick();
+    setSyncStatus('syncing');
+    try {
+      const res = await fetchRemoteStudioState();
+      if (res.success && res.data) {
+        applyRemoteState(res.data, res.timestamp, false);
+        showToast({
+          type: 'success',
+          title: 'All Devices in Sync',
+          description: 'Latest studio sessions, batches, and records synchronized across all devices.',
+        });
+      } else {
+        const payload = {
+          teacher,
+          batches,
+          sessions,
+          leads,
+          updates,
+          workbookOrders,
+          freeSlots,
+          reviews,
+          referralStats,
+        };
+        pushRemoteStudioState(payload, (success, syncedTimestamp) => {
+          setSyncStatus(success ? 'synced' : 'offline');
+          setLastSyncedAt(new Date(syncedTimestamp));
+          showToast({
+            type: success ? 'success' : 'alert',
+            title: success ? 'Pushed to Cloud' : 'Sync Offline',
+            description: success
+              ? 'Local records successfully published to global cloud for all devices.'
+              : 'Could not reach cloud service. Changes are stored locally.',
+          });
+        });
+      }
+    } catch {
+      setSyncStatus('error');
+    }
+  };
 
   const checkedInSession = sessions.find((s) => s.id === checkedInSessionId) || null;
 
@@ -1133,6 +1346,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         shareReferralInvite,
         updateCandidateStage,
         addCandidateReferral,
+        syncStatus,
+        lastSyncedAt,
+        triggerCloudSync,
       }}
     >
       {children}
