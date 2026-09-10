@@ -1,0 +1,1084 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  Batch,
+  Session,
+  Lead,
+  UpdateMessage,
+  WorkbookOrder,
+  FreeSlot,
+  TeacherReview,
+  ReferralStats,
+  AttendanceRecord,
+  AddSessionParams,
+  AddBatchParams,
+  Student,
+  ReferredCandidate,
+  ReferralProgressStage,
+} from '../types';
+import {
+  INITIAL_BATCHES,
+  INITIAL_SESSIONS,
+  INITIAL_LEADS,
+  INITIAL_UPDATES,
+  INITIAL_WORKBOOK_ORDERS,
+  INITIAL_FREE_SLOTS,
+  INITIAL_REVIEWS,
+  INITIAL_REFERRAL_STATS,
+} from '../data/mockData';
+import { sound } from '../utils/sound';
+import { generateCalendarCode } from '../utils/calendar';
+
+export interface ToastMessage {
+  id: string;
+  type: 'success' | 'alert' | 'info';
+  title: string;
+  description: string;
+}
+
+interface TeacherProfile {
+  name: string;
+  role: string;
+  avatarUrl: string;
+  hourlyRate: number;
+  totalHoursMonth: number;
+  totalEarningsMonth: number;
+  rating: number;
+  classesCompletedThisWeek: number;
+}
+
+interface AppContextType {
+  // Navigation & Viewport
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  viewMode: 'mobile' | 'responsive';
+  toggleViewMode: () => void;
+  soundEnabled: boolean;
+  toggleSound: () => void;
+
+  // Splash Screen
+  showSplash: boolean;
+  dismissSplash: () => void;
+  replaySplash: () => void;
+
+  // Teacher Profile
+  teacher: TeacherProfile;
+  setTeacherName: (name: string) => void;
+
+  // Active Session & Live Status
+  isCheckedIn: boolean;
+  checkedInSession: Session | null;
+  checkInTime: string | null;
+  isRunningLate: boolean;
+  runningLateMinutes: number | null;
+  runningLateReason: string;
+
+  // Core Data
+  batches: Batch[];
+  sessions: Session[];
+  leads: Lead[];
+  updates: UpdateMessage[];
+  workbookOrders: WorkbookOrder[];
+  freeSlots: FreeSlot[];
+  reviews: TeacherReview[];
+  referralStats: ReferralStats;
+
+  // Toast notifications
+  toasts: ToastMessage[];
+  dismissToast: (id: string) => void;
+  showToast: (toast: Omit<ToastMessage, 'id'>) => void;
+
+  // Modals state
+  checkInModalOpen: boolean;
+  setCheckInModalOpen: (open: boolean) => void;
+  checkOutModalOpen: boolean;
+  setCheckOutModalOpen: (open: boolean) => void;
+  runningLateModalOpen: boolean;
+  setRunningLateModalOpen: (open: boolean) => void;
+  rescheduleModalOpen: boolean;
+  setRescheduleModalOpen: (open: boolean) => void;
+  selectedSessionForReschedule: Session | null;
+  openRescheduleForSession: (session: Session) => void;
+  leadModalOpen: boolean;
+  setLeadModalOpen: (open: boolean) => void;
+  leadModalDefaultType: 'walk_in' | 'enquiry';
+  openLeadModalWithType: (type: 'walk_in' | 'enquiry') => void;
+  orderWorkbookModalOpen: boolean;
+  setOrderWorkbookModalOpen: (open: boolean) => void;
+  composeUpdateModalOpen: boolean;
+  setComposeUpdateModalOpen: (open: boolean) => void;
+  newSessionModalOpen: boolean;
+  setNewSessionModalOpen: (open: boolean) => void;
+
+  // Core Actions
+  checkIn: (sessionId: string) => void;
+  checkOut: (sessionId: string, attendance: AttendanceRecord[], notes?: string) => void;
+  reportRunningLate: (minutes: number, reason: string) => void;
+  clearRunningLate: () => void;
+  requestReschedule: (sessionId: string, proposedDate: string, proposedTime: string, reason: string) => void;
+  cancelClass: (sessionId: string, reason: string) => void;
+  createNewSession: (sessionData: AddSessionParams) => void;
+  deleteSession: (sessionId: string) => void;
+  clearAllSessions: () => void;
+  addNewBatch: (batchData: AddBatchParams) => void;
+  deleteBatch: (batchId: string) => void;
+  enrollStudent: (batchId: string, studentData: Omit<Student, 'id' | 'lastAttendance'>) => void;
+  removeStudent: (batchId: string, studentId: string) => void;
+  addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => void;
+  deleteLead: (leadId: string) => void;
+  clearAllLeads: () => void;
+  updateLeadStatus: (id: string, status: Lead['status']) => void;
+  createWorkbookOrder: (order: Omit<WorkbookOrder, 'id' | 'orderDate' | 'trackingNumber' | 'status'>) => void;
+  toggleFreeSlot: (id: string) => void;
+  addFreeSlot: (slot: Omit<FreeSlot, 'id'>) => void;
+  sendUpdateMessage: (msg: Omit<UpdateMessage, 'id' | 'sentAt' | 'status'>) => void;
+  replyToReview: (reviewId: string, replyText: string) => void;
+  shareReferralInvite: () => void;
+  updateCandidateStage: (candidateId: string, stage: ReferralProgressStage) => void;
+  addCandidateReferral: (candidate: {
+    candidateName: string;
+    email: string;
+    phone: string;
+    specialty: string;
+    notes?: string;
+  }) => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+const STORAGE_KEY = 'ryd_studio_state_v8';
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeTab, setActiveTab] = useState<string>('home');
+  const [viewMode, setViewMode] = useState<'mobile' | 'responsive'>('responsive');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+
+  // Initial stats set strictly to 0 as requested by the user
+  const [teacher, setTeacher] = useState<TeacherProfile>(() => {
+    return {
+      name: 'Sarah Jenkins',
+      role: 'Head of Contemporary & Urban Styles',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+      hourlyRate: 50,
+      totalHoursMonth: 0,
+      totalEarningsMonth: 0,
+      rating: 0,
+      classesCompletedThisWeek: 0,
+    };
+  });
+
+  const [batches, setBatches] = useState<Batch[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_batches`);
+      return saved ? JSON.parse(saved) : INITIAL_BATCHES;
+    } catch {
+      return INITIAL_BATCHES;
+    }
+  });
+
+  const [sessions, setSessions] = useState<Session[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_sessions`);
+      return saved ? JSON.parse(saved) : INITIAL_SESSIONS;
+    } catch {
+      return INITIAL_SESSIONS;
+    }
+  });
+
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_leads`);
+      return saved ? JSON.parse(saved) : INITIAL_LEADS;
+    } catch {
+      return INITIAL_LEADS;
+    }
+  });
+
+  const [updates, setUpdates] = useState<UpdateMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_updates`);
+      return saved ? JSON.parse(saved) : INITIAL_UPDATES;
+    } catch {
+      return INITIAL_UPDATES;
+    }
+  });
+
+  const [workbookOrders, setWorkbookOrders] = useState<WorkbookOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_workbooks`);
+      return saved ? JSON.parse(saved) : INITIAL_WORKBOOK_ORDERS;
+    } catch {
+      return INITIAL_WORKBOOK_ORDERS;
+    }
+  });
+
+  const [freeSlots, setFreeSlots] = useState<FreeSlot[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_slots`);
+      return saved ? JSON.parse(saved) : INITIAL_FREE_SLOTS;
+    } catch {
+      return INITIAL_FREE_SLOTS;
+    }
+  });
+
+  const [reviews, setReviews] = useState<TeacherReview[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_reviews`);
+      return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
+    } catch {
+      return INITIAL_REVIEWS;
+    }
+  });
+
+  const [referralStats, setReferralStats] = useState<ReferralStats>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_referrals`);
+      return saved ? JSON.parse(saved) : INITIAL_REFERRAL_STATS;
+    } catch {
+      return INITIAL_REFERRAL_STATS;
+    }
+  });
+
+  // Check In & Late State
+  const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
+  const [checkedInSessionId, setCheckedInSessionId] = useState<string | null>(null);
+  const [checkInTime, setCheckInTime] = useState<string | null>(null);
+  const [isRunningLate, setIsRunningLate] = useState<boolean>(false);
+  const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
+  const [runningLateReason, setRunningLateReason] = useState<string>('');
+
+  // Modals
+  const [checkInModalOpen, setCheckInModalOpen] = useState<boolean>(false);
+  const [checkOutModalOpen, setCheckOutModalOpen] = useState<boolean>(false);
+  const [runningLateModalOpen, setRunningLateModalOpen] = useState<boolean>(false);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState<boolean>(false);
+  const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
+  const [leadModalOpen, setLeadModalOpen] = useState<boolean>(false);
+  const [leadModalDefaultType, setLeadModalDefaultType] = useState<'walk_in' | 'enquiry'>('walk_in');
+
+  const openLeadModalWithType = (type: 'walk_in' | 'enquiry') => {
+    sound.playClick();
+    setLeadModalDefaultType(type);
+    setLeadModalOpen(true);
+  };
+  const [orderWorkbookModalOpen, setOrderWorkbookModalOpen] = useState<boolean>(false);
+  const [composeUpdateModalOpen, setComposeUpdateModalOpen] = useState<boolean>(false);
+  const [newSessionModalOpen, setNewSessionModalOpen] = useState<boolean>(false);
+
+  // Toasts
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Sound sync
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    sound.setEnabled(next);
+    if (next) sound.playClick();
+  };
+
+  const toggleViewMode = () => {
+    sound.playClick();
+    setViewMode((prev) => (prev === 'mobile' ? 'responsive' : 'mobile'));
+  };
+
+  const showToast = (toast: Omit<ToastMessage, 'id'>) => {
+    const id = 'toast-' + Date.now() + '-' + Math.random();
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    setTimeout(() => {
+      setToasts((current) => current.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((current) => current.filter((t) => t.id !== id));
+  };
+
+  const dismissSplash = () => {
+    setShowSplash(false);
+  };
+
+  const replaySplash = () => {
+    setShowSplash(true);
+    sound.playSplash();
+  };
+
+  const setTeacherName = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const cleanFirstName = trimmed.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
+    const newCode = `RYD-${cleanFirstName || 'FACULTY'}-2026`;
+    setTeacher((prev) => ({ ...prev, name: trimmed }));
+    setReferralStats((prev) => ({ ...prev, referralCode: newCode }));
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Faculty Name & Referral Updated',
+      description: `Name updated to "${trimmed}". Referral code and QR link updated to ${newCode}.`,
+    });
+  };
+
+  // Sync to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_batches`, JSON.stringify(batches));
+      localStorage.setItem(`${STORAGE_KEY}_sessions`, JSON.stringify(sessions));
+      localStorage.setItem(`${STORAGE_KEY}_leads`, JSON.stringify(leads));
+      localStorage.setItem(`${STORAGE_KEY}_updates`, JSON.stringify(updates));
+      localStorage.setItem(`${STORAGE_KEY}_workbooks`, JSON.stringify(workbookOrders));
+      localStorage.setItem(`${STORAGE_KEY}_slots`, JSON.stringify(freeSlots));
+      localStorage.setItem(`${STORAGE_KEY}_reviews`, JSON.stringify(reviews));
+      localStorage.setItem(`${STORAGE_KEY}_referrals`, JSON.stringify(referralStats));
+    } catch {
+      // Ignored
+    }
+  }, [batches, sessions, leads, updates, workbookOrders, freeSlots, reviews, referralStats]);
+
+  const checkedInSession = sessions.find((s) => s.id === checkedInSessionId) || null;
+
+  // Actions
+  const checkIn = (sessionId: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setIsCheckedIn(true);
+    setCheckedInSessionId(sessionId);
+    setCheckInTime(timeString);
+    setIsRunningLate(false);
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'checked_in',
+              checkInTime: timeString,
+              calendarCode: generateCalendarCode(s.monthIndex, s.classIndex, 'present'),
+            }
+          : s
+      )
+    );
+
+    sound.playCheckIn();
+    showToast({
+      type: 'success',
+      title: 'Checked In Successfully',
+      description: `Active in ${session.batchName} at ${session.studioRoom}. Student attendance is ready to log upon session checkout.`,
+    });
+    setCheckInModalOpen(false);
+  };
+
+  const checkOut = (sessionId: string, attendance: AttendanceRecord[]) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const hours = session.durationMinutes / 60;
+    const sessionEarnings = hours * teacher.hourlyRate;
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'completed',
+              checkOutTime: timeString,
+              studentAttendance: attendance,
+              teacherHoursLogged: hours,
+              teacherEarnings: sessionEarnings,
+            }
+          : s
+      )
+    );
+
+    // Update teacher hours & earnings dynamically from 0
+    setTeacher((prev) => ({
+      ...prev,
+      totalHoursMonth: +(prev.totalHoursMonth + hours).toFixed(1),
+      totalEarningsMonth: Math.round(prev.totalEarningsMonth + sessionEarnings),
+      classesCompletedThisWeek: prev.classesCompletedThisWeek + 1,
+      rating: prev.rating === 0 ? 5.0 : prev.rating,
+    }));
+
+    setIsCheckedIn(false);
+    setCheckedInSessionId(null);
+    setCheckInTime(null);
+
+    sound.playSuccess();
+
+    const presentCount = attendance.filter((a) => a.status === 'present').length;
+    showToast({
+      type: 'success',
+      title: 'Session Checked Out & Hours Logged',
+      description: `Logged +${hours} hrs (+$${sessionEarnings}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} dancers recorded.`,
+    });
+    setCheckOutModalOpen(false);
+  };
+
+  const reportRunningLate = (minutes: number, reason: string) => {
+    setIsRunningLate(true);
+    setRunningLateMinutes(minutes);
+    setRunningLateReason(reason);
+
+    sound.playAlert();
+
+    const targetSession = checkedInSession || sessions.find((s) => s.status === 'scheduled');
+    const batchName = targetSession ? targetSession.batchName : 'Today’s Batches';
+
+    const newUpdate: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: `All Parents & Staff (${batchName})`,
+      batchName: batchName,
+      subject: `Teacher Running ${minutes} Minutes Late - ETA Notice`,
+      message: `Coach ${teacher.name} is running ${minutes} minutes late due to: "${reason || 'Transit delay'}". Studio floor is supervised. Class will conclude at the designated schedule.`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app', 'sms'],
+    };
+
+    setUpdates((prev) => [newUpdate, ...prev]);
+
+    showToast({
+      type: 'alert',
+      title: `Late Notice Broadcasted (+${minutes}m)`,
+      description: `Notice dispatched to parents of ${batchName} and Studio Reception.`,
+    });
+    setRunningLateModalOpen(false);
+  };
+
+  const clearRunningLate = () => {
+    setIsRunningLate(false);
+    setRunningLateMinutes(null);
+    setRunningLateReason('');
+    showToast({
+      type: 'info',
+      title: 'Status Restored',
+      description: 'Running late status cleared. Resumed standard studio schedule.',
+    });
+  };
+
+  const openRescheduleForSession = (session: Session) => {
+    setSelectedSessionForReschedule(session);
+    setRescheduleModalOpen(true);
+  };
+
+  const requestReschedule = (sessionId: string, proposedDate: string, proposedTime: string, reason: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    const calendarCode = generateCalendarCode(session.monthIndex, session.classIndex, 'rescheduled');
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'rescheduled',
+              proposedDate,
+              proposedTime,
+              rescheduleReason: reason,
+              parentNotified: true,
+              calendarCode,
+            }
+          : s
+      )
+    );
+
+    const newUpdate: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: `All Parents (${session.batchName})`,
+      batchName: session.batchName,
+      subject: `Reschedule Request & Calendar Sync: ${session.batchName}`,
+      message: `Class originally set for ${session.date} (${session.timeSlot}) is proposed to reschedule to ${proposedDate} at ${proposedTime}. Reason: ${reason}. Structured Code: ${calendarCode}. Confirmations sent to parent portals.`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app', 'whatsapp', 'sms'],
+    };
+    setUpdates((prev) => [newUpdate, ...prev]);
+
+    sound.playCheckIn();
+    showToast({
+      type: 'info',
+      title: `Reschedule Dispatched (Code: ${calendarCode})`,
+      description: `Automated parent notification triggered for ${session.batchName}. Google Calendar code generated.`,
+    });
+    setRescheduleModalOpen(false);
+  };
+
+  const cancelClass = (sessionId: string, reason: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    const calendarCode = generateCalendarCode(session.monthIndex, session.classIndex, 'absent');
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'cancelled',
+              rescheduleReason: reason,
+              parentNotified: true,
+              calendarCode,
+            }
+          : s
+      )
+    );
+
+    const newUpdate: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: `All Parents (${session.batchName})`,
+      batchName: session.batchName,
+      subject: `Class Cancellation Alert: ${session.batchName}`,
+      message: `The class on ${session.date} has been cancelled (${reason}). Code: ${calendarCode}. Makeup credit issued to student accounts.`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app', 'sms'],
+    };
+    setUpdates((prev) => [newUpdate, ...prev]);
+
+    sound.playAlert();
+    showToast({
+      type: 'alert',
+      title: `Class Cancelled (Code: ${calendarCode})`,
+      description: `Parents notified. Calendar code ${calendarCode} recorded for makeup credit.`,
+    });
+  };
+
+  const createNewSession = (sessionData: AddSessionParams) => {
+    const batch = batches.find((b) => b.id === sessionData.batchId);
+    const batchName = batch
+      ? `${batch.name} (${sessionData.type})`
+      : (sessionData.customBatchName || 'Custom Masterclass');
+    const locationName = batch ? batch.locationName : (sessionData.locationName || 'RYD Downtown Central');
+    const classNum = sessions.length + 1;
+    const calendarCode = generateCalendarCode(2, classNum, 'scheduled');
+
+    const newSess: Session = {
+      id: 'sess-' + Date.now(),
+      batchId: batch ? batch.id : ('custom-' + Date.now()),
+      batchName,
+      date: sessionData.date || '2026-09-10',
+      timeSlot: sessionData.timeSlot,
+      studioRoom: sessionData.studioRoom,
+      locationName,
+      monthIndex: 2,
+      classIndex: classNum,
+      status: 'scheduled',
+      durationMinutes: sessionData.durationMinutes || 90,
+      calendarCode,
+    };
+
+    setSessions((prev) => [newSess, ...prev]);
+
+    if (sessionData.sendParentNotification) {
+      const newUpdate: UpdateMessage = {
+        id: 'update-' + Date.now(),
+        type: 'broadcast',
+        recipientName: `All Parents (${batchName})`,
+        batchName,
+        subject: `New Class Scheduled: ${batchName}`,
+        message: `A new session has been added for ${newSess.date} at ${newSess.timeSlot} in ${newSess.studioRoom}. Structured Calendar Code: ${calendarCode}.`,
+        sentAt: 'Just Now',
+        status: 'delivered',
+        channels: ['app', 'whatsapp', 'sms'],
+      };
+      setUpdates((prev) => [newUpdate, ...prev]);
+    }
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: `Session Scheduled (Code: ${calendarCode})`,
+      description: `${batchName} scheduled for ${newSess.date} (${newSess.timeSlot}). Google Calendar code created.`,
+    });
+    setNewSessionModalOpen(false);
+  };
+
+  const deleteSession = (sessionId: string) => {
+    const sessionToDelete = sessions.find((s) => s.id === sessionId);
+    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+
+    if (checkedInSessionId === sessionId) {
+      setIsCheckedIn(false);
+      setCheckedInSessionId(null);
+      setCheckInTime(null);
+    }
+
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Session Removed',
+      description: sessionToDelete
+        ? `"${sessionToDelete.batchName}" (${sessionToDelete.timeSlot}) has been deleted.`
+        : 'Session has been deleted from your schedule.',
+    });
+  };
+
+  const clearAllSessions = () => {
+    setSessions([]);
+    if (isCheckedIn) {
+      setIsCheckedIn(false);
+      setCheckedInSessionId(null);
+      setCheckInTime(null);
+    }
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'All Sessions Cleared',
+      description: 'All scheduled sessions for today have been removed.',
+    });
+  };
+
+  const addNewBatch = (batchData: AddBatchParams) => {
+    const batchId = 'batch-' + Date.now();
+    const defaultStudents: Student[] = batchData.students && batchData.students.length > 0 ? batchData.students : [];
+
+    const newBatch: Batch = {
+      id: batchId,
+      name: batchData.name,
+      code: batchData.code || ('RYD-' + batchData.name.slice(0, 3).toUpperCase() + '-0' + (batches.length + 1)),
+      style: batchData.style,
+      level: batchData.level,
+      scheduleTime: batchData.scheduleTime,
+      days: batchData.days,
+      studioRoom: batchData.studioRoom,
+      locationName: batchData.locationName,
+      address: batchData.address || '742 Broadway Ave, Floor 3, Downtown',
+      mapCoordinates: { lat: 40.7128, lng: -74.0060 },
+      navigationUrl: `https://maps.google.com/?q=${encodeURIComponent(batchData.locationName + ' ' + batchData.studioRoom)}`,
+      students: defaultStudents,
+    };
+
+    setBatches((prev) => [newBatch, ...prev]);
+
+    if (batchData.autoScheduleToday !== false) {
+      const classNum = sessions.length + 1;
+      const calendarCode = generateCalendarCode(2, classNum, 'scheduled');
+      const newSess: Session = {
+        id: 'sess-' + Date.now(),
+        batchId: newBatch.id,
+        batchName: newBatch.name,
+        date: '2026-09-10',
+        timeSlot: newBatch.scheduleTime,
+        studioRoom: newBatch.studioRoom,
+        locationName: newBatch.locationName,
+        monthIndex: 2,
+        classIndex: classNum,
+        status: 'scheduled',
+        durationMinutes: 90,
+        calendarCode,
+      };
+      setSessions((prev) => [newSess, ...prev]);
+    }
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'New Batch Schedule Created!',
+      description: `${newBatch.name} (${newBatch.scheduleTime}) is now active in your Studio Schedule & Roster Planner.`,
+    });
+    setNewSessionModalOpen(false);
+  };
+
+  const deleteBatch = (batchId: string) => {
+    const batchToDelete = batches.find((b) => b.id === batchId);
+    setBatches((prev) => prev.filter((b) => b.id !== batchId));
+    // Also remove sessions assigned to this batch
+    setSessions((prev) => prev.filter((s) => s.batchId !== batchId));
+
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Cohort & Schedule Deleted',
+      description: batchToDelete
+        ? `"${batchToDelete.name}" cohort and its scheduled sessions have been removed.`
+        : 'Cohort and schedule deleted.',
+    });
+  };
+
+  const enrollStudent = (batchId: string, studentData: Omit<Student, 'id' | 'lastAttendance'>) => {
+    const studentId = 'stud-' + Date.now();
+    const newStudent: Student = {
+      id: studentId,
+      name: studentData.name,
+      avatarUrl: studentData.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      parentName: studentData.parentName || 'Self / Guardian',
+      parentPhone: studentData.parentPhone || '+1 (555) 000-0000',
+      parentEmail: studentData.parentEmail || `${studentData.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      age: studentData.age || 16,
+      notes: studentData.notes || 'Newly registered cohort member',
+    };
+
+    setBatches((prev) =>
+      prev.map((batch) => {
+        if (batch.id === batchId) {
+          return {
+            ...batch,
+            students: [...batch.students, newStudent],
+          };
+        }
+        return batch;
+      })
+    );
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Dancer Enrolled!',
+      description: `${newStudent.name} registered into cohort. Roster count updated.`,
+    });
+  };
+
+  const removeStudent = (batchId: string, studentId: string) => {
+    let studentName = 'Dancer';
+    setBatches((prev) =>
+      prev.map((batch) => {
+        if (batch.id === batchId) {
+          const found = batch.students.find((s) => s.id === studentId);
+          if (found) studentName = found.name;
+          return {
+            ...batch,
+            students: batch.students.filter((s) => s.id !== studentId),
+          };
+        }
+        return batch;
+      })
+    );
+
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Dancer Removed',
+      description: `${studentName} was removed from the roster.`,
+    });
+  };
+
+  const addLead = (leadData: Omit<Lead, 'id' | 'createdAt'>) => {
+    const isWalkIn = leadData.source === 'Walk-In' || leadData.leadType === 'walk_in';
+    const newLead: Lead = {
+      ...leadData,
+      id: 'lead-' + Date.now(),
+      leadType: isWalkIn ? 'walk_in' : 'enquiry',
+      createdAt: 'Today, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setLeads((prev) => [newLead, ...prev]);
+
+    const updatedTotal = leads.length + 1;
+    const currentTypeCount = leads.filter((l) =>
+      isWalkIn
+        ? (l.source === 'Walk-In' || l.leadType === 'walk_in')
+        : (l.source !== 'Walk-In' || l.leadType === 'enquiry')
+    ).length + 1;
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: isWalkIn ? `Walk-In Logged (Total Walk-Ins: ${currentTypeCount})` : `Enquiry Logged (Total Enquiries: ${currentTypeCount})`,
+      description: `${newLead.studentName} logged under ${newLead.source}. Total CRM count is now ${updatedTotal}.`,
+    });
+    setLeadModalOpen(false);
+  };
+
+  const deleteLead = (leadId: string) => {
+    const leadToDelete = leads.find((l) => l.id === leadId);
+    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Lead Removed',
+      description: leadToDelete ? `Lead for "${leadToDelete.studentName}" has been deleted.` : 'Lead deleted.',
+    });
+  };
+
+  const clearAllLeads = () => {
+    setLeads([]);
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'CRM Reset to 0',
+      description: 'All student enquiries and walk-ins have been cleared to 0.',
+    });
+  };
+
+  const updateLeadStatus = (id: string, status: Lead['status']) => {
+    sound.playClick();
+    setLeads((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, status } : l))
+    );
+    showToast({
+      type: 'info',
+      title: 'Lead Status Updated',
+      description: `Lead moved to ${status.replace('_', ' ').toUpperCase()}.`,
+    });
+  };
+
+  const createWorkbookOrder = (
+    orderData: Omit<WorkbookOrder, 'id' | 'orderDate' | 'trackingNumber' | 'status'>
+  ) => {
+    const tracking = 'RYD-TRK-' + Math.floor(10000 + Math.random() * 90000);
+    const orderDate = new Date().toISOString().slice(0, 10);
+    const est = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+
+    const newOrder: WorkbookOrder = {
+      ...orderData,
+      id: 'wb-' + Date.now(),
+      trackingNumber: tracking,
+      orderDate,
+      estimatedDelivery: est,
+      status: 'ordered',
+    };
+
+    setWorkbookOrders((prev) => [newOrder, ...prev]);
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Workbook Order Placed',
+      description: `${newOrder.itemTitle} ordered for ${newOrder.studentName}. Tracking #${tracking}.`,
+    });
+    setOrderWorkbookModalOpen(false);
+  };
+
+  const toggleFreeSlot = (id: string) => {
+    sound.playClick();
+    setFreeSlots((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, isAvailable: !s.isAvailable } : s))
+    );
+  };
+
+  const addFreeSlot = (slotData: Omit<FreeSlot, 'id'>) => {
+    const newSlot: FreeSlot = {
+      ...slotData,
+      id: 'fs-' + Date.now(),
+    };
+    setFreeSlots((prev) => [...prev, newSlot]);
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Free Slot Added',
+      description: `Available slot added for ${newSlot.dayOfWeek} (${newSlot.timeRange}).`,
+    });
+  };
+
+  const sendUpdateMessage = (msgData: Omit<UpdateMessage, 'id' | 'sentAt' | 'status'>) => {
+    const newMsg: UpdateMessage = {
+      ...msgData,
+      id: 'msg-' + Date.now(),
+      sentAt: 'Just Now',
+      status: 'delivered',
+    };
+
+    setUpdates((prev) => [newMsg, ...prev]);
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Update Broadcasted',
+      description: `Sent "${newMsg.subject}" to ${newMsg.recipientName} via ${newMsg.channels.join(', ').toUpperCase()}.`,
+    });
+    setComposeUpdateModalOpen(false);
+  };
+
+  const replyToReview = (reviewId: string, replyText: string) => {
+    sound.playSuccess();
+    setReviews((prev) =>
+      prev.map((r) => (r.id === reviewId ? { ...r, teacherReply: replyText } : r))
+    );
+    showToast({
+      type: 'success',
+      title: 'Reply Published',
+      description: 'Your response was posted to the parent review.',
+    });
+  };
+
+  const shareReferralInvite = () => {
+    sound.playSuccess();
+    setReferralStats((prev) => ({
+      ...prev,
+      invitesSent: prev.invitesSent + 1,
+    }));
+    try {
+      navigator.clipboard.writeText(
+        `https://ryd.studio/join?ref=${referralStats.referralCode}&inviter=${encodeURIComponent(teacher.name)}`
+      );
+    } catch {
+      // Ignored
+    }
+    showToast({
+      type: 'success',
+      title: 'Referral Link Copied',
+      description: `Faculty link with code ${referralStats.referralCode} copied to clipboard.`,
+    });
+  };
+
+  const updateCandidateStage = (candidateId: string, nextStage: ReferralProgressStage) => {
+    const currentCandidate = referralStats.candidates?.find((c) => c.id === candidateId);
+    if (!currentCandidate) return;
+
+    const wasAlreadyJoined = currentCandidate.stage === 'successfully_joined';
+    const isNowJoined = nextStage === 'successfully_joined';
+
+    setReferralStats((prev) => {
+      const updatedCandidates = (prev.candidates || []).map((c) =>
+        c.id === candidateId ? { ...c, stage: nextStage } : c
+      );
+
+      const bonusDiff = !wasAlreadyJoined && isNowJoined ? 150 : (wasAlreadyJoined && !isNowJoined ? -150 : 0);
+      const hireDiff = !wasAlreadyJoined && isNowJoined ? 1 : (wasAlreadyJoined && !isNowJoined ? -1 : 0);
+
+      return {
+        ...prev,
+        candidates: updatedCandidates,
+        onboardedTeachers: Math.max(0, prev.onboardedTeachers + hireDiff),
+        bonusEarned: Math.max(0, prev.bonusEarned + bonusDiff),
+      };
+    });
+
+    if (!wasAlreadyJoined && isNowJoined) {
+      sound.playSuccess();
+      showToast({
+        type: 'success',
+        title: `Teacher Successfully Joined!`,
+        description: `${currentCandidate.candidateName} completed 30-day onboarding. +$150 Bonus credited to payroll!`,
+      });
+    } else {
+      sound.playClick();
+      const stageNames: Record<ReferralProgressStage, string> = {
+        starting_referral: 'Starting Referral',
+        interview: 'Studio Interview',
+        selected: 'Selected for Roster',
+        successfully_joined: 'Successfully Joined',
+      };
+      showToast({
+        type: 'info',
+        title: `Progress Updated: ${stageNames[nextStage]}`,
+        description: `${currentCandidate.candidateName}'s application advanced to ${stageNames[nextStage]}.`,
+      });
+    }
+  };
+
+  const addCandidateReferral = (candidate: {
+    candidateName: string;
+    email: string;
+    phone: string;
+    specialty: string;
+    notes?: string;
+  }) => {
+    const newCand: ReferredCandidate = {
+      id: 'cand-' + Date.now(),
+      candidateName: candidate.candidateName.trim(),
+      email: candidate.email.trim(),
+      phone: candidate.phone.trim(),
+      specialty: candidate.specialty.trim() || 'Creative Dance Instructor',
+      stage: 'starting_referral',
+      dateReferred: 'Today',
+      notes: candidate.notes || 'Invited with teacher code ' + referralStats.referralCode,
+    };
+
+    setReferralStats((prev) => ({
+      ...prev,
+      invitesSent: prev.invitesSent + 1,
+      candidates: [newCand, ...(prev.candidates || [])],
+    }));
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Candidate Referral Registered!',
+      description: `${newCand.candidateName} added at Starting Referral stage. Track audition progress below.`,
+    });
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        activeTab,
+        setActiveTab,
+        viewMode,
+        toggleViewMode,
+        soundEnabled,
+        toggleSound,
+        showSplash,
+        dismissSplash,
+        replaySplash,
+        teacher,
+        setTeacherName,
+        isCheckedIn,
+        checkedInSession,
+        checkInTime,
+        isRunningLate,
+        runningLateMinutes,
+        runningLateReason,
+        batches,
+        sessions,
+        leads,
+        updates,
+        workbookOrders,
+        freeSlots,
+        reviews,
+        referralStats,
+        toasts,
+        dismissToast,
+        showToast,
+        checkInModalOpen,
+        setCheckInModalOpen,
+        checkOutModalOpen,
+        setCheckOutModalOpen,
+        runningLateModalOpen,
+        setRunningLateModalOpen,
+        rescheduleModalOpen,
+        setRescheduleModalOpen,
+        selectedSessionForReschedule,
+        openRescheduleForSession,
+        leadModalOpen,
+        setLeadModalOpen,
+        leadModalDefaultType,
+        openLeadModalWithType,
+        orderWorkbookModalOpen,
+        setOrderWorkbookModalOpen,
+        composeUpdateModalOpen,
+        setComposeUpdateModalOpen,
+        newSessionModalOpen,
+        setNewSessionModalOpen,
+        checkIn,
+        checkOut,
+        reportRunningLate,
+        clearRunningLate,
+        requestReschedule,
+        cancelClass,
+        createNewSession,
+        deleteSession,
+        clearAllSessions,
+        addNewBatch,
+        deleteBatch,
+        enrollStudent,
+        removeStudent,
+        addLead,
+        deleteLead,
+        clearAllLeads,
+        updateLeadStatus,
+        createWorkbookOrder,
+        toggleFreeSlot,
+        addFreeSlot,
+        sendUpdateMessage,
+        replyToReview,
+        shareReferralInvite,
+        updateCandidateStage,
+        addCandidateReferral,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};

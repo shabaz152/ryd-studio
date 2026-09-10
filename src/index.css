@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-black: #020204;
+    --brand-surface: #08080E;
+    --brand-card: #0F0F17;
+    --brand-yellow: #FFD000;
+  }
+  
+  body {
+    background-color: #020204;
+    color: #F8FAFC;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Custom Sleek Glossy Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FFD000;
+}
+
+/* Glossy Piano-Black Viewport & Canvas */
+.glossy-black-viewport {
+  background-color: #020204;
+  background-image: 
+    /* Primary overhead specular curved light reflection */
+    radial-gradient(ellipse 110% 65% at 50% -12%, rgba(255, 255, 255, 0.12) 0%, transparent 65%),
+    /* Ambient warm studio gold illumination */
+    radial-gradient(circle 900px at 50% 90px, rgba(255, 208, 0, 0.05) 0%, transparent 65%),
+    /* Diagonal high-gloss glass reflection sheen */
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, transparent 40%),
+    /* Deep vertical lacquer piano falloff */
+    linear-gradient(180deg, #0A0A12 0%, #040407 35%, #010103 70%, #000000 100%);
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* Fixed Top Specular Rim Reflection */
+.glossy-black-viewport::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 208, 0, 0.35) 20%, rgba(255, 255, 255, 0.85) 50%, rgba(255, 208, 0, 0.35) 80%, transparent 100%);
+  z-index: 999;
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.45);
+}
+
+/* Glossy Glassmorphic Card Utilities */
+.glossy-card {
+  background: linear-gradient(140deg, rgba(24, 24, 34, 0.75) 0%, rgba(8, 8, 14, 0.90) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.18), inset 0 -1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.glossy-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glossy-card-hover:hover {
+  background: linear-gradient(140deg, rgba(32, 32, 46, 0.88) 0%, rgba(12, 12, 20, 0.96) 100%);
+  border-color: rgba(255, 208, 0, 0.45);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.98), 0 0 25px -5px rgba(255, 208, 0, 0.28), inset 0 1px 2px rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+}
+
+/* Glossy Yellow Button */
+.glossy-button-yellow {
+  background: linear-gradient(180deg, #FFE54C 0%, #FFD000 55%, #E6B800 100%);
+  color: #050507;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(255, 208, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glossy-button-yellow:hover {
+  background: linear-gradient(180deg, #FFF066 0%, #FFD619 55%, #F0C400 100%);
+  box-shadow: 0 6px 24px rgba(255, 208, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Glossy Dark Pill */
+.glossy-pill-dark {
+  background: linear-gradient(180deg, rgba(30, 30, 42, 0.8) 0%, rgba(14, 14, 22, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Glossy Yellow Pill */
+.glossy-pill-yellow {
+  background: linear-gradient(180deg, rgba(255, 208, 0, 0.22) 0%, rgba(255, 208, 0, 0.08) 100%);
+  border: 1px solid rgba(255, 208, 0, 0.38);
+  box-shadow: 0 0 14px rgba(255, 208, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+/* Specular Top Sheen Highlight */
+.top-sheen {
+  position: relative;
+}
+.top-sheen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 6%;
+  right: 6%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  pointer-events: none;
+}
+
+/* Mobile Frame simulation */
+.mobile-device-frame {
+  max-width: 420px;
+  height: 860px;
+  max-height: 94vh;
+  border-radius: 46px;
+  box-shadow: 0 35px 100px -20px rgba(0, 0, 0, 0.98), 0 0 0 10px #0F0F16, 0 0 0 11px rgba(255, 208, 0, 0.35), inset 0 0 20px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  background-color: #020204;
+}
+
+button:active {
+  transform: scale(0.98);
+}
