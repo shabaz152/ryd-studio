@@ -131,6 +131,8 @@ interface AppContextType {
   toggleFreeSlot: (id: string) => void;
   addFreeSlot: (slot: Omit<FreeSlot, 'id'>) => void;
   sendUpdateMessage: (msg: Omit<UpdateMessage, 'id' | 'sentAt' | 'status'>) => void;
+  deleteUpdate: (updateId: string) => void;
+  clearAllUpdates: () => void;
   replyToReview: (reviewId: string, replyText: string) => void;
   shareReferralInvite: () => void;
   updateCandidateStage: (candidateId: string, stage: ReferralProgressStage) => void;
@@ -882,6 +884,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setComposeUpdateModalOpen(false);
   };
 
+  const deleteUpdate = (updateId: string) => {
+    const msgToDelete = updates.find((u) => u.id === updateId);
+    setUpdates((prev) => prev.filter((u) => u.id !== updateId));
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Update Deleted',
+      description: msgToDelete
+        ? `"${msgToDelete.subject}" has been removed from central messaging.`
+        : 'Update message deleted.',
+    });
+  };
+
+  const clearAllUpdates = () => {
+    setUpdates([]);
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'All Updates Cleared',
+      description: 'All central messaging updates have been removed (0 updates).',
+    });
+  };
+
   const replyToReview = (reviewId: string, replyText: string) => {
     sound.playSuccess();
     setReviews((prev) =>
@@ -1064,6 +1089,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleFreeSlot,
         addFreeSlot,
         sendUpdateMessage,
+        deleteUpdate,
+        clearAllUpdates,
         replyToReview,
         shareReferralInvite,
         updateCandidateStage,

@@ -515,31 +515,37 @@ export const HomeView: React.FC = () => {
         </div>
 
         <div className="space-y-2.5">
-          {updates.slice(0, 2).map((msg) => (
-            <div
-              key={msg.id}
-              className="p-4 rounded-3xl glossy-card flex items-start justify-between gap-3"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/70 text-[#FFD000] border border-[#FFD000]/30 font-mono">
-                    {msg.type}
-                  </span>
-                  <p className="text-xs font-bold text-white">{msg.subject}</p>
-                </div>
-                <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed">{msg.message}</p>
-                <div className="flex items-center gap-2 text-[10px] text-gray-500 pt-1">
-                  <span>To: {msg.recipientName}</span>
-                  <span>•</span>
-                  <span>{msg.sentAt}</span>
-                </div>
-              </div>
-
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 shrink-0">
-                Delivered
-              </span>
+          {updates.length === 0 ? (
+            <div className="p-4 rounded-3xl bg-[#101018] border border-white/5 text-center text-xs text-gray-500">
+              No recent studio updates. Use Central Messaging to broadcast announcements.
             </div>
-          ))}
+          ) : (
+            updates.slice(0, 2).map((msg) => (
+              <div
+                key={msg.id}
+                className="p-4 rounded-3xl glossy-card flex items-start justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/70 text-[#FFD000] border border-[#FFD000]/30 font-mono">
+                      {msg.type}
+                    </span>
+                    <p className="text-xs font-bold text-white">{msg.subject}</p>
+                  </div>
+                  <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed">{msg.message}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 pt-1">
+                    <span>To: {msg.recipientName}</span>
+                    <span>•</span>
+                    <span>{msg.sentAt}</span>
+                  </div>
+                </div>
+
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 shrink-0">
+                  Delivered
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

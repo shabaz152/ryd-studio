@@ -8,11 +8,12 @@ import {
   Clock,
   Plus,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
 export const UpdatesView: React.FC = () => {
-  const { updates, setComposeUpdateModalOpen } = useApp();
+  const { updates, deleteUpdate, clearAllUpdates, setComposeUpdateModalOpen } = useApp();
   const [filterType, setFilterType] = useState<'all' | 'broadcast' | 'direct'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -39,16 +40,33 @@ export const UpdatesView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            sound.playClick();
-            setComposeUpdateModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow-sm transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Compose New Update</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          {updates.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Clear all ${updates.length} update messages from your central messaging hub?`)) {
+                  clearAllUpdates();
+                }
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all cursor-pointer"
+              title="Clear all updates to 0"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Clear All Updates ({updates.length})</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setComposeUpdateModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Compose New Update</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -111,12 +129,34 @@ export const UpdatesView: React.FC = () => {
 
       {/* Updates History Feed */}
       <div className="space-y-3.5">
-        {filteredUpdates.length === 0 ? (
+        {updates.length === 0 ? (
+          <div className="text-center py-16 bg-[#101015] border border-white/[0.08] rounded-3xl p-8 space-y-4 shadow-card-dark top-sheen">
+            <div className="w-14 h-14 rounded-2xl bg-[#FACC15]/10 border border-[#FACC15]/20 text-[#FACC15] flex items-center justify-center mx-auto">
+              <MessageSquare className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h3 className="text-base font-bold text-white">No Studio Updates Logged (0 Updates)</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                All broadcast updates and 1:1 parent communications have been cleared. Click below to compose and dispatch a new announcement.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setComposeUpdateModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-black" />
+              <span>+ Compose First Update</span>
+            </button>
+          </div>
+        ) : filteredUpdates.length === 0 ? (
           <div className="text-center py-14 bg-[#101015] border border-white/[0.08] rounded-3xl p-6">
             <MessageSquare className="w-10 h-10 text-gray-600 mx-auto mb-2" />
-            <p className="text-sm font-bold text-gray-300">No update messages found</p>
+            <p className="text-sm font-bold text-gray-300">No update messages found matching your search</p>
             <p className="text-xs text-gray-500 mt-1">
-              Try adjusting your search query or dispatch a new broadcast update.
+              Try clearing your search query or switching filters.
             </p>
           </div>
         ) : (
@@ -153,6 +193,18 @@ export const UpdatesView: React.FC = () => {
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Delivered</span>
                   </span>
+                  <span className="text-gray-600">•</span>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Delete update "${msg.subject}"?`)) {
+                        deleteUpdate(msg.id);
+                      }
+                    }}
+                    className="p-1 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                    title="Delete update"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
