@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => {
                   const blob = await put(STATE_BLOB_NAME, JSON.stringify(stateWithMeta), {
                     access: 'public',
                     addRandomSuffix: false,
+                    allowOverwrite: true,
                     contentType: 'application/json',
                     token,
                   });

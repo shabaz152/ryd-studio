@@ -56,6 +56,7 @@ export default async function handler(req, res) {
       const blob = await put(STATE_BLOB_NAME, JSON.stringify(stateWithMeta), {
         access: 'public',
         addRandomSuffix: false,
+        allowOverwrite: true,
         contentType: 'application/json',
       });
 
