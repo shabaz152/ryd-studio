@@ -52,6 +52,8 @@ interface AppContextType {
   setActiveTab: (tab: string) => void;
   viewMode: 'mobile' | 'responsive';
   toggleViewMode: () => void;
+  themeMode: 'light' | 'dark';
+  toggleThemeMode: () => void;
   soundEnabled: boolean;
   toggleSound: () => void;
 
@@ -147,13 +149,47 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ryd_studio_state_v8';
+const STORAGE_KEY = 'ryd_studio_state_v9';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [viewMode, setViewMode] = useState<'mobile' | 'responsive'>('responsive');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(true);
+
+  // Subtle CRM Light Theme is active by default
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_theme`);
+      return (saved === 'dark' || saved === 'light') ? saved : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  const toggleThemeMode = () => {
+    sound.playClick();
+    setThemeMode((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_theme`, themeMode);
+    } catch {
+      // ignore
+    }
+    if (themeMode === 'light') {
+      document.documentElement.classList.add('crm-light');
+      document.documentElement.classList.remove('dark');
+      document.body.classList.add('crm-light-viewport');
+      document.body.classList.remove('glossy-black-viewport');
+    } else {
+      document.documentElement.classList.remove('crm-light');
+      document.documentElement.classList.add('dark');
+      document.body.classList.remove('crm-light-viewport');
+      document.body.classList.add('glossy-black-viewport');
+    }
+  }, [themeMode]);
 
   // Initial stats set strictly to 0 as requested by the user
   const [teacher, setTeacher] = useState<TeacherProfile>(() => {
@@ -1024,6 +1060,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveTab,
         viewMode,
         toggleViewMode,
+        themeMode,
+        toggleThemeMode,
         soundEnabled,
         toggleSound,
         showSplash,

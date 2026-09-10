@@ -28,7 +28,7 @@ import { RatingsView } from './views/RatingsView';
 import { ReferralView } from './views/ReferralView';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, viewMode } = useApp();
+  const { activeTab, viewMode, themeMode } = useApp();
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -58,7 +58,7 @@ const MainLayout: React.FC = () => {
   };
 
   const appContent = (
-    <div className="min-h-screen glossy-black-viewport text-white flex flex-col selection:bg-[#FFD000] selection:text-black">
+    <div className={`min-h-screen ${themeMode === 'light' ? 'crm-light-viewport text-slate-900' : 'glossy-black-viewport text-white'} flex flex-col selection:bg-[#F59E0B] selection:text-white transition-colors duration-300`}>
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-5 pb-20 sm:pb-24">
@@ -84,9 +84,9 @@ const MainLayout: React.FC = () => {
 
   if (viewMode === 'mobile') {
     return (
-      <div className="min-h-screen glossy-black-viewport flex flex-col items-center justify-center p-2 sm:p-6 select-none">
+      <div className={`min-h-screen ${themeMode === 'light' ? 'crm-light-viewport' : 'glossy-black-viewport'} flex flex-col items-center justify-center p-2 sm:p-6 select-none`}>
         {/* Device Frame */}
-        <div className="mobile-device-frame w-full max-w-[430px] h-[92vh] glossy-black-viewport flex flex-col relative shadow-2xl border-[10px] border-[#181822] rounded-[48px] overflow-hidden">
+        <div className={`mobile-device-frame w-full max-w-[430px] h-[92vh] ${themeMode === 'light' ? 'bg-[#F8FAFC] border-slate-300 shadow-2xl' : 'glossy-black-viewport border-[#181822] shadow-2xl'} flex flex-col relative rounded-[48px] overflow-hidden`}>
           {/* Dynamic Island / Speaker notch */}
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-50 flex items-center justify-between px-3 border border-white/10">
             <div className="w-2.5 h-2.5 rounded-full bg-[#111118] border border-white/5" />

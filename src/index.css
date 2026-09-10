@@ -149,3 +149,265 @@
 button:active {
   transform: scale(0.98);
 }
+
+/* ==========================================================================
+   SUBTLE CRM LIGHT THEME (NeoNex MindX CRM Aesthetic)
+   Light Background (#F8FAFC), Clean White Cards (#FFFFFF),
+   Slate Typography (#0F172A), and Studio Gold/Amber Accents
+   ========================================================================== */
+
+.crm-light {
+  color-scheme: light;
+}
+
+.crm-light,
+.crm-light body,
+.crm-light .glossy-black-viewport,
+.crm-light-viewport {
+  background-color: #F8FAFC !important;
+  background-image: 
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(245, 158, 11, 0.05) 0%, transparent 60%),
+    radial-gradient(circle 800px at 50% 120px, rgba(226, 232, 240, 0.6) 0%, transparent 70%),
+    linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 35%, #F1F5F9 100%) !important;
+  background-attachment: fixed !important;
+  color: #0F172A !important;
+}
+
+/* Light theme top specular rim - soft studio amber border */
+.crm-light .glossy-black-viewport::before,
+.crm-light-viewport::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.25) 30%, rgba(245, 158, 11, 0.6) 50%, rgba(245, 158, 11, 0.25) 70%, transparent 100%) !important;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.15) !important;
+  height: 2px !important;
+}
+
+/* Scrollbar for Light Theme */
+.crm-light ::-webkit-scrollbar-thumb {
+  background: #CBD5E1 !important;
+}
+.crm-light ::-webkit-scrollbar-thumb:hover {
+  background: #F59E0B !important;
+}
+
+/* Cards & Surface Containers */
+.crm-light .glossy-card,
+.crm-light [class*="bg-[#101015]"],
+.crm-light [class*="bg-[#101017]"],
+.crm-light [class*="bg-[#14141E]"],
+.crm-light [class*="bg-[#151522]"],
+.crm-light [class*="bg-[#121216]"],
+.crm-light [class*="bg-[#12121A]"],
+.crm-light [class*="bg-[#151520]"],
+.crm-light [class*="bg-[#181820]"],
+.crm-light [class*="bg-[#181824]"] {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 18px -4px rgba(15, 23, 42, 0.04) !important;
+  color: #0F172A !important;
+}
+
+.crm-light .glossy-card-hover:hover {
+  background: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Home Hero Banner CRM Gradient */
+.crm-light .home-hero-banner {
+  background: linear-gradient(120deg, #FFFFFF 0%, #F8FAFC 50%, #EFF6FF 100%) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 10px 25px -5px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Sub-containers & Inner Boxes */
+.crm-light [class*="bg-[#161622]"],
+.crm-light [class*="bg-[#0C0C12]"],
+.crm-light [class*="bg-[#08080C]"],
+.crm-light [class*="bg-[#07070B]"],
+.crm-light [class*="bg-[#0B0B0E]"],
+.crm-light [class*="bg-[#101018]"] {
+  background: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+/* Text Overrides for Clear Contrast */
+.crm-light .text-white {
+  color: #0F172A !important;
+}
+.crm-light .text-gray-300 {
+  color: #334155 !important;
+}
+.crm-light .text-gray-400 {
+  color: #64748B !important;
+}
+.crm-light .text-gray-500 {
+  color: #94A3B8 !important;
+}
+.crm-light .text-gray-600 {
+  color: #CBD5E1 !important;
+}
+
+/* Studio Amber / Gold Text Contrast (replaces low-contrast bright yellow on white) */
+.crm-light .text-\[\#FFD000\],
+.crm-light .text-\[\#FFE500\],
+.crm-light .text-\[\#FACC15\] {
+  color: #D97706 !important;
+}
+
+/* Borders */
+.crm-light [class*="border-white"] {
+  border-color: #E2E8F0 !important;
+}
+
+/* Header & Navigation Bar */
+.crm-light header {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+.crm-light header nav button {
+  color: #475569 !important;
+}
+.crm-light header nav button:hover {
+  color: #0F172A !important;
+  background: #F1F5F9 !important;
+}
+.crm-light header nav button.glossy-button-yellow {
+  background: #0F172A !important;
+  color: #FFFFFF !important;
+  border-color: #0F172A !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15) !important;
+}
+
+/* Bottom Nav on Mobile */
+.crm-light nav.fixed.bottom-0 {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-top: 1px solid #E2E8F0 !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+.crm-light nav.fixed.bottom-0 button {
+  color: #64748B !important;
+}
+.crm-light nav.fixed.bottom-0 button .text-\[\#FACC15\] {
+  color: #D97706 !important;
+}
+
+/* Buttons */
+.crm-light .glossy-button-yellow {
+  background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(217, 119, 6, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
+  font-weight: 800 !important;
+}
+.crm-light .glossy-button-yellow:hover {
+  background: linear-gradient(180deg, #FCD34D 0%, #FBBF24 100%) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+.crm-light .shadow-gold-glow-sm {
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.18) !important;
+}
+
+/* Pills and Badges */
+.crm-light [class*="bg-black/"] {
+  background: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+.crm-light .glossy-pill-dark {
+  background: #F1F5F9 !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.crm-light .glossy-pill-yellow {
+  background: #FEF3C7 !important;
+  border: 1px solid #FCD34D !important;
+  color: #92400E !important;
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.1) !important;
+}
+
+/* Status Pill Accents */
+.crm-light .bg-emerald-500\/10,
+.crm-light .bg-emerald-500\/15 {
+  background: #ECFDF5 !important;
+  color: #047857 !important;
+  border-color: #A7F3D0 !important;
+}
+
+.crm-light .bg-blue-500\/10,
+.crm-light .bg-blue-500\/15 {
+  background: #EFF6FF !important;
+  color: #1D4ED8 !important;
+  border-color: #BFDBFE !important;
+}
+
+.crm-light .bg-amber-500\/10,
+.crm-light .bg-amber-500\/15 {
+  background: #FFFBEB !important;
+  color: #B45309 !important;
+  border-color: #FDE68A !important;
+}
+
+.crm-light .bg-red-500\/10,
+.crm-light .bg-red-500\/15 {
+  background: #FEF2F2 !important;
+  color: #B91C1C !important;
+  border-color: #FECACA !important;
+}
+
+.crm-light .bg-purple-500\/10,
+.crm-light .bg-purple-500\/15 {
+  background: #FAF5FF !important;
+  color: #7E22CE !important;
+  border-color: #E9D5FF !important;
+}
+
+/* Inputs, Textareas, and Selects */
+.crm-light input,
+.crm-light select,
+.crm-light textarea {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+.crm-light input::placeholder,
+.crm-light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+.crm-light input:focus,
+.crm-light select:focus,
+.crm-light textarea:focus {
+  background-color: #FFFFFF !important;
+  border-color: #F59E0B !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Modals */
+.crm-light .fixed.inset-0[class*="bg-black"] {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Mobile Device Frame */
+.crm-light .mobile-device-frame {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.12), 0 0 0 8px #FFFFFF, 0 0 0 10px #E2E8F0 !important;
+}
+.crm-light .mobile-device-frame .dynamic-island,
+.crm-light .mobile-device-frame [class*="w-28 h-5 bg-black"] {
+  background: #0F172A !important;
+}
+
+/* Top Sheen Line */
+.crm-light .top-sheen::before {
+  background: linear-gradient(90deg, transparent, rgba(226, 232, 240, 0.9), transparent) !important;
+}
+

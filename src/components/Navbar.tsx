@@ -15,6 +15,8 @@ import {
   CalendarDays,
   MessageSquare,
   Compass,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -30,6 +32,8 @@ export const Navbar: React.FC = () => {
     toggleSound,
     viewMode,
     toggleViewMode,
+    themeMode,
+    toggleThemeMode,
     replaySplash,
     updates,
     activeTab,
@@ -157,6 +161,23 @@ export const Navbar: React.FC = () => {
             }`}
           >
             {viewMode === 'mobile' ? <Monitor className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+          </button>
+
+          {/* Theme Mode Toggle (Subtle CRM Light <-> Obsidian Dark) */}
+          <button
+            onClick={toggleThemeMode}
+            title={themeMode === 'light' ? 'Switch to Dark Obsidian Theme' : 'Switch to Subtle CRM Light Theme'}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              themeMode === 'light'
+                ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 shadow-sm'
+                : 'bg-[#151520] border-white/10 text-gray-300 hover:text-[#FFD000]'
+            }`}
+          >
+            {themeMode === 'light' ? (
+              <Sun className="w-4 h-4 text-amber-600" />
+            ) : (
+              <Moon className="w-4 h-4 text-[#FFD000]" />
+            )}
           </button>
 
           {/* Notifications Bell */}

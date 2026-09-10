@@ -55,7 +55,7 @@ export const HomeView: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* 1. Welcoming Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl glossy-card p-6 sm:p-8 shadow-card-dark top-sheen">
+      <div className="relative overflow-hidden rounded-3xl glossy-card home-hero-banner p-6 sm:p-8 shadow-card-dark top-sheen">
         {/* Soft radial gold illumination */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#FFD000]/[0.05] rounded-full blur-3xl pointer-events-none" />
 
