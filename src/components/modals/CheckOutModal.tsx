@@ -33,12 +33,14 @@ export const CheckOutModal: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 1:1 Rule: Find the active checked-in session
   const activeCheckedInSessions = sessions.filter((s) => s.status === 'checked_in');
 
   useEffect(() => {
     if (checkOutModalOpen) {
+      setIsSubmitting(false);
       if (selectedSessionForCheckOut && selectedSessionForCheckOut.status === 'checked_in') {
         setSelectedSessionId(selectedSessionForCheckOut.id);
       } else if (checkedInSession) {
@@ -232,6 +234,8 @@ export const CheckOutModal: React.FC = () => {
   };
 
   const handleSubmitAttendance = () => {
+    if (isSubmitting || !activeSession) return;
+    setIsSubmitting(true);
     checkOut(activeSession.id, attendance, sessionNotes);
   };
 
@@ -495,10 +499,11 @@ export const CheckOutModal: React.FC = () => {
             </button>
             <button
               onClick={handleSubmitAttendance}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FACC15] hover:bg-[#EAB308] text-black text-xs font-black shadow-gold-glow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-4 h-4 fill-black text-[#FACC15]" />
-              <span>Complete Check Out & Log {durationHours} Hours</span>
+              <span>{isSubmitting ? 'Checking Out...' : `Complete 1:1 Check-Out (${durationHours} hrs)`}</span>
             </button>
           </div>
         </div>

@@ -31,7 +31,7 @@ export const QuickActionBar: React.FC = () => {
           </div>
           <div>
             <span className="font-bold text-slate-800 dark:text-white">Check-In & Check-Out Verification:</span>
-            <span className="text-slate-500 dark:text-gray-400 ml-1.5">For every check-in there is one checked-out</span>
+            <span className="text-slate-500 dark:text-gray-400 ml-1.5">For 1 check-in there is 1 and only 1 check-out</span>
           </div>
         </div>
 
@@ -45,12 +45,12 @@ export const QuickActionBar: React.FC = () => {
           {isCheckedIn ? (
             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-bold text-[10px] border border-amber-300 dark:border-amber-500/30">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-              <span>1 Active (Check-Out Next)</span>
+              <span>1 Active (1 Check-Out Pending)</span>
             </span>
           ) : (
             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400 font-bold text-[10px] border border-emerald-300 dark:border-emerald-500/20">
               <CheckCircle2 className="w-3 h-3" />
-              <span>100% Paired (Ready for Next Class)</span>
+              <span>100% Paired (1:1 Complete)</span>
             </span>
           )}
         </div>
@@ -171,17 +171,17 @@ export const QuickActionBar: React.FC = () => {
                   : 'glossy-pill-dark text-gray-400'
               }`}
             >
-              {isCheckedIn ? 'Ready to Check Out (Step 2)' : 'Step 2 • Requires Check In'}
+              {isCheckedIn ? 'Step 2 • 1 Check-Out Ready' : 'Step 2 • Check-Out Locked'}
             </span>
           </div>
 
           <h3 className="text-base font-bold text-white group-hover:text-[#FFD000] transition-colors">
-            {isCheckedIn ? 'Complete Check Out' : 'Check Out & Attendance'}
+            {isCheckedIn ? 'Complete Check Out (1:1)' : 'Check Out Locked'}
           </h3>
           <p className="text-xs text-gray-400 mt-1">
             {isCheckedIn && checkedInSession
-              ? `Active: ${checkedInSession.batchName}. Tap to complete 1:1 check-out & log hours.`
-              : 'For every check-in there is one check-out. Check into class first to activate.'}
+              ? `Active: ${checkedInSession.batchName}. Tap to complete its one-and-only check-out.`
+              : 'For 1 check-in there is 1 and only 1 check-out. Check into a class first to unlock.'}
           </p>
 
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">

@@ -290,10 +290,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Check In & Late State
-  const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
-  const [checkedInSessionId, setCheckedInSessionId] = useState<string | null>(null);
-  const [checkInTime, setCheckInTime] = useState<string | null>(null);
+  // Running Late State
   const [isRunningLate, setIsRunningLate] = useState<boolean>(false);
   const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
   const [runningLateReason, setRunningLateReason] = useState<string>('');
@@ -385,9 +382,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (data: any, remoteTimestamp: number, notifyUser: boolean = true) => {
       isApplyingRemoteUpdateRef.current = true;
       try {
-        if (data.teacher) setTeacher(data.teacher);
         if (Array.isArray(data.batches)) setBatches(data.batches);
-        if (Array.isArray(data.sessions)) setSessions(data.sessions);
+        if (Array.isArray(data.sessions)) {
+          // 1:1 Invariance: Active sessions in progress cannot have checkOutTime
+          const sanitizedSessions = data.sessions.map((s: any) =>
+            s.status === 'checked_in' ? { ...s, checkOutTime: undefined } : s
+          );
+          setSessions(sanitizedSessions);
+
+          // Reconcile teacher stats strictly based on completed sessions list
+          const completedList = sanitizedSessions.filter((s: any) => s.status === 'completed');
+          const completedCount = completedList.length;
+          const totalHours = completedList.reduce(
+            (acc: number, s: any) => acc + (s.teacherHoursLogged || (s.durationMinutes || 90) / 60),
+            0
+          );
+          const totalEarnings = completedList.reduce(
+            (acc: number, s: any) => acc + (s.teacherEarnings || ((s.durationMinutes || 90) / 60) * (data.teacher?.hourlyRate || 50)),
+            0
+          );
+
+          if (data.teacher) {
+            setTeacher({
+              ...data.teacher,
+              totalHoursMonth: +totalHours.toFixed(1),
+              totalEarningsMonth: Math.round(totalEarnings),
+              classesCompletedThisWeek: completedCount,
+            });
+          }
+        } else if (data.teacher) {
+          setTeacher(data.teacher);
+        }
         if (Array.isArray(data.leads)) setLeads(data.leads);
         if (Array.isArray(data.updates)) setUpdates(data.updates);
         if (Array.isArray(data.workbookOrders)) setWorkbookOrders(data.workbookOrders);
@@ -440,7 +465,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     // Save to local storage for offline resilience
     try {
-      localStorage.setItem(`${STORAGE_KEY}_teacher`, JSON.stringify(teacher));
+      localStorage.setItem(`${STORAGE_KEY}_teacher`, JSON.stringify(reconciledTeacher));
       localStorage.setItem(`${STORAGE_KEY}_batches`, JSON.stringify(batches));
       localStorage.setItem(`${STORAGE_KEY}_sessions`, JSON.stringify(sessions));
       localStorage.setItem(`${STORAGE_KEY}_leads`, JSON.stringify(leads));
@@ -464,7 +489,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localTimestampRef.current = newTimestamp;
 
     const payload = {
-      teacher,
+      teacher: reconciledTeacher,
       batches,
       sessions,
       leads,
@@ -588,19 +613,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const checkedInSession = sessions.find((s) => s.id === checkedInSessionId) || null;
+  // 1:1 Invariance: Active session is derived directly from sessions array.
+  // Exactly ONE session can ever have status === 'checked_in'.
+  const checkedInSession = sessions.find((s) => s.status === 'checked_in') || null;
+  const isCheckedIn = !!checkedInSession;
+  const checkedInSessionId = checkedInSession?.id || null;
+  const checkInTime = checkedInSession?.checkInTime || null;
+
+  // Reconciled teacher metrics strictly calculated from completed sessions
+  const completedSessions = sessions.filter((s) => s.status === 'completed');
+  const actualCompletedCount = completedSessions.length;
+  const actualHours = completedSessions.reduce(
+    (sum, s) => sum + (s.teacherHoursLogged || (s.durationMinutes || 90) / 60),
+    0
+  );
+  const actualEarnings = completedSessions.reduce(
+    (sum, s) => sum + (s.teacherEarnings || ((s.durationMinutes || 90) / 60) * (teacher.hourlyRate || 50)),
+    0
+  );
+
+  const reconciledTeacher: TeacherProfile = {
+    ...teacher,
+    totalHoursMonth: +actualHours.toFixed(1),
+    totalEarningsMonth: Math.round(actualEarnings),
+    classesCompletedThisWeek: actualCompletedCount,
+    rating: actualCompletedCount > 0 ? (teacher.rating > 0 ? teacher.rating : 5.0) : 0,
+  };
 
   // Actions
   const checkIn = (sessionId: string) => {
-    // 1:1 Rule Enforcement: For every check-in there must be one check-out.
-    // Cannot check in to another session while one is already active.
-    if (isCheckedIn && checkedInSessionId && checkedInSessionId !== sessionId) {
-      const activeCurrent = sessions.find((s) => s.id === checkedInSessionId);
+    // 1:1 Rule Enforcement: For every check-in there must be one and only one check-out.
+    // Cannot check in if any session is already checked in.
+    const alreadyActive = sessions.find((s) => s.status === 'checked_in');
+    if (alreadyActive) {
       sound.playAlert();
       showToast({
         type: 'alert',
         title: 'Active Check-In in Progress',
-        description: `For every check-in, there has to be one check-out. Please check out of "${activeCurrent?.batchName || 'active session'}" before starting another class.`,
+        description: `1:1 Rule: You are currently checked into "${alreadyActive.batchName}". Complete its one-and-only check-out before starting another class.`,
       });
       return;
     }
@@ -608,10 +658,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
+    if (session.status === 'completed') {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Session Already Completed',
+        description: `This session has already been 1:1 checked out (${session.checkInTime} → ${session.checkOutTime}). Each class has one and only one check-out. To run another class, add a new session.`,
+      });
+      return;
+    }
+
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setIsCheckedIn(true);
-    setCheckedInSessionId(sessionId);
-    setCheckInTime(timeString);
     setIsRunningLate(false);
 
     setSessions((prev) =>
@@ -621,6 +678,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ...s,
               status: 'checked_in',
               checkInTime: timeString,
+              checkOutTime: undefined, // Clear any previous checkout timestamp
               calendarCode: generateCalendarCode(s.monthIndex, s.classIndex, 'present'),
             }
           : s
@@ -631,7 +689,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast({
       type: 'success',
       title: 'Checked In Successfully (1:1 Pair Started)',
-      description: `Active in ${session.batchName} at ${session.studioRoom} (${timeString}). Ready for Check Out upon class completion.`,
+      description: `Active in ${session.batchName} at ${session.studioRoom} (${timeString}). Ready for its one-and-only Check Out upon class completion.`,
     });
     setCheckInModalOpen(false);
   };
@@ -645,30 +703,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkOut = (sessionId: string, attendance: AttendanceRecord[], _notes?: string) => {
     let session = sessions.find((s) => s.id === sessionId);
     if (!session && sessions.length > 0) {
-      session = sessions.find((s) => s.status === 'checked_in') || sessions[0];
-      sessionId = session.id;
+      session = sessions.find((s) => s.status === 'checked_in');
+      if (session) sessionId = session.id;
     }
     if (!session) {
       setCheckOutModalOpen(false);
       showToast({
         type: 'alert',
         title: 'No Session Found',
-        description: 'Unable to locate session to check out. Please schedule a class first.',
+        description: 'Unable to locate session to check out.',
       });
       return;
     }
 
-    // 1:1 Rule Enforcement: For every check-in there has to be one check-out.
-    // Cannot check out a session that was not checked in.
-    if (session.status !== 'checked_in' && !isCheckedIn) {
+    // 1:1 Rule Enforcement: Strictly ONLY an active checked-in session can be checked out!
+    if (session.status !== 'checked_in') {
       sound.playAlert();
-      showToast({
-        type: 'alert',
-        title: 'Check-In Required Before Check-Out',
-        description: `For every check-in there has to be one check-out. Please check into "${session.batchName}" first.`,
-      });
+      if (session.status === 'completed') {
+        showToast({
+          type: 'alert',
+          title: 'Already Checked Out (1:1 Rule)',
+          description: `This session was already checked out at ${session.checkOutTime}. For one check-in there is one and only one check-out.`,
+        });
+      } else {
+        showToast({
+          type: 'alert',
+          title: 'Check-In Required First',
+          description: `For every check-in there has to be one check-out. Please check into "${session.batchName}" first.`,
+        });
+        setCheckInModalOpen(true);
+      }
       setCheckOutModalOpen(false);
-      setCheckInModalOpen(true);
       return;
     }
 
@@ -692,31 +757,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
-    // Update teacher hours & earnings dynamically from 0
-    setTeacher((prev) => ({
-      ...prev,
-      totalHoursMonth: +(prev.totalHoursMonth + hours).toFixed(1),
-      totalEarningsMonth: Math.round(prev.totalEarningsMonth + sessionEarnings),
-      classesCompletedThisWeek: prev.classesCompletedThisWeek + 1,
-      rating: prev.rating === 0 ? 5.0 : prev.rating,
-    }));
-
-    if (checkedInSessionId === sessionId || isCheckedIn) {
-      setIsCheckedIn(false);
-      setCheckedInSessionId(null);
-      setCheckInTime(null);
-    }
     setSelectedSessionForCheckOut(null);
-
+    setCheckOutModalOpen(false);
     sound.playSuccess();
 
     const presentCount = attendance.filter((a) => a.status === 'present').length;
     showToast({
       type: 'success',
-      title: 'Session Checked Out & Hours Logged',
-      description: `Logged +${hours} hrs (+$${sessionEarnings}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} dancers recorded.`,
+      title: 'Session Checked Out (1:1 Pair Completed)',
+      description: `Logged +${hours} hrs (+$${sessionEarnings}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} recorded.`,
     });
-    setCheckOutModalOpen(false);
   };
 
   const reportRunningLate = (minutes: number, reason: string) => {
@@ -906,12 +956,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sessionToDelete = sessions.find((s) => s.id === sessionId);
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
-    if (checkedInSessionId === sessionId) {
-      setIsCheckedIn(false);
-      setCheckedInSessionId(null);
-      setCheckInTime(null);
-    }
-
     sound.playClick();
     showToast({
       type: 'info',
@@ -924,11 +968,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearAllSessions = () => {
     setSessions([]);
-    if (isCheckedIn) {
-      setIsCheckedIn(false);
-      setCheckedInSessionId(null);
-      setCheckInTime(null);
-    }
     sound.playClick();
     showToast({
       type: 'info',
@@ -1333,7 +1372,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showSplash,
         dismissSplash,
         replaySplash,
-        teacher,
+        teacher: reconciledTeacher,
         setTeacherName,
         isCheckedIn,
         checkedInSession,
