@@ -383,7 +383,7 @@ export const HomeView: React.FC = () => {
                         <h3 className="text-sm font-bold text-white">{session.batchName}</h3>
                       </div>
                       <p className="text-xs text-gray-400 mt-1">
-                        {batch?.style} • {batch?.students.length || 0} Dancers Enrolled
+                        {batch?.style} • {batch?.students.length || 0} Students Enrolled
                       </p>
                     </div>
 

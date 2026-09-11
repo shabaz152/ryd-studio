@@ -15,8 +15,8 @@ export interface Student {
 export interface Batch {
   id: string;
   name: string;
-  code: string; // e.g. "RYD-HIP-01"
-  style: string; // e.g. "Hip-Hop Juniors", "Contemporary Elite"
+  code: string; // e.g. "RYD-MATH-01"
+  style: string; // e.g. "Pure Mathematics & Calculus", "Classical Mechanics"
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Masterclass';
   scheduleTime: string; // "16:00 - 17:30"
   days: string[]; // ["Mon", "Wed", "Fri"]
@@ -86,7 +86,7 @@ export interface Lead {
 export interface UpdateMessage {
   id: string;
   type: 'broadcast' | 'direct';
-  recipientName: string; // e.g. "All Parents (Hip-Hop Juniors)" or "Aria Vance (Parent: Marcus)"
+  recipientName: string; // e.g. "All Parents (Advanced Calculus)" or "Aria Vance (Parent: Marcus)"
   batchName?: string;
   batchId?: string;
   subject: string;
@@ -100,7 +100,7 @@ export interface WorkbookOrder {
   id: string;
   batchName: string;
   studentName: string;
-  itemTitle: string; // "Hip-Hop Foundations Vol. 2"
+  itemTitle: string; // "Calculus & Analytical Geometry Problem Sets"
   edition: string;
   quantity: number;
   status: 'ordered' | 'dispatched' | 'in_transit' | 'delivered';

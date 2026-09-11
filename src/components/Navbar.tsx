@@ -159,7 +159,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <div className="hidden xl:flex items-center gap-2 bg-white/90 border border-slate-200 text-slate-700 dark:bg-[#12121A]/80 dark:border-white/[0.08] dark:text-gray-300 px-3.5 py-1 rounded-full text-xs font-medium shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-[#FFD000]" />
-                <span>Schedule Ready: 16:00 (Hip-Hop Juniors)</span>
+                <span>Schedule Ready: 16:00 (Advanced Calculus)</span>
               </div>
             )}
           </div>

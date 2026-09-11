@@ -52,7 +52,7 @@ export const RatingsView: React.FC = () => {
             <h2 className="text-lg font-black text-white">{teacher.name}</h2>
             <p className="text-xs text-gray-300 mt-0.5">
               {teacher.rating > 0
-                ? 'Top 2% Lead Faculty Across All RYD Studios • 98% Parent Recommendation'
+                ? 'Top 2% Lead Faculty Across All RYD Academic Hubs • 98% Parent Recommendation'
                 : 'New Faculty Onboarding Period • 0 Client Evaluations Logged'}
             </p>
           </div>
@@ -61,13 +61,13 @@ export const RatingsView: React.FC = () => {
         {/* Categories Breakdown */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
           <div className="glossy-pill-dark p-3.5 rounded-2xl text-center min-w-[95px]">
-            <p className="text-[10px] text-gray-400 uppercase font-bold">Floor Energy</p>
+            <p className="text-[10px] text-gray-400 uppercase font-bold">Concept Clarity</p>
             <p className="text-lg font-black text-[#FFD000] mt-0.5">
               {teacher.rating > 0 ? '5.0 / 5.0' : '0.0 / 5.0'}
             </p>
           </div>
           <div className="glossy-pill-dark p-3.5 rounded-2xl text-center min-w-[95px]">
-            <p className="text-[10px] text-gray-400 uppercase font-bold">Choreography</p>
+            <p className="text-[10px] text-gray-400 uppercase font-bold">Problem Solving</p>
             <p className="text-lg font-black text-white mt-0.5">
               {teacher.rating > 0 ? '4.9 / 5.0' : '0.0 / 5.0'}
             </p>

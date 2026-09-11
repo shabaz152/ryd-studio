@@ -38,7 +38,7 @@ export const ComposeUpdateModal: React.FC = () => {
       type: updateType,
       recipientName:
         updateType === 'broadcast'
-          ? `All Parents & Dancers (${currentBatch?.name || 'All Batches'})`
+          ? `All Parents & Students (${currentBatch?.name || 'All Batches'})`
           : `${directRecipient} (Parent/Student)`,
       batchName: currentBatch?.name,
       batchId: currentBatch?.id,
@@ -60,12 +60,8 @@ export const ComposeUpdateModal: React.FC = () => {
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-white tracking-tight">
-                Compose Studio Update
-              </h2>
-              <p className="text-[11px] text-gray-400 font-medium">
-                Dispatch group broadcast or 1:1 direct notice
-              </p>
+              <h2 className="text-base font-bold text-white tracking-tight">Compose Cohort Update</h2>
+              <p className="text-[11px] text-gray-400">Dispatch announcements, syllabus milestones, and reminders</p>
             </div>
           </div>
           <button
@@ -73,50 +69,38 @@ export const ComposeUpdateModal: React.FC = () => {
               sound.playClick();
               setComposeUpdateModalOpen(false);
             }}
-            className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSend} className="p-5 space-y-3.5 max-h-[75vh] overflow-y-auto">
-          {/* Type Toggle: Broadcast vs Direct */}
-          <div className="flex rounded-xl bg-[#0E0E12] p-1 border border-white/5 text-xs font-bold">
+        <form onSubmit={handleSend} className="p-5 space-y-4 text-xs">
+          {/* Update Type Selector */}
+          <div className="flex rounded-xl bg-[#181820] p-1 border border-white/5">
             <button
               type="button"
-              onClick={() => {
-                sound.playClick();
-                setUpdateType('broadcast');
-              }}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                updateType === 'broadcast'
-                  ? 'bg-[#FFE500] text-black font-extrabold shadow-sm'
-                  : 'text-gray-400 hover:text-white'
+              onClick={() => setUpdateType('broadcast')}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                updateType === 'broadcast' ? 'bg-[#FFE500] text-black shadow-sm' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Group Broadcast</span>
+              Cohort Broadcast (All Parents)
             </button>
             <button
               type="button"
-              onClick={() => {
-                sound.playClick();
-                setUpdateType('direct');
-              }}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                updateType === 'direct'
-                  ? 'bg-[#FFE500] text-black font-extrabold shadow-sm'
-                  : 'text-gray-400 hover:text-white'
+              onClick={() => setUpdateType('direct')}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                updateType === 'direct' ? 'bg-[#FFE500] text-black shadow-sm' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <User className="w-3.5 h-3.5" />
-              <span>1:1 Direct Message</span>
+              Direct Student/Parent DM
             </button>
           </div>
 
-          {/* Batch or Student selector */}
+          {/* Batch Selector */}
           <div>
-            <label className="text-xs font-bold text-gray-300 block mb-1">Target Batch</label>
+            <label className="text-xs font-bold text-gray-300 block mb-1">Target Academic Cohort</label>
             <select
               value={selectedBatchId}
               onChange={(e) => setSelectedBatchId(e.target.value)}
@@ -124,7 +108,7 @@ export const ComposeUpdateModal: React.FC = () => {
             >
               {batches.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} ({b.students.length} dancers)
+                  {b.name} ({b.students.length} students)
                 </option>
               ))}
             </select>
@@ -139,7 +123,7 @@ export const ComposeUpdateModal: React.FC = () => {
                 className="w-full bg-[#181820] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFE500]"
               >
                 {!currentBatch?.students || currentBatch.students.length === 0 ? (
-                  <option value="Direct Parent Notice">No students currently enrolled in this cohort (0 Dancers)</option>
+                  <option value="Direct Parent Notice">No students currently enrolled in this cohort (0 Students)</option>
                 ) : (
                   currentBatch.students.map((s) => (
                     <option key={s.id} value={`${s.name} (Parent: ${s.parentName})`}>
@@ -159,7 +143,7 @@ export const ComposeUpdateModal: React.FC = () => {
               required
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. Showcase Choreography Track & Wardrobe Requirements"
+              placeholder="e.g. Advanced Calculus Midterm Review & Problem Set 4 Solutions"
               className="w-full bg-[#181820] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFE500]"
             />
           </div>
@@ -172,7 +156,7 @@ export const ComposeUpdateModal: React.FC = () => {
               required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Write announcements, performance details, or personal feedback..."
+              placeholder="Write academic announcements, homework assignments, or personalized feedback..."
               className="w-full bg-[#181820] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFE500]"
             />
           </div>
@@ -219,25 +203,25 @@ export const ComposeUpdateModal: React.FC = () => {
                 type="button"
                 onClick={() =>
                   handleTemplate(
-                    'Costume & Uniform Fitting Schedule',
-                    'Please be advised that official RYD studio stage gear fittings will take place 20 minutes prior to this Friday’s scheduled session. Labeled kits will be handed out.'
+                    'Workbook & Problem Sets Distribution',
+                    'Please be advised that official RYD academic study workbooks and weekly problem sets will be handed out 10 minutes prior to this week’s scheduled tutoring session.'
                   )
                 }
                 className="text-[10px] bg-[#181820] hover:bg-[#202028] text-gray-300 px-2 py-1 rounded-lg border border-white/5"
               >
-                + Uniform Fitting
+                + Study Guides
               </button>
               <button
                 type="button"
                 onClick={() =>
                   handleTemplate(
-                    'Cypher Audition Guidelines',
-                    'Dancers preparing for the studio cypher spotlight: please prepare 1 minute of original improvisation in addition to our core 8-count routine.'
+                    'Midterm Exam & Practice Assessment Review',
+                    'Students preparing for upcoming academic assessments: please review Problem Sets 3 & 4 in addition to class notes before this week’s cohort session.'
                   )
                 }
                 className="text-[10px] bg-[#181820] hover:bg-[#202028] text-gray-300 px-2 py-1 rounded-lg border border-white/5"
               >
-                + Audition Notice
+                + Exam Prep Review
               </button>
             </div>
           </div>

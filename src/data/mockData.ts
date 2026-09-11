@@ -1,61 +1,61 @@
-import { Batch, Lead, UpdateMessage, WorkbookOrder, FreeSlot, TeacherReview, ReferralStats, Session } from '../types';
+import { Batch, Lead, UpdateMessage, WorkbookOrder, FreeSlot, TeacherReview, ReferralStats, Session, Student } from '../types';
 
 export const INITIAL_BATCHES: Batch[] = [
   {
-    id: 'batch-hiphop-01',
-    name: 'Hip-Hop Juniors Crew',
-    code: 'RYD-HH-01',
-    style: 'Hip-Hop & Urban Street',
-    level: 'Intermediate',
+    id: 'batch-math-01',
+    name: 'Advanced Calculus & Vectors',
+    code: 'RYD-MATH-01',
+    style: 'Pure Mathematics & Calculus',
+    level: 'Advanced',
     scheduleTime: '16:00 - 17:30',
     days: ['Mon', 'Wed', 'Fri'],
-    studioRoom: 'Studio Alpha - Hall 1',
-    locationName: 'RYD Downtown Central',
+    studioRoom: 'Tutoring Pod Alpha - Room 1',
+    locationName: 'RYD Downtown Learning Center',
     address: '742 Broadway Ave, Floor 3, Downtown',
     mapCoordinates: { lat: 40.7128, lng: -74.0060 },
     navigationUrl: 'https://maps.google.com/?q=742+Broadway+Ave+Downtown',
     students: []
   },
   {
-    id: 'batch-contemporary-02',
-    name: 'Contemporary Elite',
-    code: 'RYD-CONT-02',
-    style: 'Lyrical Contemporary & Flow',
-    level: 'Advanced',
+    id: 'batch-physics-02',
+    name: 'Physics Mechanics & Dynamics',
+    code: 'RYD-PHYS-02',
+    style: 'Classical Mechanics & Problem Solving',
+    level: 'Intermediate',
     scheduleTime: '18:00 - 19:30',
     days: ['Tue', 'Thu'],
-    studioRoom: 'Studio Beta - Hall 3',
-    locationName: 'RYD West End Arts',
-    address: '128 West End Blvd, Studio Pavilion',
+    studioRoom: 'STEM Suite Beta - Room 3',
+    locationName: 'RYD West End Academy',
+    address: '128 West End Blvd, Academic Pavilion',
     mapCoordinates: { lat: 40.7589, lng: -73.9851 },
     navigationUrl: 'https://maps.google.com/?q=128+West+End+Blvd',
     students: []
   },
   {
-    id: 'batch-bollywood-03',
-    name: 'Bollywood Beats Pro',
-    code: 'RYD-BOLL-03',
-    style: 'Bollywood Fusion & Cinematic',
+    id: 'batch-chem-03',
+    name: 'Organic & Physical Chemistry',
+    code: 'RYD-CHEM-03',
+    style: 'Reaction Mechanisms & Stoichiometry',
     level: 'Masterclass',
     scheduleTime: '19:45 - 21:15',
     days: ['Wed', 'Sat'],
-    studioRoom: 'Studio Gamma - Grand Arena',
-    locationName: 'RYD Metro Stage',
-    address: '500 Metroplex Way, Arena Stage',
+    studioRoom: 'Chemistry Lab Gamma - Hall 2',
+    locationName: 'RYD Metro Academic Hub',
+    address: '500 Metroplex Way, Science Hall',
     mapCoordinates: { lat: 40.7484, lng: -73.9857 },
     navigationUrl: 'https://maps.google.com/?q=500+Metroplex+Way',
     students: []
   },
   {
-    id: 'batch-jazz-04',
-    name: 'Street Jazz Starters',
-    code: 'RYD-JAZZ-04',
-    style: 'Street Jazz & Musicality',
+    id: 'batch-cs-04',
+    name: 'Computer Science & Python Coding',
+    code: 'RYD-CS-04',
+    style: 'Algorithms, Logic & Data Structures',
     level: 'Beginner',
     scheduleTime: '14:30 - 15:45',
     days: ['Tue', 'Fri'],
-    studioRoom: 'Studio Delta - Hall 4',
-    locationName: 'RYD Uptown Studios',
+    studioRoom: 'Computing Lab Delta - Room 4',
+    locationName: 'RYD Uptown Study Center',
     address: '88 Park Avenue, Suite 100',
     mapCoordinates: { lat: 40.7712, lng: -73.9742 },
     navigationUrl: 'https://maps.google.com/?q=88+Park+Avenue+Uptown',
@@ -70,12 +70,12 @@ export const INITIAL_SESSIONS: Session[] = [];
 export const DEMO_SESSIONS: Session[] = [
   {
     id: 'sess-today-01',
-    batchId: 'batch-hiphop-01',
-    batchName: 'Hip-Hop Juniors Crew',
+    batchId: 'batch-math-01',
+    batchName: 'Advanced Calculus & Vectors',
     date: '2026-09-10',
     timeSlot: '16:00 - 17:30',
-    studioRoom: 'Studio Alpha - Hall 1',
-    locationName: 'RYD Downtown Central',
+    studioRoom: 'Tutoring Pod Alpha - Room 1',
+    locationName: 'RYD Downtown Learning Center',
     monthIndex: 2,
     classIndex: 3,
     status: 'scheduled',
@@ -84,12 +84,12 @@ export const DEMO_SESSIONS: Session[] = [
   },
   {
     id: 'sess-today-02',
-    batchId: 'batch-contemporary-02',
-    batchName: 'Contemporary Elite',
+    batchId: 'batch-physics-02',
+    batchName: 'Physics Mechanics & Dynamics',
     date: '2026-09-10',
     timeSlot: '18:00 - 19:30',
-    studioRoom: 'Studio Beta - Hall 3',
-    locationName: 'RYD West End Arts',
+    studioRoom: 'STEM Suite Beta - Room 3',
+    locationName: 'RYD West End Academy',
     monthIndex: 2,
     classIndex: 4,
     status: 'scheduled',
@@ -98,12 +98,12 @@ export const DEMO_SESSIONS: Session[] = [
   },
   {
     id: 'sess-prev-01',
-    batchId: 'batch-bollywood-03',
-    batchName: 'Bollywood Beats Pro',
+    batchId: 'batch-chem-03',
+    batchName: 'Organic & Physical Chemistry',
     date: '2026-09-09',
     timeSlot: '19:45 - 21:15',
-    studioRoom: 'Studio Gamma - Grand Arena',
-    locationName: 'RYD Metro Stage',
+    studioRoom: 'Chemistry Lab Gamma - Hall 2',
+    locationName: 'RYD Metro Academic Hub',
     monthIndex: 2,
     classIndex: 2,
     status: 'scheduled',
@@ -116,16 +116,15 @@ export const DEMO_SESSIONS: Session[] = [
 
 export const INITIAL_LEADS: Lead[] = [];
 
-
 export const INITIAL_UPDATES: UpdateMessage[] = [
   {
     id: 'msg-1',
     type: 'broadcast',
-    recipientName: 'All Parents & Dancers (Hip-Hop Juniors)',
-    batchName: 'Hip-Hop Juniors Crew',
-    batchId: 'batch-hiphop-01',
-    subject: 'Mid-Month Showcase Choreography Song Released',
-    message: 'Hello RYD family! The choreography track for our upcoming studio cypher has been updated in your student portal. Please have dancers review the 8-count breakdown before tomorrow’s session.',
+    recipientName: 'All Parents & Students (Advanced Calculus)',
+    batchName: 'Advanced Calculus & Vectors',
+    batchId: 'batch-math-01',
+    subject: 'Mid-Term Practice Worksheet & Calculus Key Released',
+    message: 'Hello RYD families! The practice problem set for our upcoming calculus milestone review is now uploaded to your student portal. Please have students review problems 1–15 before tomorrow’s tutoring session.',
     sentAt: 'Today, 11:30 AM',
     status: 'read',
     channels: ['app', 'whatsapp']
@@ -134,10 +133,10 @@ export const INITIAL_UPDATES: UpdateMessage[] = [
     id: 'msg-2',
     type: 'direct',
     recipientName: 'David Chen (Parent of Leo Chen)',
-    batchName: 'Hip-Hop Juniors Crew',
-    batchId: 'batch-hiphop-01',
-    subject: 'Feedback: Great Solo Pop Routine',
-    message: 'Hi David, just wanted to highlight Leo’s exceptional improvement with his timing today. He nailed the center stage isolation!',
+    batchName: 'Physics Mechanics & Dynamics',
+    batchId: 'batch-physics-02',
+    subject: 'Feedback: Great Progress in Vectors & Dynamics',
+    message: 'Hi David, just wanted to highlight Leo’s exceptional improvement in resolving multi-body force vectors today. He solved the challenging equilibrium question independently!',
     sentAt: 'Yesterday, 6:40 PM',
     status: 'read',
     channels: ['app', 'sms']
@@ -145,9 +144,9 @@ export const INITIAL_UPDATES: UpdateMessage[] = [
   {
     id: 'msg-3',
     type: 'broadcast',
-    recipientName: 'All Batches (Studio Broadcast)',
-    subject: 'Studio Hall Sanitization & Hydration Protocol',
-    message: 'Reminder to all dancers to bring labeled water bottles and studio indoor dance sneakers. Outdoor shoes must remain in the entrance lockers.',
+    recipientName: 'All Batches (Academic Center Notice)',
+    subject: 'Study Hall Protocol & Scientific Calculator Guidelines',
+    message: 'Reminder to all students to bring scientific calculators, graph notebooks, and practice worksheets. Quiet study pods are open daily from 3 PM.',
     sentAt: 'Sep 08, 09:00 AM',
     status: 'delivered',
     channels: ['app', 'sms', 'whatsapp']
@@ -157,54 +156,54 @@ export const INITIAL_UPDATES: UpdateMessage[] = [
 export const INITIAL_WORKBOOK_ORDERS: WorkbookOrder[] = [
   {
     id: 'wb-101',
-    batchName: 'Hip-Hop Juniors Crew',
+    batchName: 'Advanced Calculus & Vectors',
     studentName: 'Leo Chen',
-    itemTitle: 'Urban Movement & Rhythm Theory Guide',
+    itemTitle: 'Calculus & Analytical Geometry Problem Sets',
     edition: 'Edition 2026 (Level 2)',
     quantity: 1,
     status: 'delivered',
     trackingNumber: 'RYD-TRK-88291',
     orderDate: '2026-09-04',
     estimatedDelivery: '2026-09-07',
-    studioAddress: 'RYD Downtown Central - Locker 14'
+    studioAddress: 'RYD Downtown Learning Center - Desk 14'
   },
   {
     id: 'wb-102',
-    batchName: 'Contemporary Elite',
+    batchName: 'Physics Mechanics & Dynamics',
     studentName: 'Sophia Laurent',
-    itemTitle: 'Anatomy & Flow Alignment Handbook',
-    edition: 'Elite Master Series Vol. 1',
+    itemTitle: 'Physics Dynamics & Kinetic Problem Workbook',
+    edition: 'Senior Prep Series Vol. 1',
     quantity: 1,
     status: 'in_transit',
     trackingNumber: 'RYD-TRK-99032',
     orderDate: '2026-09-08',
     estimatedDelivery: '2026-09-11',
-    studioAddress: 'RYD West End Arts - Reception'
+    studioAddress: 'RYD West End Academy - Reception'
   },
   {
     id: 'wb-103',
-    batchName: 'Bollywood Beats Pro',
+    batchName: 'Organic & Physical Chemistry',
     studentName: 'Rohan Sharma',
-    itemTitle: 'Cinematic Expressions & Rhythm Syllabus',
-    edition: 'Pro Gold 2026',
+    itemTitle: 'Organic Synthesis & Reaction Mechanisms Guide',
+    edition: 'Board Prep Gold 2026',
     quantity: 1,
     status: 'dispatched',
     trackingNumber: 'RYD-TRK-10492',
     orderDate: '2026-09-09',
     estimatedDelivery: '2026-09-12',
-    studioAddress: 'RYD Metro Stage - Desk'
+    studioAddress: 'RYD Metro Academic Hub - Office'
   }
 ];
 
 export const INITIAL_FREE_SLOTS: FreeSlot[] = [
-  { id: 'fs-1', dayOfWeek: 'Monday', period: 'Morning', timeRange: '09:00 - 11:00', isAvailable: true, preferredStyle: 'Open Training' },
-  { id: 'fs-2', dayOfWeek: 'Monday', period: 'Afternoon', timeRange: '13:00 - 15:30', isAvailable: true, preferredStyle: 'Private Coaching' },
+  { id: 'fs-1', dayOfWeek: 'Monday', period: 'Morning', timeRange: '09:00 - 11:00', isAvailable: true, preferredStyle: 'Math Office Hours' },
+  { id: 'fs-2', dayOfWeek: 'Monday', period: 'Afternoon', timeRange: '13:00 - 15:30', isAvailable: true, preferredStyle: '1-on-1 Physics Tutoring' },
   { id: 'fs-3', dayOfWeek: 'Tuesday', period: 'Morning', timeRange: '10:00 - 12:00', isAvailable: false },
-  { id: 'fs-4', dayOfWeek: 'Tuesday', period: 'Afternoon', timeRange: '14:00 - 16:00', isAvailable: true, preferredStyle: 'Workshops' },
+  { id: 'fs-4', dayOfWeek: 'Tuesday', period: 'Afternoon', timeRange: '14:00 - 16:00', isAvailable: true, preferredStyle: 'Chemistry Problem Clinics' },
   { id: 'fs-5', dayOfWeek: 'Wednesday', period: 'Morning', timeRange: '09:30 - 11:30', isAvailable: true },
-  { id: 'fs-6', dayOfWeek: 'Thursday', period: 'Morning', timeRange: '10:00 - 12:00', isAvailable: true, preferredStyle: 'Makeup Classes' },
+  { id: 'fs-6', dayOfWeek: 'Thursday', period: 'Morning', timeRange: '10:00 - 12:00', isAvailable: true, preferredStyle: 'Exam Makeup Sessions' },
   { id: 'fs-7', dayOfWeek: 'Friday', period: 'Morning', timeRange: '09:00 - 12:00', isAvailable: true },
-  { id: 'fs-8', dayOfWeek: 'Saturday', period: 'Morning', timeRange: '08:30 - 10:30', isAvailable: true, preferredStyle: 'Masterclasses' },
+  { id: 'fs-8', dayOfWeek: 'Saturday', period: 'Morning', timeRange: '08:30 - 10:30', isAvailable: true, preferredStyle: 'Calculus Masterclasses' },
   { id: 'fs-9', dayOfWeek: 'Sunday', period: 'Afternoon', timeRange: '14:00 - 17:00', isAvailable: false }
 ];
 
@@ -213,31 +212,31 @@ export const INITIAL_REVIEWS: TeacherReview[] = [
     id: 'rev-1',
     studentOrParentName: 'Elena Rodriguez',
     relationship: 'Parent',
-    batchName: 'Hip-Hop Juniors Crew',
+    batchName: 'Advanced Calculus & Vectors',
     rating: 5,
     date: '2026-09-07',
-    reviewText: 'Sarah is an exceptional instructor. Maya looks forward to every single session. Her patience with footwork techniques and disciplined encouragement has built Maya’s confidence.',
+    reviewText: 'Sarah is an exceptional tutor. Maya looks forward to every single session. Her patience with complex calculus problems and structured step-by-step breakdowns boosted Maya’s grades from 72% to 95%.',
     categories: { energy: 5, technique: 5, punctuality: 5, engagement: 5 },
-    teacherReply: 'Thank you so much Elena. Maya brings focus and positive discipline to the studio every week.'
+    teacherReply: 'Thank you so much Elena. Maya brings tremendous focus and curiosity to every study session.'
   },
   {
     id: 'rev-2',
     studentOrParentName: 'Kenneth Ross',
     relationship: 'Parent',
-    batchName: 'Contemporary Elite',
+    batchName: 'Physics Mechanics & Dynamics',
     rating: 5,
     date: '2026-09-03',
-    reviewText: 'The anatomical cues and musicality breakdowns are first rate. Ethan has noticeably improved in core control and technical stage presence.',
+    reviewText: 'The physics problem breakdowns and free-body diagram tutorials are first rate. Ethan has noticeably improved in analytical problem solving and exam speed.',
     categories: { energy: 5, technique: 5, punctuality: 4, engagement: 5 }
   },
   {
     id: 'rev-3',
     studentOrParentName: 'David Chen',
     relationship: 'Parent',
-    batchName: 'Hip-Hop Juniors Crew',
+    batchName: 'Advanced Calculus & Vectors',
     rating: 5,
     date: '2026-08-28',
-    reviewText: 'Punctual, organized, and provides structured feedback after classes. The structured calendar codes keep our family schedule seamlessly updated.',
+    reviewText: 'Punctual, organized, and provides structured homework review after every class. The structured calendar codes keep our family study schedule seamlessly updated.',
     categories: { energy: 5, technique: 4, punctuality: 5, engagement: 5 }
   }
 ];
@@ -265,34 +264,34 @@ export const DEMO_REFERRAL_STATS: ReferralStats = {
       candidateName: 'Marcus Vance',
       email: 'marcus.v@gmail.com',
       phone: '+1 (555) 234-8891',
-      specialty: 'Contemporary & Acro',
+      specialty: 'AP Physics & Advanced Mechanics',
       stage: 'successfully_joined',
       dateReferred: '2026-09-02',
-      notes: 'Hired for West End Studio - Saturday masterclasses.'
+      notes: 'Onboarded for West End Academy - Weekend problem clinics.'
     },
     {
       id: 'cand-2',
       candidateName: 'Zara Morales',
-      email: 'zara.dance@outlook.com',
+      email: 'zara.edu@outlook.com',
       phone: '+1 (555) 345-9920',
-      specialty: 'Afrobeats & Dancehall',
+      specialty: 'Organic Chemistry & Biochemistry',
       stage: 'selected',
       dateReferred: '2026-09-05',
-      notes: 'Final contract signing pending.'
+      notes: 'Final academic qualification verification pending.'
     }
   ],
 };
 
-export const DEMO_STUDENTS = [
+export const DEMO_STUDENTS: Student[] = [
   {
     id: 'stud-1',
     name: 'Maya Lin',
     parentName: 'Elena Lin',
     parentPhone: '+1 (555) 912-3456',
     parentEmail: 'elena.lin@gmail.com',
-    age: 11,
+    age: 16,
     avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80',
-    notes: 'Advanced footwork talent, center lead.',
+    notes: 'Grade 11 • AP Calculus candidate. Exceptional analytical speed.',
     lastAttendance: 'present' as const
   },
   {
@@ -301,10 +300,9 @@ export const DEMO_STUDENTS = [
     parentName: 'David Chen',
     parentPhone: '+1 (555) 987-6543',
     parentEmail: 'david.chen@gmail.com',
-    age: 12,
+    age: 15,
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    notes: 'Great musicality, practicing pop-lock.',
+    notes: 'Grade 10 • Preparing for Physics Olympiad & STEM Honors.',
     lastAttendance: 'present' as const
   }
 ];
-

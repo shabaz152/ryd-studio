@@ -186,7 +186,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ryd_studio_state_v10';
+const STORAGE_KEY = 'ryd_studio_state_v11';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -232,9 +232,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [teacher, setTeacher] = useState<TeacherProfile>(() => {
     return {
       name: 'Sarah Jenkins',
-      role: 'Head of Contemporary & Urban Styles',
+      role: 'Senior Academic Faculty & STEM Tutor',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-      hourlyRate: 50,
+      hourlyRate: 500,
       totalHoursMonth: 0,
       totalEarningsMonth: 0,
       rating: 0,
@@ -1083,7 +1083,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       recipientName: `All Parents (${session.batchName})`,
       batchName: session.batchName,
       subject: `Reschedule Declined: ${session.batchName}`,
-      message: `Reschedule request for ${session.batchName} was declined. Rehearsal remains at original timetable: ${session.date} (${session.timeSlot}). Reason: ${reason || 'Parent conflict'}.`,
+      message: `Reschedule request for ${session.batchName} was declined. Session remains at original timetable: ${session.date} (${session.timeSlot}). Reason: ${reason || 'Parent conflict'}.`,
       sentAt: 'Just Now',
       status: 'delivered',
       channels: ['app', 'sms'],
@@ -1308,13 +1308,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: 'Dancer Enrolled!',
+      title: 'Student Enrolled!',
       description: `${newStudent.name} registered into cohort. Roster count updated.`,
     });
   };
 
   const removeStudent = (batchId: string, studentId: string) => {
-    let studentName = 'Dancer';
+    let studentName = 'Student';
     setBatches((prev) =>
       prev.map((batch) => {
         if (batch.id === batchId) {
@@ -1332,7 +1332,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playClick();
     showToast({
       type: 'info',
-      title: 'Dancer Removed',
+      title: 'Student Removed',
       description: `${studentName} was removed from the roster.`,
     });
   };
@@ -1575,7 +1575,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       candidateName: candidate.candidateName.trim(),
       email: candidate.email.trim(),
       phone: candidate.phone.trim(),
-      specialty: candidate.specialty.trim() || 'Creative Dance Instructor',
+      specialty: candidate.specialty.trim() || 'Academic & STEM Tutor',
       stage: 'starting_referral',
       dateReferred: 'Today',
       notes: candidate.notes || 'Invited with teacher code ' + referralStats.referralCode,
@@ -1591,7 +1591,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast({
       type: 'success',
       title: 'Candidate Referral Registered!',
-      description: `${newCand.candidateName} added at Starting Referral stage. Track audition progress below.`,
+      description: `${newCand.candidateName} added at Starting Referral stage. Track application progress below.`,
     });
   };
 

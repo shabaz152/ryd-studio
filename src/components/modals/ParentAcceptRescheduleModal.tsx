@@ -87,10 +87,10 @@ export const ParentAcceptRescheduleModal: React.FC<ParentAcceptRescheduleModalPr
               <span className="font-bold">Official Message from RYD STUDIO:</span>
             </div>
             <p className="text-xs text-gray-300 leading-relaxed">
-              "Dear Parents of <strong className="text-white">{session.batchName}</strong>, Coach{' '}
+              "Dear Parents of <strong className="text-white">{session.batchName}</strong>, Tutor{' '}
               <strong className="text-[#FFD000]">{teacher.name}</strong> has proposed a schedule
-              update for this week's rehearsal. Please review the proposed new time slot below and
-              confirm to update your dancer's calendar."
+              update for this week's tutoring session. Please review the proposed new time slot below and
+              confirm to update your student's calendar."
             </p>
           </div>
 

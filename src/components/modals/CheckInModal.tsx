@@ -225,13 +225,13 @@ export const CheckInModal: React.FC = () => {
               {activeSubTab === 'roster' && (
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
-                    <span>Enrolled Dancers ({currentBatch.students.length})</span>
+                    <span>Enrolled Students ({currentBatch.students.length})</span>
                     <span>Ready for Attendance at Check Out</span>
                   </div>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {currentBatch.students.length === 0 ? (
                       <div className="p-4 rounded-2xl bg-[#161622] border border-white/5 text-center text-xs text-gray-400">
-                        No students enrolled in this cohort yet (0 Dancers). You can enroll dancers from the Batches & Roster tab.
+                        No students enrolled in this cohort yet (0 Students). You can enroll students from the Batches & Roster tab.
                       </div>
                     ) : (
                       currentBatch.students.map((student) => (

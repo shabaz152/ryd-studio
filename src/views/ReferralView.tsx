@@ -39,7 +39,7 @@ export const ReferralView: React.FC = () => {
   const [newCandName, setNewCandName] = useState('');
   const [newCandEmail, setNewCandEmail] = useState('');
   const [newCandPhone, setNewCandPhone] = useState('');
-  const [newCandSpecialty, setNewCandSpecialty] = useState('Urban Choreography & Popping');
+  const [newCandSpecialty, setNewCandSpecialty] = useState('Pure Mathematics & AP Calculus');
   const [newCandNotes, setNewCandNotes] = useState('');
 
   // Filter stage
@@ -52,7 +52,7 @@ export const ReferralView: React.FC = () => {
   const handleWhatsAppShare = () => {
     sound.playClick();
     const text = encodeURIComponent(
-      `Coach ${teacher.name} has invited you to join the RYD STUDIO Faculty. Apply with exclusive referral code ${referralStats.referralCode}: ${shareUrl}`
+      `Tutor ${teacher.name} has invited you to join the RYD Academic Faculty. Apply with exclusive referral code ${referralStats.referralCode}: ${shareUrl}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -71,7 +71,7 @@ export const ReferralView: React.FC = () => {
 
     addCandidateReferral({
       candidateName: newCandName.trim(),
-      email: newCandEmail.trim() || 'candidate@dancefaculty.com',
+      email: newCandEmail.trim() || 'candidate@academicfaculty.com',
       phone: newCandPhone.trim() || '+1 (555) 000-1234',
       specialty: newCandSpecialty,
       notes: newCandNotes.trim() || undefined,
@@ -89,25 +89,25 @@ export const ReferralView: React.FC = () => {
       key: 'starting_referral',
       label: 'Starting Referral',
       stepNumber: 1,
-      description: 'Candidate applied via coach referral code • Portfolio in review',
+      description: 'Candidate applied via tutor referral code • Academic credentials in review',
     },
     {
       key: 'interview',
       label: 'Interview',
       stepNumber: 2,
-      description: 'Studio demo audition & faculty interview with Artistic Director',
+      description: 'Teaching demonstration session & interview with Academic Director',
     },
     {
       key: 'selected',
       label: 'Selected',
       stepNumber: 3,
-      description: 'Audition passed • Selected for studio roster & contract offer',
+      description: 'Demonstration passed • Selected for faculty cohort & contract offer',
     },
     {
       key: 'successfully_joined',
       label: 'Successfully Joined',
       stepNumber: 4,
-      description: 'Onboarded & verified • $150 compensation bonus credited to payroll',
+      description: 'Onboarded & verified • ₹1,500 compensation bonus credited to payroll',
     },
   ];
 
@@ -165,7 +165,7 @@ export const ReferralView: React.FC = () => {
             <span>Faculty Referral Program & Hiring Progress</span>
           </h1>
           <p className="text-xs text-gray-400">
-            Invite fellow instructors, track audition stages from referral to onboarding, and earn $150 per hire
+            Invite fellow academic tutors, track candidate stages from referral to onboarding, and earn ₹1,500 per hire
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export const ReferralView: React.FC = () => {
           className="flex items-center gap-2 px-5 py-2.5 rounded-2xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm transition-all cursor-pointer"
         >
           <UserPlus className="w-4 h-4 text-black" />
-          <span>{showAddCandidate ? 'Close Form' : '+ Refer New Instructor'}</span>
+          <span>{showAddCandidate ? 'Close Form' : '+ Refer New Tutor'}</span>
         </button>
       </div>
 
@@ -318,7 +318,7 @@ export const ReferralView: React.FC = () => {
             <p className="text-2xl font-black text-white mt-0.5">{referralStats.invitesSent}</p>
           </div>
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
-            <span className="text-[10px] text-purple-400 font-bold uppercase">In Audition Pipeline</span>
+            <span className="text-[10px] text-purple-400 font-bold uppercase">In Faculty Pipeline</span>
             <p className="text-2xl font-black text-purple-400 mt-0.5">
               {candidatesList.filter((c) => c.stage !== 'successfully_joined').length}
             </p>
@@ -331,7 +331,7 @@ export const ReferralView: React.FC = () => {
           </div>
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
             <span className="text-[10px] text-[#FFD000] font-bold uppercase">Total Bonus Earned</span>
-            <p className="text-2xl font-black text-[#FFD000] mt-0.5">${referralStats.bonusEarned}</p>
+            <p className="text-2xl font-black text-[#FFD000] mt-0.5">₹{referralStats.bonusEarned.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -345,7 +345,7 @@ export const ReferralView: React.FC = () => {
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[#FFD000]" />
-              <h3 className="text-sm font-bold text-white">Refer an Instructor Friend</h3>
+              <h3 className="text-sm font-bold text-white">Refer a Tutor Colleague</h3>
             </div>
             <span className="text-[11px] text-gray-400">
               Candidate starts at <strong>Stage 1: Starting Referral</strong>
@@ -354,7 +354,7 @@ export const ReferralView: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Instructor Name</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Tutor / Faculty Name</label>
               <input
                 type="text"
                 required
@@ -371,7 +371,7 @@ export const ReferralView: React.FC = () => {
                 required
                 value={newCandEmail}
                 onChange={(e) => setNewCandEmail(e.target.value)}
-                placeholder="jordan@dancefaculty.com"
+                placeholder="jordan@academicfaculty.com"
                 className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
               />
             </div>
@@ -389,23 +389,23 @@ export const ReferralView: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Dance Specialty / Style</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Academic Specialty / Subject</label>
               <input
                 type="text"
                 required
                 value={newCandSpecialty}
                 onChange={(e) => setNewCandSpecialty(e.target.value)}
-                placeholder="e.g. Hip-Hop Grooves, Contemporary Flow"
+                placeholder="e.g. Advanced Calculus, AP Physics"
                 className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Audition Notes</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Academic & Interview Notes</label>
               <input
                 type="text"
                 value={newCandNotes}
                 onChange={(e) => setNewCandNotes(e.target.value)}
-                placeholder="Has 4 years teaching experience, portfolio link..."
+                placeholder="Has 4 years tutoring experience, honors degree..."
                 className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
               />
             </div>

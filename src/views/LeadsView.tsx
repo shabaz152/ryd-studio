@@ -198,7 +198,7 @@ export const LeadsView: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-              Enrolled Dancers
+              Enrolled Students
             </span>
             <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
           </div>
@@ -259,7 +259,7 @@ export const LeadsView: React.FC = () => {
               CRM Initialized at 0: No Enquiries or Walk-Ins Logged Yet
             </h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              All student enquiry and walk-in counters start strictly at <strong className="text-white">0</strong>. When prospective dancers walk into the studio or contact you, log them below to dynamically start counting.
+              All student enquiry and walk-in counters start strictly at <strong className="text-white">0</strong>. When prospective students or parents visit the learning center or contact you, log them below to dynamically start counting.
             </p>
           </div>
 
@@ -378,7 +378,7 @@ export const LeadsView: React.FC = () => {
                         onClick={() => updateLeadStatus(lead.id, 'enrolled')}
                         className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 cursor-pointer"
                       >
-                        Enroll Dancer
+                        Enroll Student
                       </button>
                     )}
                   </div>

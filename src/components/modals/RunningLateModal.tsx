@@ -242,8 +242,8 @@ export const RunningLateModal: React.FC = () => {
               <span className="text-[10px] text-amber-400 font-mono font-bold">Push & SMS</span>
             </div>
             <p className="text-xs text-gray-300 italic bg-[#0D0D12] p-3 rounded-xl border border-white/5 leading-relaxed">
-              "Attention {targetSession?.batchName || 'Dancers'} Families: Coach {teacher.name} is running{' '}
-              <strong className="text-[#FACC15]">+{selectedMinutes} mins late</strong> ({reason || 'Transit delay'}). Warm-up floor is open and supervised. Session will conclude at regular schedule."
+              "Attention {targetSession?.batchName || 'Students'} Families: Tutor {teacher.name} is running{' '}
+              <strong className="text-[#FACC15]">+{selectedMinutes} mins late</strong> ({reason || 'Transit delay'}). Study pod is open and supervised with practice drills. Session will conclude at regular schedule."
             </p>
           </div>
         </div>

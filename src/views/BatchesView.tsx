@@ -35,33 +35,33 @@ export const BatchesView: React.FC = () => {
 
   // Enroll student modal state
   const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const [newDancerName, setNewDancerName] = useState('');
+  const [newStudentName, setNewStudentName] = useState('');
   const [newParentName, setNewParentName] = useState('');
   const [newParentPhone, setNewParentPhone] = useState('');
   const [newParentEmail, setNewParentEmail] = useState('');
-  const [newDancerAge, setNewDancerAge] = useState<number | ''>(15);
-  const [newDancerNotes, setNewDancerNotes] = useState('');
+  const [newStudentAge, setNewStudentAge] = useState<number | ''>(15);
+  const [newStudentNotes, setNewStudentNotes] = useState('');
 
   const handleEnrollSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDancerName.trim() || !activeBatch) return;
+    if (!newStudentName.trim() || !activeBatch) return;
 
     enrollStudent(activeBatch.id, {
-      name: newDancerName.trim(),
+      name: newStudentName.trim(),
       parentName: newParentName.trim() || 'Parent / Guardian',
       parentPhone: newParentPhone.trim() || '+1 (555) 000-0000',
-      parentEmail: newParentEmail.trim() || `${newDancerName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-      age: Number(newDancerAge) || 16,
+      parentEmail: newParentEmail.trim() || `${newStudentName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      age: Number(newStudentAge) || 16,
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      notes: newDancerNotes.trim() || 'Registered cohort member',
+      notes: newStudentNotes.trim() || 'Registered cohort member',
     });
 
-    setNewDancerName('');
+    setNewStudentName('');
     setNewParentName('');
     setNewParentPhone('');
     setNewParentEmail('');
-    setNewDancerAge(15);
-    setNewDancerNotes('');
+    setNewStudentAge(15);
+    setNewStudentNotes('');
     setShowEnrollModal(false);
   };
 
@@ -185,7 +185,7 @@ export const BatchesView: React.FC = () => {
 
                 <div className="mt-3.5 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
                   <span className="text-gray-400">
-                    <strong className="text-white">{batch.students.length}</strong> enrolled dancers
+                    <strong className="text-white">{batch.students.length}</strong> enrolled students
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
@@ -280,7 +280,7 @@ export const BatchesView: React.FC = () => {
                     <span>Enrolled Student Roster ({activeBatch.students.length})</span>
                   </h3>
                   <p className="text-[11px] text-gray-400">
-                    Parent contact details, emergency phone, and choreography notes
+                    Parent contact details, emergency phone, and academic study notes
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -306,9 +306,9 @@ export const BatchesView: React.FC = () => {
                     <Users className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-white">No Students Enrolled Yet (0 Dancers)</h4>
+                    <h4 className="text-sm font-bold text-white">No Students Enrolled Yet (0 Students)</h4>
                     <p className="text-xs text-gray-400 max-w-sm mx-auto">
-                      There are currently 0 dancers registered in this cohort. Click below to register new students and begin tracking attendance.
+                      There are currently 0 students registered in this cohort. Click below to register new students and begin tracking attendance.
                     </p>
                   </div>
                   <button
@@ -319,7 +319,7 @@ export const BatchesView: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 text-black" />
-                    <span>+ Enroll First Dancer</span>
+                    <span>+ Enroll First Student</span>
                   </button>
                 </div>
               ) : (
@@ -357,12 +357,12 @@ export const BatchesView: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm(`Remove dancer "${student.name}" from this cohort roster?`)) {
+                            if (window.confirm(`Remove student "${student.name}" from this cohort roster?`)) {
                               removeStudent(activeBatch.id, student.id);
                             }
                           }}
                           className="p-1 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 opacity-60 group-hover:opacity-100 transition-all cursor-pointer"
-                          title="Remove Dancer"
+                          title="Remove Student"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -447,7 +447,7 @@ export const BatchesView: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-sm bg-[#12121A] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-400 uppercase">Dancer Card</span>
+              <span className="text-xs font-bold text-gray-400 uppercase">Student Profile</span>
               <button
                 onClick={() => setSelectedStudent(null)}
                 className="p-1 text-gray-400 hover:text-white"
@@ -532,7 +532,7 @@ export const BatchesView: React.FC = () => {
                     Enroll Student in {activeBatch.name}
                   </h2>
                   <p className="text-[11px] text-gray-400">
-                    Register dancer details to add them to this cohort roster
+                    Register student details to add them to this cohort roster
                   </p>
                 </div>
               </div>
@@ -551,12 +551,12 @@ export const BatchesView: React.FC = () => {
             <form onSubmit={handleEnrollSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold text-gray-300 block mb-1">Dancer Name *</label>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Student Name *</label>
                   <input
                     type="text"
                     required
-                    value={newDancerName}
-                    onChange={(e) => setNewDancerName(e.target.value)}
+                    value={newStudentName}
+                    onChange={(e) => setNewStudentName(e.target.value)}
                     placeholder="e.g. Leo Chen"
                     className="w-full bg-[#161622] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FACC15]"
                   />
@@ -567,8 +567,8 @@ export const BatchesView: React.FC = () => {
                     type="number"
                     min={4}
                     max={65}
-                    value={newDancerAge}
-                    onChange={(e) => setNewDancerAge(e.target.value === '' ? '' : Number(e.target.value))}
+                    value={newStudentAge}
+                    onChange={(e) => setNewStudentAge(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full bg-[#161622] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FACC15]"
                   />
                 </div>
@@ -611,12 +611,12 @@ export const BatchesView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">Choreography & Skill Notes</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Academic Strengths & Learning Notes</label>
                 <textarea
                   rows={3}
-                  value={newDancerNotes}
-                  onChange={(e) => setNewDancerNotes(e.target.value)}
-                  placeholder="e.g. Strong rhythm foundations; focused on isolations and footwork clarity."
+                  value={newStudentNotes}
+                  onChange={(e) => setNewStudentNotes(e.target.value)}
+                  placeholder="e.g. Strong calculus foundations; focused on derivatives and problem-solving clarity."
                   className="w-full bg-[#161622] border border-white/10 rounded-2xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FACC15]"
                 />
               </div>
@@ -633,7 +633,7 @@ export const BatchesView: React.FC = () => {
                   type="submit"
                   className="px-6 py-2.5 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer"
                 >
-                  Enroll Dancer
+                  Enroll Student
                 </button>
               </div>
             </form>

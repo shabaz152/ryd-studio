@@ -10,10 +10,10 @@ export const OrderWorkbookModal: React.FC = () => {
   const [selectedStudentName, setSelectedStudentName] = useState(
     batches[0]?.students[0]?.name || ''
   );
-  const [itemTitle, setItemTitle] = useState('Urban Movement & Rhythm Theory Guide');
+  const [itemTitle, setItemTitle] = useState('Calculus & Analytical Geometry Problem Sets');
   const [edition, setEdition] = useState('Edition 2026 (Level 2)');
   const [quantity, setQuantity] = useState(1);
-  const [studioAddress, setStudioAddress] = useState('RYD Downtown Central - Locker 14');
+  const [studioAddress, setStudioAddress] = useState('RYD Downtown Learning Center - Desk 14');
 
   if (!orderWorkbookModalOpen) return null;
 
@@ -113,10 +113,10 @@ export const OrderWorkbookModal: React.FC = () => {
                 onChange={(e) => setItemTitle(e.target.value)}
                 className="w-full bg-[#181820] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFE500]"
               >
-                <option value="Urban Movement & Rhythm Theory Guide">Urban Movement & Rhythm Theory</option>
-                <option value="Anatomy & Flow Alignment Handbook">Anatomy & Flow Alignment Handbook</option>
-                <option value="Cinematic Expressions & Rhythm Syllabus">Cinematic Expressions & Syllabus</option>
-                <option value="Musicality & Stage Presence Workbook">Musicality & Stage Presence</option>
+                <option value="Calculus & Analytical Geometry Problem Sets">Calculus & Analytical Geometry</option>
+                <option value="Physics Dynamics & Kinetic Problem Workbook">Physics Dynamics & Mechanics</option>
+                <option value="Organic Synthesis & Reaction Mechanisms Guide">Organic Chemistry Synthesis</option>
+                <option value="Python Algorithms & Data Structures Handbook">Python Algorithms & Data Structures</option>
               </select>
             </div>
 
@@ -127,10 +127,10 @@ export const OrderWorkbookModal: React.FC = () => {
                 onChange={(e) => setEdition(e.target.value)}
                 className="w-full bg-[#181820] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFE500]"
               >
-                <option value="Edition 2026 (Level 1)">Edition 2026 (Level 1)</option>
+                <option value="Edition 2026 (Foundation)">Edition 2026 (Foundation)</option>
                 <option value="Edition 2026 (Level 2)">Edition 2026 (Level 2)</option>
-                <option value="Elite Master Series Vol. 1">Elite Master Series Vol. 1</option>
-                <option value="Pro Gold 2026">Pro Gold 2026</option>
+                <option value="Senior Prep Series Vol. 1">Senior Prep Series Vol. 1</option>
+                <option value="Board Prep Gold 2026">Board Prep Gold 2026</option>
               </select>
             </div>
           </div>

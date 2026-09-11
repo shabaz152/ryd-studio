@@ -367,7 +367,7 @@ export const CheckOutModal: React.FC = () => {
           <div className="space-y-2.5">
             {currentBatch.students.length === 0 ? (
               <div className="p-6 rounded-3xl bg-[#14141E] border border-white/10 text-center space-y-2">
-                <p className="text-xs font-bold text-white">No Dancers Enrolled in this Cohort (0 Students)</p>
+                <p className="text-xs font-bold text-white">No Students Enrolled in this Cohort (0 Students)</p>
                 <p className="text-[11px] text-gray-400 max-w-md mx-auto">
                   You can complete Check Out now. Completing check out logs your {durationHours} teaching hours and credits your faculty account with ₹{estimatedPay.toLocaleString()} automatically.
                 </p>
@@ -452,7 +452,7 @@ export const CheckOutModal: React.FC = () => {
                   {/* Progress Note Per Student */}
                   <input
                     type="text"
-                    placeholder={`Progress comment for ${student.name.split(' ')[0]} (e.g. Mastered 8-count routine)...`}
+                    placeholder={`Progress comment for ${student.name.split(' ')[0]} (e.g. Mastered calculus derivatives)...`}
                     value={record?.notes || ''}
                     onChange={(e) => handleStudentNoteChange(student.id, e.target.value)}
                     className="w-full bg-[#0C0C12] border border-white/5 rounded-xl px-3 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-[#FACC15]/50"
@@ -472,7 +472,7 @@ export const CheckOutModal: React.FC = () => {
               rows={2}
               value={sessionNotes}
               onChange={(e) => setSessionNotes(e.target.value)}
-              placeholder="Choreography sections finalized, drills for next rehearsal, notes for studio director..."
+              placeholder="Key concepts covered, practice worksheets assigned, homework due next session..."
               className="w-full bg-[#14141E] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FACC15]"
             />
           </div>

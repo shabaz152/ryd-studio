@@ -201,7 +201,7 @@ export const NewSessionModal: React.FC = () => {
                     required
                     value={customBatchName}
                     onChange={(e) => setCustomBatchName(e.target.value)}
-                    placeholder="e.g. Audition Masterclass - Stage A"
+                    placeholder="e.g. Calculus Olympiad Workshop - Room 1"
                     className="w-full bg-[#151520] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
                   />
                 </div>
@@ -218,12 +218,12 @@ export const NewSessionModal: React.FC = () => {
                 onChange={(e) => setSessionType(e.target.value)}
                 className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FFD000]"
               >
-                <option value="Regular Studio Class">Regular Studio Class</option>
-                <option value="Extra Makeup Class">Extra Makeup Class</option>
-                <option value="Showcase & Stage Rehearsal">Showcase & Stage Rehearsal</option>
-                <option value="Technique Masterclass">Technique Masterclass</option>
-                <option value="Audition & Level Evaluation">Audition & Level Evaluation</option>
-                <option value="Private 1:1 Coaching">Private 1:1 Coaching</option>
+                <option value="Regular Tutoring Session">Regular Tutoring Session</option>
+                <option value="Exam Prep Clinic">Exam Prep Clinic</option>
+                <option value="Problem Solving Workshop">Problem Solving Workshop</option>
+                <option value="STEM Masterclass">STEM Masterclass</option>
+                <option value="Diagnostic & Skill Evaluation">Diagnostic & Skill Evaluation</option>
+                <option value="Private 1:1 Tutoring">Private 1:1 Tutoring</option>
               </select>
             </div>
 
@@ -416,7 +416,7 @@ export const NewSessionModal: React.FC = () => {
                   type="text"
                   value={newBatchCode}
                   onChange={(e) => setNewBatchCode(e.target.value)}
-                  placeholder="RYD-AFR-01"
+                  placeholder="RYD-BIO-01"
                   className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000] font-mono"
                 />
               </div>
@@ -424,13 +424,13 @@ export const NewSessionModal: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">Dance Style</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Academic Subject / Curriculum</label>
                 <input
                   type="text"
                   required
                   value={newBatchStyle}
                   onChange={(e) => setNewBatchStyle(e.target.value)}
-                  placeholder="e.g. Afro Dance & Street Grooves"
+                  placeholder="e.g. AP Biology & Genetics"
                   className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#FFD000]"
                 />
               </div>
@@ -455,7 +455,7 @@ export const NewSessionModal: React.FC = () => {
             {/* Weekly Days Multi-Select */}
             <div>
               <label className="text-xs font-bold text-gray-300 block mb-1.5">
-                Weekly Rehearsal Days
+                Weekly Tutoring Days
               </label>
               <div className="flex flex-wrap gap-2">
                 {weekDays.map((day) => {

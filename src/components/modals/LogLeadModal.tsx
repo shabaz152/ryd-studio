@@ -11,7 +11,7 @@ export const LogLeadModal: React.FC = () => {
   const [parentName, setParentName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [styleInterest, setStyleInterest] = useState(batches[0]?.name || 'Hip-Hop Juniors');
+  const [styleInterest, setStyleInterest] = useState(batches[0]?.name || 'Advanced Calculus & Vectors');
   const [ageGroup, setAgeGroup] = useState('10-12 Years');
   const [source, setSource] = useState<'Walk-In' | 'Phone Call' | 'Instagram' | 'Referral' | 'Website' | 'Front Desk Enquiry'>('Walk-In');
   const [trialDate, setTrialDate] = useState('');
@@ -127,7 +127,7 @@ export const LogLeadModal: React.FC = () => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Dancer Name *</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Student Name *</label>
               <div className="relative">
                 <User className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
                 <input
@@ -186,7 +186,7 @@ export const LogLeadModal: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Dance Style Interest</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Subject / Cohort Interest</label>
               <select
                 value={styleInterest}
                 onChange={(e) => setStyleInterest(e.target.value)}
@@ -197,22 +197,22 @@ export const LogLeadModal: React.FC = () => {
                     {b.name}
                   </option>
                 ))}
-                <option value="Open Hip-Hop">Open Hip-Hop</option>
-                <option value="Private Coaching">Private Coaching</option>
+                <option value="Open STEM Clinic">Open STEM Clinic</option>
+                <option value="1-on-1 Academic Tutoring">1-on-1 Academic Tutoring</option>
               </select>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1">Age Group</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">Age / Grade Level</label>
               <select
                 value={ageGroup}
                 onChange={(e) => setAgeGroup(e.target.value)}
                 className="w-full bg-[#14141E] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD000]"
               >
-                <option value="6-9 Years">6-9 Years (Minis)</option>
-                <option value="10-12 Years">10-12 Years (Juniors)</option>
-                <option value="13-16 Years">13-16 Years (Teens)</option>
-                <option value="17+ Years">17+ Years (Adult/Pro)</option>
+                <option value="Grade 1-4 (Primary)">Grade 1-4 (Primary)</option>
+                <option value="Grade 5-8 (Middle School)">Grade 5-8 (Middle School)</option>
+                <option value="Grade 9-10 (High School Prep)">Grade 9-10 (High School Prep)</option>
+                <option value="Grade 11-12 (Advanced / AP)">Grade 11-12 (Advanced / AP)</option>
               </select>
             </div>
 
@@ -256,12 +256,12 @@ export const LogLeadModal: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-gray-300 block mb-1">Observation Notes</label>
+            <label className="text-xs font-bold text-gray-300 block mb-1">Academic Notes & Learning Goals</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Previous training background, musicality focus..."
+              placeholder="e.g. Previous grades, target exam board, specific concept bottlenecks..."
               className="w-full bg-[#14141E] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
             />
           </div>

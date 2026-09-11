@@ -47,7 +47,7 @@ export const FreeSlotsView: React.FC = () => {
             <span>Free Slot Management & Dynamic Availability</span>
           </h1>
           <p className="text-xs text-gray-400">
-            Configure weekly available time windows for private coaching, studio rehearsals, and dynamic scheduling
+            Configure weekly available time windows for 1-on-1 tutoring, exam review clinics, and dynamic scheduling
           </p>
         </div>
 
@@ -102,12 +102,12 @@ export const FreeSlotsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-300 block mb-1.5">Preferred Activity</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1.5">Preferred Subject / Activity</label>
               <input
                 type="text"
                 value={preferredStyle}
                 onChange={(e) => setPreferredStyle(e.target.value)}
-                placeholder="e.g. Solo Auditions / Extra Drills"
+                placeholder="e.g. 1-on-1 Calculus Clinic / SAT Drills"
                 className="w-full bg-[#161622] border border-white/10 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#FACC15]"
               />
             </div>
