@@ -14,6 +14,7 @@ import { LogLeadModal } from './components/modals/LogLeadModal';
 import { OrderWorkbookModal } from './components/modals/OrderWorkbookModal';
 import { ComposeUpdateModal } from './components/modals/ComposeUpdateModal';
 import { NewSessionModal } from './components/modals/NewSessionModal';
+import { ParentAcceptRescheduleModal } from './components/modals/ParentAcceptRescheduleModal';
 
 // Views
 import { HomeView } from './views/HomeView';
@@ -28,7 +29,14 @@ import { RatingsView } from './views/RatingsView';
 import { ReferralView } from './views/ReferralView';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, viewMode, themeMode } = useApp();
+  const {
+    activeTab,
+    viewMode,
+    themeMode,
+    parentPreviewModalOpen,
+    setParentPreviewModalOpen,
+    selectedSessionForParentPreview,
+  } = useApp();
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -76,6 +84,11 @@ const MainLayout: React.FC = () => {
       <OrderWorkbookModal />
       <ComposeUpdateModal />
       <NewSessionModal />
+      <ParentAcceptRescheduleModal
+        isOpen={parentPreviewModalOpen}
+        session={selectedSessionForParentPreview}
+        onClose={() => setParentPreviewModalOpen(false)}
+      />
 
       {/* Notification Toast Stack */}
       <NotificationToast />

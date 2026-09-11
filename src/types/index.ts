@@ -38,6 +38,8 @@ export interface AttendanceRecord {
   notes?: string;
 }
 
+export type RescheduleState = 'none' | 'pending_parent_approval' | 'confirmed' | 'declined';
+
 export interface Session {
   id: string;
   batchId: string;
@@ -55,10 +57,13 @@ export interface Session {
   teacherHoursLogged?: number;
   teacherEarnings?: number;
   studentAttendance?: AttendanceRecord[];
+  rescheduleState?: RescheduleState;
   rescheduleReason?: string;
   proposedDate?: string;
   proposedTime?: string;
   parentNotified?: boolean;
+  parentAcceptedAt?: string;
+  isLateArrival?: boolean;
   calendarCode?: string; // e.g. "2:3ab" or "2:3res"
 }
 

@@ -20,6 +20,8 @@ import {
   Cloud,
   CloudOff,
   RefreshCw,
+  Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -46,6 +48,8 @@ export const Navbar: React.FC = () => {
     syncStatus,
     lastSyncedAt,
     triggerCloudSync,
+    isDemoMode,
+    toggleDemoMode,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -203,6 +207,29 @@ export const Navbar: React.FC = () => {
               <Sun className="w-4 h-4 text-amber-600" />
             ) : (
               <Moon className="w-4 h-4 text-[#FFD000]" />
+            )}
+          </button>
+
+          {/* Demo Mode / Clean 0-Baseline Switcher */}
+          <button
+            onClick={toggleDemoMode}
+            title={isDemoMode ? 'Active: Demo Data Loaded. Click to reset to clean 0-baseline account' : 'Active: Clean 0-Baseline. Click to load realistic sample demo data'}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isDemoMode
+                ? 'bg-[#FFD000]/15 border-[#FFD000]/40 text-[#FFD000]'
+                : 'bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-[#FFD000]'
+            }`}
+          >
+            {isDemoMode ? (
+              <>
+                <RotateCcw className="w-3.5 h-3.5 text-[#FFD000]" />
+                <span className="text-[11px]">0-Baseline</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFD000]" />
+                <span className="text-[11px]">Demo Mode</span>
+              </>
             )}
           </button>
 

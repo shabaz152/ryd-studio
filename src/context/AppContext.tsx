@@ -24,6 +24,9 @@ import {
   INITIAL_FREE_SLOTS,
   INITIAL_REVIEWS,
   INITIAL_REFERRAL_STATS,
+  DEMO_SESSIONS,
+  DEMO_REFERRAL_STATS,
+  DEMO_STUDENTS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
@@ -108,6 +111,10 @@ interface AppContextType {
   setRescheduleModalOpen: (open: boolean) => void;
   selectedSessionForReschedule: Session | null;
   openRescheduleForSession: (session: Session) => void;
+  parentPreviewModalOpen: boolean;
+  setParentPreviewModalOpen: (open: boolean) => void;
+  selectedSessionForParentPreview: Session | null;
+  openParentPreviewForSession: (session: Session) => void;
   leadModalOpen: boolean;
   setLeadModalOpen: (open: boolean) => void;
   leadModalDefaultType: 'walk_in' | 'enquiry';
@@ -125,6 +132,8 @@ interface AppContextType {
   reportRunningLate: (minutes: number, reason: string) => void;
   clearRunningLate: () => void;
   requestReschedule: (sessionId: string, proposedDate: string, proposedTime: string, reason: string) => void;
+  acceptReschedule: (sessionId: string) => void;
+  declineReschedule: (sessionId: string, reason?: string) => void;
   cancelClass: (sessionId: string, reason: string) => void;
   createNewSession: (sessionData: AddSessionParams) => void;
   deleteSession: (sessionId: string) => void;
@@ -158,11 +167,26 @@ interface AppContextType {
   syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
   lastSyncedAt: Date | null;
   triggerCloudSync: () => Promise<void>;
+
+  // Demo Mode & Clean 0-Baseline Engine
+  isDemoMode: boolean;
+  toggleDemoMode: () => void;
+  resetToCleanState: () => void;
+  loadDemoData: () => void;
+
+  // 7 Core Dynamic Operational Metrics
+  todaysClassesCount: number;
+  studentsCount: number;
+  pendingRequestsCount: number;
+  completedSessionsCount: number;
+  lateArrivalsCount: number;
+  referralsCount: number;
+  rewardsINR: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ryd_studio_state_v9';
+const STORAGE_KEY = 'ryd_studio_state_v10';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -302,6 +326,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [runningLateModalOpen, setRunningLateModalOpen] = useState<boolean>(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState<boolean>(false);
   const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
+  const [parentPreviewModalOpen, setParentPreviewModalOpen] = useState<boolean>(false);
+  const [selectedSessionForParentPreview, setSelectedSessionForParentPreview] = useState<Session | null>(null);
+
+  const openParentPreviewForSession = (session: Session) => {
+    sound.playClick();
+    setSelectedSessionForParentPreview(session);
+    setParentPreviewModalOpen(true);
+  };
+
+  // Demo Mode State & Controls
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(`${STORAGE_KEY}_demo_mode`) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const loadDemoData = () => {
+    setIsDemoMode(true);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_demo_mode`, 'true');
+    } catch {}
+    setSessions(DEMO_SESSIONS);
+    setBatches((prev) =>
+      prev.map((b, i) => ({
+        ...b,
+        students: i === 0 ? DEMO_STUDENTS : [],
+      }))
+    );
+    setReferralStats(DEMO_REFERRAL_STATS);
+    sound.playSuccess();
+    showToast({
+      type: 'info',
+      title: 'Demo Data Loaded',
+      description: 'Loaded sample classes, enrolled students, and referral pipeline for demonstration.',
+    });
+  };
+
+  const resetToCleanState = () => {
+    setIsDemoMode(false);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_demo_mode`, 'false');
+    } catch {}
+    setSessions([]);
+    setBatches(INITIAL_BATCHES.map((b) => ({ ...b, students: [] })));
+    setLeads([]);
+    setUpdates([]);
+    setReferralStats({
+      referralCode: 'RYD-SARAH-2026',
+      invitesSent: 0,
+      onboardedTeachers: 0,
+      bonusEarned: 0,
+      pendingBonuses: 0,
+      milestoneTarget: 5,
+      candidates: [],
+    });
+    setIsRunningLate(false);
+    setRunningLateMinutes(null);
+    setRunningLateReason('');
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Clean 0-Baseline Active',
+      description: "Reset to 0 across Today's Classes, Students, Pending Requests, Completed Sessions, Late Arrivals, Referrals, and Rewards (₹0).",
+    });
+  };
+
+  const toggleDemoMode = () => {
+    sound.playClick();
+    if (isDemoMode) {
+      resetToCleanState();
+    } else {
+      loadDemoData();
+    }
+  };
+
   const [leadModalOpen, setLeadModalOpen] = useState<boolean>(false);
   const [leadModalDefaultType, setLeadModalDefaultType] = useState<'walk_in' | 'enquiry'>('walk_in');
 
@@ -628,17 +729,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     0
   );
   const actualEarnings = completedSessions.reduce(
-    (sum, s) => sum + (s.teacherEarnings || ((s.durationMinutes || 90) / 60) * (teacher.hourlyRate || 50)),
+    (sum, s) => sum + (s.teacherEarnings || ((s.durationMinutes || 90) / 60) * (teacher.hourlyRate || 500)),
     0
   );
 
   const reconciledTeacher: TeacherProfile = {
     ...teacher,
+    hourlyRate: 500,
     totalHoursMonth: +actualHours.toFixed(1),
     totalEarningsMonth: Math.round(actualEarnings),
     classesCompletedThisWeek: actualCompletedCount,
     rating: actualCompletedCount > 0 ? (teacher.rating > 0 ? teacher.rating : 5.0) : 0,
   };
+
+  // 7 Core Dynamic Operational Metrics (0-baseline for new account)
+  const todaysClassesCount = sessions.filter(
+    (s) => (s.date === '2026-09-10' || s.date === new Date().toISOString().split('T')[0]) &&
+      (s.status === 'scheduled' || s.status === 'checked_in')
+  ).length;
+
+  const studentsCount = batches.reduce((sum, b) => sum + b.students.length, 0);
+
+  const pendingRequestsCount = sessions.filter(
+    (s) => s.rescheduleState === 'pending_parent_approval'
+  ).length;
+
+  const completedSessionsCount = actualCompletedCount;
+
+  const lateArrivalsCount =
+    sessions.filter((s) => s.isLateArrival).length + (isRunningLate ? 1 : 0);
+
+  const referralsCount = referralStats.candidates.length;
+
+  const rewardsINR = Math.round(actualEarnings) + (referralStats.bonusEarned || 0);
 
   // Actions
   const checkIn = (sessionId: string) => {
@@ -739,7 +862,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const hours = (session.durationMinutes || 90) / 60;
-    const sessionEarnings = hours * (teacher.hourlyRate || 50);
+    const sessionEarnings = hours * (teacher.hourlyRate || 500);
 
     setSessions((prev) =>
       prev.map((s) =>
@@ -752,10 +875,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               studentAttendance: attendance,
               teacherHoursLogged: hours,
               teacherEarnings: sessionEarnings,
+              isLateArrival: isRunningLate || s.isLateArrival || false,
             }
           : s
       )
     );
+
+    // Update batch enrolled students' lastAttendance
+    setBatches((prev) =>
+      prev.map((b) => {
+        if (b.id !== session.batchId) return b;
+        return {
+          ...b,
+          students: b.students.map((stud) => {
+            const att = attendance.find((a) => a.studentId === stud.id);
+            return att ? { ...stud, lastAttendance: att.status } : stud;
+          }),
+        };
+      })
+    );
+
+    // Clear running late state if active
+    if (isRunningLate) {
+      setIsRunningLate(false);
+      setRunningLateMinutes(null);
+      setRunningLateReason('');
+    }
 
     setSelectedSessionForCheckOut(null);
     setCheckOutModalOpen(false);
@@ -765,7 +910,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast({
       type: 'success',
       title: 'Session Checked Out (1:1 Pair Completed)',
-      description: `Logged +${hours} hrs (+$${sessionEarnings}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} recorded.`,
+      description: `Logged +${hours} hrs (+₹${sessionEarnings.toLocaleString()}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} recorded.`,
     });
   };
 
@@ -829,6 +974,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? {
               ...s,
               status: 'rescheduled',
+              rescheduleState: 'pending_parent_approval',
               proposedDate,
               proposedTime,
               rescheduleReason: reason,
@@ -845,7 +991,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       recipientName: `All Parents (${session.batchName})`,
       batchName: session.batchName,
       subject: `Reschedule Request & Calendar Sync: ${session.batchName}`,
-      message: `Class originally set for ${session.date} (${session.timeSlot}) is proposed to reschedule to ${proposedDate} at ${proposedTime}. Reason: ${reason}. Structured Code: ${calendarCode}. Confirmations sent to parent portals.`,
+      message: `Class originally set for ${session.date} (${session.timeSlot}) is proposed to reschedule to ${proposedDate} at ${proposedTime}. Reason: ${reason}. Structured Code: ${calendarCode}. Action Required: Please accept in your parent portal.`,
       sentAt: 'Just Now',
       status: 'delivered',
       channels: ['app', 'whatsapp', 'sms'],
@@ -855,10 +1001,101 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playCheckIn();
     showToast({
       type: 'info',
-      title: `Reschedule Dispatched (Code: ${calendarCode})`,
-      description: `Automated parent notification triggered for ${session.batchName}. Google Calendar code generated.`,
+      title: `Reschedule Request Dispatched (Code: ${calendarCode})`,
+      description: `Automated parent notification sent for ${session.batchName}. Pending parent acceptance.`,
     });
     setRescheduleModalOpen(false);
+  };
+
+  const acceptReschedule = (sessionId: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session || !session.proposedDate || !session.proposedTime) return;
+
+    const calendarCode = generateCalendarCode(session.monthIndex, session.classIndex, 'rescheduled');
+    const newDate = session.proposedDate;
+    const newTime = session.proposedTime;
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              date: newDate,
+              timeSlot: newTime,
+              status: 'scheduled',
+              rescheduleState: 'confirmed',
+              parentAcceptedAt: new Date().toISOString(),
+              calendarCode,
+            }
+          : s
+      )
+    );
+
+    // Synchronize batch timetable
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.id === session.batchId
+          ? { ...b, scheduleTime: newTime }
+          : b
+      )
+    );
+
+    const newUpdate: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: `All Parents (${session.batchName})`,
+      batchName: session.batchName,
+      subject: `Reschedule Confirmed & Synchronized: ${session.batchName}`,
+      message: `Parent accepted the reschedule for ${session.batchName}. New confirmed slot: ${newDate} at ${newTime}. Batch schedule and Google Calendar updated (Code: ${calendarCode}).`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app', 'whatsapp', 'sms'],
+    };
+    setUpdates((prev) => [newUpdate, ...prev]);
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Reschedule Confirmed & Synchronized',
+      description: `New slot for ${session.batchName} confirmed for ${newDate} (${newTime}). Calendar and batch schedule updated.`,
+    });
+  };
+
+  const declineReschedule = (sessionId: string, reason?: string) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'scheduled',
+              rescheduleState: 'declined',
+            }
+          : s
+      )
+    );
+
+    const newUpdate: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: `All Parents (${session.batchName})`,
+      batchName: session.batchName,
+      subject: `Reschedule Declined: ${session.batchName}`,
+      message: `Reschedule request for ${session.batchName} was declined. Rehearsal remains at original timetable: ${session.date} (${session.timeSlot}). Reason: ${reason || 'Parent conflict'}.`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app', 'sms'],
+    };
+    setUpdates((prev) => [newUpdate, ...prev]);
+
+    sound.playAlert();
+    showToast({
+      type: 'info',
+      title: 'Reschedule Request Declined',
+      description: `Session reverted to original timetable: ${session.date} (${session.timeSlot}).`,
+    });
   };
 
   const cancelClass = (sessionId: string, reason: string) => {
@@ -1404,6 +1641,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setRescheduleModalOpen,
         selectedSessionForReschedule,
         openRescheduleForSession,
+        parentPreviewModalOpen,
+        setParentPreviewModalOpen,
+        selectedSessionForParentPreview,
+        openParentPreviewForSession,
         leadModalOpen,
         setLeadModalOpen,
         leadModalDefaultType,
@@ -1419,6 +1660,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         reportRunningLate,
         clearRunningLate,
         requestReschedule,
+        acceptReschedule,
+        declineReschedule,
         cancelClass,
         createNewSession,
         deleteSession,
@@ -1444,6 +1687,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncStatus,
         lastSyncedAt,
         triggerCloudSync,
+        isDemoMode,
+        toggleDemoMode,
+        resetToCleanState,
+        loadDemoData,
+        todaysClassesCount,
+        studentsCount,
+        pendingRequestsCount,
+        completedSessionsCount,
+        lateArrivalsCount,
+        referralsCount,
+        rewardsINR,
       }}
     >
       {children}

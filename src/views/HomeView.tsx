@@ -23,6 +23,12 @@ import {
   Footprints,
   MessageSquareText,
   LogOut,
+  Users,
+  AlertTriangle,
+  IndianRupee,
+  Sparkles,
+  RotateCcw,
+  BellRing,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -48,12 +54,23 @@ export const HomeView: React.FC = () => {
     setOrderWorkbookModalOpen,
     setNewSessionModalOpen,
     referralStats,
+    isDemoMode,
+    toggleDemoMode,
+    resetToCleanState,
+    loadDemoData,
+    todaysClassesCount,
+    studentsCount,
+    pendingRequestsCount,
+    completedSessionsCount,
+    lateArrivalsCount,
+    referralsCount,
+    rewardsINR,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [tempName, setTempName] = React.useState(teacher.name);
 
-  const todaySessions = sessions.filter((s) => s.date === '2026-09-10' || s.status === 'scheduled');
+  const todaySessions = sessions.filter((s) => s.date === '2026-09-10' || s.status === 'scheduled' || s.status === 'checked_in');
   const walkInsCount = leads.filter((l) => l.source === 'Walk-In' || l.leadType === 'walk_in').length;
   const enquiriesCount = leads.filter((l) => l.source !== 'Walk-In' || l.leadType === 'enquiry').length;
 
@@ -68,15 +85,37 @@ export const HomeView: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glossy-pill-yellow text-[#FFD000] text-[11px] font-bold uppercase tracking-wider">
               <Activity className="w-3.5 h-3.5" />
-              <span>RYD STUDIO • Faculty Operations Console</span>
+              <span>RYD STUDIO • Operations & Faculty Console</span>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>Shift Status:</span>
-              <span className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Active Shift
-              </span>
+            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+              {/* Demo Mode Toggle Switch */}
+              <button
+                onClick={toggleDemoMode}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all cursor-pointer ${
+                  isDemoMode
+                    ? 'bg-[#FFD000]/15 border border-[#FFD000]/35 text-[#FFD000] font-bold hover:bg-[#FFD000]/25'
+                    : 'bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white font-medium'
+                }`}
+                title={isDemoMode ? 'Click to reset to clean 0-baseline account' : 'Click to load realistic sample demo data'}
+              >
+                {isDemoMode ? (
+                  <>
+                    <RotateCcw className="w-3 h-3 text-[#FFD000]" />
+                    <span>Reset Clean 0-State</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 text-[#FFD000]" />
+                    <span>Load Demo Data</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Active Shift</span>
+              </div>
             </div>
           </div>
 
@@ -139,54 +178,100 @@ export const HomeView: React.FC = () => {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed mt-1.5">
-              High-contrast studio console. Log daily student attendance, dispatch immediate late notices, schedule dynamic makeups, and sync with calendar codes.
+              Live studio console. All operational metrics compute dynamically from real database state.
             </p>
           </div>
 
-          {/* 4 Executive Metric Cards - Starting at 0 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="p-4 rounded-2xl glossy-pill-dark">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">
-                Total Month Hours
+          {/* 7 Core Dynamic Operational Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-2">
+            {/* 1. Today's Classes */}
+            <div className="p-3.5 rounded-2xl glossy-pill-dark flex flex-col justify-between space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Today's Classes
               </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-white">{teacher.totalHoursMonth.toFixed(1)}</span>
-                <span className="text-xs text-[#FFD000] font-bold">hrs</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-black text-white">{todaysClassesCount}</span>
+                <Calendar className="w-3.5 h-3.5 text-[#FFD000] opacity-75" />
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl glossy-pill-dark">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">
-                Month Earnings
+            {/* 2. Students */}
+            <div className="p-3.5 rounded-2xl glossy-pill-dark flex flex-col justify-between space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Students
               </span>
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-black text-white">{studentsCount}</span>
+                <Users className="w-3.5 h-3.5 text-blue-400 opacity-75" />
+              </div>
+            </div>
+
+            {/* 3. Pending Requests */}
+            <div className={`p-3.5 rounded-2xl flex flex-col justify-between space-y-1 transition-all ${
+              pendingRequestsCount > 0
+                ? 'bg-amber-500/15 border border-amber-500/35 shadow-gold-glow-sm'
+                : 'glossy-pill-dark'
+            }`}>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Pending Requests
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className={`text-2xl font-black ${pendingRequestsCount > 0 ? 'text-[#FFD000]' : 'text-white'}`}>
+                  {pendingRequestsCount}
+                </span>
+                <Clock className={`w-3.5 h-3.5 ${pendingRequestsCount > 0 ? 'text-[#FFD000] animate-pulse' : 'text-gray-500'}`} />
+              </div>
+            </div>
+
+            {/* 4. Completed Sessions */}
+            <div className="p-3.5 rounded-2xl glossy-pill-dark flex flex-col justify-between space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Completed Sessions
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-black text-emerald-400">{completedSessionsCount}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 opacity-75" />
+              </div>
+            </div>
+
+            {/* 5. Late Arrivals */}
+            <div className={`p-3.5 rounded-2xl flex flex-col justify-between space-y-1 transition-all ${
+              lateArrivalsCount > 0
+                ? 'bg-red-500/15 border border-red-500/30'
+                : 'glossy-pill-dark'
+            }`}>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Late Arrivals
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className={`text-2xl font-black ${lateArrivalsCount > 0 ? 'text-red-400' : 'text-white'}`}>
+                  {lateArrivalsCount}
+                </span>
+                <AlertTriangle className={`w-3.5 h-3.5 ${lateArrivalsCount > 0 ? 'text-red-400' : 'text-gray-500'}`} />
+              </div>
+            </div>
+
+            {/* 6. Referrals */}
+            <div className="p-3.5 rounded-2xl glossy-pill-dark flex flex-col justify-between space-y-1">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Referrals
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-black text-purple-400">{referralsCount}</span>
+                <UserPlus className="w-3.5 h-3.5 text-purple-400 opacity-75" />
+              </div>
+            </div>
+
+            {/* 7. Rewards (INR) */}
+            <div className="p-3.5 rounded-2xl glossy-pill-dark flex flex-col justify-between space-y-1 border border-[#FFD000]/25">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Rewards
+              </span>
+              <div className="flex items-baseline justify-between">
                 <span className="text-2xl font-black text-[#FFD000]">
-                  ${teacher.totalEarningsMonth.toLocaleString()}
+                  ₹{rewardsINR.toLocaleString()}
                 </span>
-                <span className="text-[10px] text-gray-400">USD</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl glossy-pill-dark">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">
-                Faculty Rating
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <Star className={`w-4 h-4 ${teacher.rating > 0 ? 'fill-[#FFD000] text-[#FFD000]' : 'text-gray-500'}`} />
-                <span className="text-2xl font-black text-white">{teacher.rating.toFixed(2)}</span>
-                <span className="text-[10px] text-gray-400">/ 5.0</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl glossy-pill-dark">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">
-                Punctuality Score
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-emerald-400">
-                  {teacher.classesCompletedThisWeek > 0 ? '100%' : '0%'}
-                </span>
-                <span className="text-[10px] text-gray-400">On Time</span>
+                <IndianRupee className="w-3.5 h-3.5 text-[#FFD000] opacity-75" />
               </div>
             </div>
           </div>

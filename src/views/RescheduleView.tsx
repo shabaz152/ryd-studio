@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Info,
   Trash2,
+  Clock,
+  Smartphone,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -19,6 +21,9 @@ export const RescheduleView: React.FC = () => {
     setNewSessionModalOpen,
     openRescheduleForSession,
     deleteSession,
+    acceptReschedule,
+    declineReschedule,
+    openParentPreviewForSession,
   } = useApp();
 
   const [activeTabFilter, setActiveTabFilter] = useState<'proposals' | 'all'>('proposals');
@@ -208,10 +213,53 @@ export const RescheduleView: React.FC = () => {
                 )}
               </div>
 
-              {s.parentNotified && (
+              {/* Interactive Parent Approval Workflow Banner */}
+              {s.rescheduleState === 'pending_parent_approval' && (
+                <div className="p-4 rounded-2xl bg-[#FFD000]/10 border border-[#FFD000]/30 space-y-3 shadow-gold-glow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-[#FFD000] flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 animate-pulse" />
+                      <span>Parent Action Required • Pending Slot Approval</span>
+                    </span>
+                    <button
+                      onClick={() => openParentPreviewForSession(s)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FFD000] hover:text-white bg-black/40 px-2.5 py-1 rounded-lg border border-[#FFD000]/20 transition-all cursor-pointer"
+                    >
+                      <Smartphone className="w-3 h-3" />
+                      <span>Preview Parent SMS/Notice</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-300 leading-relaxed">
+                    Automated notice dispatched to all parents. You can accept below on behalf of the parent cohort or test the parent simulation.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => acceptReschedule(s.id)}
+                      className="flex-1 py-2 px-3 rounded-xl glossy-button-yellow text-black text-xs font-black transition-all cursor-pointer shadow-sm text-center"
+                    >
+                      ✓ Accept Proposed Slot (Confirm Schedule)
+                    </button>
+                    <button
+                      onClick={() => declineReschedule(s.id)}
+                      className="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/25 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {s.rescheduleState === 'confirmed' && (
                 <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 px-3.5 py-2 rounded-2xl border border-emerald-500/20">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Automated parent notifications dispatched to parent portals & SMS.</span>
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Reschedule Confirmed by Parent. Batch timetable and Google Calendar synchronized.</span>
+                </div>
+              )}
+
+              {s.rescheduleState === 'declined' && (
+                <div className="flex items-center gap-2 text-xs text-gray-400 bg-white/5 px-3.5 py-2 rounded-2xl border border-white/10">
+                  <Info className="w-4 h-4 shrink-0 text-gray-400" />
+                  <span>Reschedule request was declined. Retaining original timetable.</span>
                 </div>
               )}
 

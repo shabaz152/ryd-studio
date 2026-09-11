@@ -326,7 +326,7 @@ export const CheckOutModal: React.FC = () => {
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-white">{durationHours} Hours</span>
                   <span className="text-xs font-bold text-[#FACC15]">
-                    (+${estimatedPay} at ${teacher.hourlyRate}/hr)
+                    (+₹{estimatedPay.toLocaleString()} at ₹{teacher.hourlyRate}/hr)
                   </span>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export const CheckOutModal: React.FC = () => {
               <div className="p-6 rounded-3xl bg-[#14141E] border border-white/10 text-center space-y-2">
                 <p className="text-xs font-bold text-white">No Dancers Enrolled in this Cohort (0 Students)</p>
                 <p className="text-[11px] text-gray-400 max-w-md mx-auto">
-                  You can complete Check Out now. Completing check out logs your {durationHours} teaching hours and credits your faculty account with ${estimatedPay} automatically.
+                  You can complete Check Out now. Completing check out logs your {durationHours} teaching hours and credits your faculty account with ₹{estimatedPay.toLocaleString()} automatically.
                 </p>
               </div>
             ) : (
@@ -483,7 +483,7 @@ export const CheckOutModal: React.FC = () => {
           <div className="text-xs text-gray-300 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#FACC15]" />
             <span>
-              Auto Credits <strong>+{durationHours} hrs (${estimatedPay})</strong> to {teacher.name}'s payroll.
+              Auto Credits <strong>+{durationHours} hrs (₹{estimatedPay.toLocaleString()})</strong> to {teacher.name}'s payroll.
             </span>
           </div>
 

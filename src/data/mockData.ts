@@ -63,7 +63,11 @@ export const INITIAL_BATCHES: Batch[] = [
   }
 ];
 
-export const INITIAL_SESSIONS: Session[] = [
+// Clean 0-Baseline by default for a new teacher/account
+export const INITIAL_SESSIONS: Session[] = [];
+
+// Sample Demo Sessions for Demo Mode
+export const DEMO_SESSIONS: Session[] = [
   {
     id: 'sess-today-01',
     batchId: 'batch-hiphop-01',
@@ -247,3 +251,60 @@ export const INITIAL_REFERRAL_STATS: ReferralStats = {
   milestoneTarget: 5,
   candidates: [],
 };
+
+export const DEMO_REFERRAL_STATS: ReferralStats = {
+  referralCode: 'RYD-SARAH-2026',
+  invitesSent: 4,
+  onboardedTeachers: 1,
+  bonusEarned: 1500,
+  pendingBonuses: 1500,
+  milestoneTarget: 5,
+  candidates: [
+    {
+      id: 'cand-1',
+      candidateName: 'Marcus Vance',
+      email: 'marcus.v@gmail.com',
+      phone: '+1 (555) 234-8891',
+      specialty: 'Contemporary & Acro',
+      stage: 'successfully_joined',
+      dateReferred: '2026-09-02',
+      notes: 'Hired for West End Studio - Saturday masterclasses.'
+    },
+    {
+      id: 'cand-2',
+      candidateName: 'Zara Morales',
+      email: 'zara.dance@outlook.com',
+      phone: '+1 (555) 345-9920',
+      specialty: 'Afrobeats & Dancehall',
+      stage: 'selected',
+      dateReferred: '2026-09-05',
+      notes: 'Final contract signing pending.'
+    }
+  ],
+};
+
+export const DEMO_STUDENTS = [
+  {
+    id: 'stud-1',
+    name: 'Maya Lin',
+    parentName: 'Elena Lin',
+    parentPhone: '+1 (555) 912-3456',
+    parentEmail: 'elena.lin@gmail.com',
+    age: 11,
+    avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80',
+    notes: 'Advanced footwork talent, center lead.',
+    lastAttendance: 'present' as const
+  },
+  {
+    id: 'stud-2',
+    name: 'Leo Chen',
+    parentName: 'David Chen',
+    parentPhone: '+1 (555) 987-6543',
+    parentEmail: 'david.chen@gmail.com',
+    age: 12,
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    notes: 'Great musicality, practicing pop-lock.',
+    lastAttendance: 'present' as const
+  }
+];
+
