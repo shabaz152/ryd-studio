@@ -40,32 +40,23 @@ export const PersonaSwitcher: React.FC = () => {
               <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
               <span>FACULTY WORKBENCH</span>
             </div>
-            <span className="hidden sm:inline text-slate-400 text-[11px]">
-              Tutor: <strong className="text-white">{teacher.name}</strong> • Restricted Faculty Access
+            <span className="text-slate-400 text-[11px]">
+              Tutor: <strong className="text-white">{teacher.name}</strong> • <span className="text-blue-400 font-semibold">Restricted: You can only view this Faculty Workbench</span>
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-[11px]">
+            <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-[11px]">
               <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
               <span>Status: <strong className="text-white">{statusBadge.text}</strong></span>
             </span>
 
             <button
-              onClick={() => setRoleGatewayModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-[11px] font-semibold border border-white/10 transition-colors cursor-pointer"
-              title="Switch to Admin or Parent account"
-            >
-              <ArrowLeftRight className="w-3 h-3 text-amber-400" />
-              <span>Switch</span>
-            </button>
-
-            <button
               onClick={logout}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-[11px] font-bold border border-red-500/30 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-xs font-bold border border-red-500/30 transition-colors cursor-pointer"
               title="Log Out of Tutor Account"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Log Out</span>
             </button>
           </div>
@@ -84,27 +75,18 @@ export const PersonaSwitcher: React.FC = () => {
               <Users className="w-3.5 h-3.5 text-emerald-400" />
               <span>FAMILY PORTAL</span>
             </div>
-            <span className="hidden sm:inline text-slate-400 text-[11px]">
-              Parent Account: <strong className="text-white">Marcus Vance</strong> • Dedicated Family Access
+            <span className="text-slate-400 text-[11px]">
+              Parent Account: <strong className="text-white">Marcus Vance</strong> • <span className="text-emerald-400 font-semibold">Restricted: You can only view your Family Hub</span>
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setRoleGatewayModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-[11px] font-semibold border border-white/10 transition-colors cursor-pointer"
-              title="Switch to Admin or Tutor account"
-            >
-              <ArrowLeftRight className="w-3 h-3 text-amber-400" />
-              <span>Switch</span>
-            </button>
-
-            <button
               onClick={logout}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-[11px] font-bold border border-red-500/30 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-xs font-bold border border-red-500/30 transition-colors cursor-pointer"
               title="Log Out of Parent Account"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Log Out</span>
             </button>
           </div>

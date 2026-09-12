@@ -35,6 +35,7 @@ import { LoginView } from './views/auth/LoginView';
 
 const MainLayout: React.FC = () => {
   const {
+    currentAuthRole,
     activeRole,
     activeTab,
     viewMode,
@@ -55,11 +56,27 @@ const MainLayout: React.FC = () => {
   }
 
   const renderActiveView = () => {
+    // Role Security: Non-admin users can ONLY view their own page!
+    if (currentAuthRole === 'tutor') {
+      return <HomeView />;
+    }
+
+    if (currentAuthRole === 'parent') {
+      return <ParentPortal />;
+    }
+
+    // Admin is the Head: Can access all pages and preview any persona UI
+    if (activeRole === 'tutor') {
+      return <HomeView />;
+    }
+
+    if (activeRole === 'parent') {
+      return <ParentPortal />;
+    }
+
     switch (activeTab) {
       case 'home':
-        if (activeRole === 'admin') return <AdminPortal />;
-        if (activeRole === 'parent') return <ParentPortal />;
-        return <HomeView />;
+        return <AdminPortal />;
       case 'batches':
         return <BatchesView />;
       case 'reschedule':
@@ -79,9 +96,7 @@ const MainLayout: React.FC = () => {
       case 'referral':
         return <ReferralView />;
       default:
-        if (activeRole === 'admin') return <AdminPortal />;
-        if (activeRole === 'parent') return <ParentPortal />;
-        return <HomeView />;
+        return <AdminPortal />;
     }
   };
 
@@ -94,7 +109,7 @@ const MainLayout: React.FC = () => {
         {renderActiveView()}
       </main>
 
-      <BottomNav />
+      {currentAuthRole === 'admin' && <BottomNav />}
 
       {/* Global Modals */}
       <CheckInModal />

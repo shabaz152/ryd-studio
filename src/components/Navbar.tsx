@@ -22,6 +22,7 @@ import {
   Sparkles,
   RotateCcw,
   LogOut,
+  GraduationCap,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -51,6 +52,7 @@ export const Navbar: React.FC = () => {
     isDemoMode,
     toggleDemoMode,
     activeRole,
+    currentAuthRole,
     tutorOnlineStatus,
     unreadAdminActivityCount,
     unreadParentActivityCount,
@@ -102,8 +104,8 @@ export const Navbar: React.FC = () => {
             </div>
           </button>
 
-          {/* Desktop Navigation Tabs for All Personas (Admin, Tutor, Parent) */}
-          {viewMode !== 'mobile' && (
+          {/* Desktop Navigation Tabs: ONLY Admin can access all pages */}
+          {viewMode !== 'mobile' && currentAuthRole === 'admin' && (
             <nav className="hidden lg:flex items-center gap-1 ml-1 xl:ml-3 pl-2 xl:pl-3 border-l border-slate-200 dark:border-white/10">
               {navLinks.map((tab) => {
                 const Icon = tab.icon;
@@ -134,6 +136,26 @@ export const Navbar: React.FC = () => {
                 );
               })}
             </nav>
+          )}
+
+          {/* Tutor Role Badge: Restricted to Tutor Page Only */}
+          {viewMode !== 'mobile' && currentAuthRole === 'tutor' && (
+            <div className="hidden sm:flex items-center gap-2 ml-2 pl-3 border-l border-slate-200 dark:border-white/10">
+              <span className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-bold flex items-center gap-2 shadow-xs">
+                <GraduationCap className="w-4 h-4" />
+                <span>Faculty Workbench (Restricted Tutor View)</span>
+              </span>
+            </div>
+          )}
+
+          {/* Parent Role Badge: Restricted to Family Hub Only */}
+          {viewMode !== 'mobile' && currentAuthRole === 'parent' && (
+            <div className="hidden sm:flex items-center gap-2 ml-2 pl-3 border-l border-slate-200 dark:border-white/10">
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-2 shadow-xs">
+                <Users className="w-4 h-4" />
+                <span>Family Portal (Restricted Parent View)</span>
+              </span>
+            </div>
           )}
         </div>
 

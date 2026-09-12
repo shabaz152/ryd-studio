@@ -232,7 +232,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const STORAGE_KEY = 'ryd_studio_state_v11';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTabState] = useState<string>('home');
   const [viewMode, setViewMode] = useState<'mobile' | 'responsive'>('responsive');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(true);
@@ -912,7 +912,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     setCurrentAuthRole(role);
     setActiveRoleState(role);
-    setActiveTab('home');
+    setActiveTabState('home');
     try {
       localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
       localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
@@ -959,7 +959,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
     setCurrentAuthRole(authData.role);
     setActiveRoleState(authData.role);
-    setActiveTab('home');
+    setActiveTabState('home');
 
     if (authData.studentId) {
       setSelectedParentStudentId(authData.studentId);
@@ -1074,7 +1074,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     sound.playClick();
     setActiveRoleState(role);
-    setActiveTab('home');
+    setActiveTabState('home');
     try {
       localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
     } catch {}
@@ -1083,6 +1083,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       title: `Admin Viewing: ${role === 'admin' ? '👑 Admin Command' : role === 'tutor' ? '🧑‍🏫 Tutor Faculty Workbench' : '👨‍👩‍👧 Parent & Student Portal'}`,
       description: `Displaying interface preview for ${role.toUpperCase()}.`,
     });
+  };
+
+  const setActiveTab = (tab: string) => {
+    // Only Admin can navigate between different pages!
+    if (currentAuthRole !== 'admin') {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Access Restricted',
+        description: `Only Admin (Head of Platform) can access all pages. As a ${currentAuthRole}, you can only view your own page.`,
+      });
+      return;
+    }
+    sound.playClick();
+    setActiveTabState(tab);
   };
 
   const addActivityEvent = useCallback((event: Omit<ActivityEvent, 'id' | 'timestamp' | 'readByAdmin' | 'readByParent'>) => {
