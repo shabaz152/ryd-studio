@@ -321,13 +321,14 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          {/* Role-Aware Profile Pill: NEVER clipped, strictly scoped to authenticated role */}
+          {/* Role-Aware Profile Pill: NEVER clipped, click to Change Password & Security */}
           <div
-            onClick={currentAuthRole === 'admin' ? () => setRoleGatewayModalOpen(true) : undefined}
-            className={`flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0 select-none pr-1 ${
-              currentAuthRole === 'admin' ? 'cursor-pointer group' : 'cursor-default'
-            }`}
-            title={currentAuthRole === 'admin' ? 'Click to Switch Persona / Access All Views' : `Signed in as ${currentAuthRole === 'tutor' ? 'Faculty Tutor' : 'Parent'}`}
+            onClick={() => {
+              sound.playClick();
+              setAccountSecurityModalOpen(true);
+            }}
+            className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0 select-none pr-1 cursor-pointer group"
+            title="Click to Change Password & View Profile Security"
           >
             {currentAuthRole === 'admin' ? (
               <div className="flex items-center gap-2">
@@ -417,7 +418,7 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Security</span>
+            <span className="hidden sm:inline">Change Password</span>
           </button>
 
           {/* Dedicated Persona Logout Button */}

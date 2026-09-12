@@ -107,10 +107,10 @@ export const AccountSecurityModal: React.FC = () => {
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                Account Security & Credentials
+                Change Password & Credentials
               </h3>
               <p className="text-xs text-slate-500 dark:text-gray-400">
-                Update your private personal login email and password
+                Update your personal login password and email address
               </p>
             </div>
           </div>

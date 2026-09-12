@@ -27,6 +27,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { ActivityEvent, UserRole } from '../../types';
 import { TutorLocationMap } from '../../components/admin/TutorLocationMap';
+import { sound } from '../../utils/sound';
 
 export const AdminPortal: React.FC = () => {
   const {
@@ -46,6 +47,7 @@ export const AdminPortal: React.FC = () => {
     authorizeNewUser,
     toggleUserAuthorization,
     setAccountSecurityModalOpen,
+    currentUser,
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'activity' | 'map' | 'access' | 'tutors' | 'students' | 'schedules'>('activity');
@@ -214,6 +216,40 @@ export const AdminPortal: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Admin Executive Profile Card with Direct Change Password */}
+      <div className="rounded-2xl p-4 sm:p-5 bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-black font-black flex items-center justify-center text-xl shadow-md shrink-0">
+            👑
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
+                Center Director (App Owner)
+              </h3>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500/15 text-amber-500 border border-amber-500/30 uppercase tracking-wider">
+                Administrator Profile
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-gray-400 truncate mt-0.5">
+              Login Email: <strong className="text-slate-800 dark:text-slate-200">{currentUser?.email || 'admin@ryd.studio'}</strong> • Head of Platform & Center Director
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            sound.playClick();
+            setAccountSecurityModalOpen(true);
+          }}
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+          title="Click to change your personal login email and password"
+        >
+          <KeyRound className="w-4 h-4" />
+          <span>Change Password</span>
+        </button>
       </div>
 
       {/* Portal Subtabs */}

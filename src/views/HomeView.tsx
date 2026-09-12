@@ -71,6 +71,7 @@ export const HomeView: React.FC = () => {
     loginTutor,
     logoutTutor,
     setAccountSecurityModalOpen,
+    currentUser,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -307,6 +308,43 @@ export const HomeView: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Faculty Profile Card with Direct Change Password */}
+      <div className="rounded-3xl p-4 sm:p-5 glossy-card border border-amber-500/20 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="relative shrink-0">
+            <img
+              src={teacher.avatarUrl}
+              alt={teacher.name}
+              className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
+            />
+            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#12121A]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm sm:text-base font-black text-white truncate">{teacher.name}</h3>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-500/15 text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+                Faculty Profile
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 truncate mt-0.5">
+              Email: <strong className="text-slate-200">{currentUser?.email || 'tutor@ryd.studio'}</strong> • Rate: ₹{teacher.hourlyRate}/hr • {teacher.role}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            sound.playClick();
+            setAccountSecurityModalOpen(true);
+          }}
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:brightness-110 text-black text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+          title="Click to change your personal login email and password"
+        >
+          <KeyRound className="w-4 h-4" />
+          <span>Change Password</span>
+        </button>
       </div>
 
       {/* 2. Main Action Dashboard: Check In, Check Out, Running Late */}
