@@ -49,6 +49,10 @@ export const Navbar: React.FC = () => {
     triggerCloudSync,
     isDemoMode,
     toggleDemoMode,
+    activeRole,
+    tutorOnlineStatus,
+    unreadAdminActivityCount,
+    unreadParentActivityCount,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -269,6 +273,33 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleThemeMode}
+            title={themeMode === 'light' ? 'Switch to Dark Viewport' : 'Switch to CRM Light Viewport'}
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
+          >
+            {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
+
+          {/* Audio Feedback Toggle */}
+          <button
+            onClick={toggleSound}
+            title={soundEnabled ? 'Mute Audio Cues' : 'Enable Audio Cues'}
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-500 dark:text-[#FFD000]" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+          </button>
+
+          {/* Viewport Mode Switcher */}
+          <button
+            onClick={toggleViewMode}
+            title={viewMode === 'responsive' ? 'Switch to Mobile Frame View' : 'Switch to Full Screen View'}
+            className="hidden sm:flex p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
+          >
+            {viewMode === 'responsive' ? <Smartphone className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+          </button>
+
           {/* Notifications Bell */}
           <button
             onClick={() => setActiveTab('updates')}
@@ -283,51 +314,83 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* Teacher Profile Pill: NEVER clipped, full width, clear text in light and dark mode */}
+          {/* Role-Aware Profile Pill: NEVER clipped, full width, clear text in light and dark mode */}
           <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0">
-            <div className="relative shrink-0">
-              <img
-                src={teacher.avatarUrl}
-                alt={teacher.name}
-                className="w-8 h-8 rounded-xl object-cover border-2 border-amber-400 dark:border-[#FFD000]/60 shrink-0 shadow-xs"
-              />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white dark:border-[#050507]" />
-            </div>
-
-            <div className="text-left shrink-0">
-              {isEditingName ? (
-                <form onSubmit={handleNameSubmit} className="flex items-center gap-1">
-                  <input
-                    type="text"
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    className="bg-white dark:bg-[#181824] border border-amber-400 dark:border-[#FFD000] text-slate-900 dark:text-white text-xs px-2 py-0.5 rounded-lg focus:outline-none w-28"
-                    autoFocus
-                    onBlur={() => setIsEditingName(false)}
-                  />
-                  <button type="submit" className="bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[10px] font-bold px-2 py-0.5 rounded-lg cursor-pointer">
-                    Save
-                  </button>
-                </form>
-              ) : (
-                <div
-                  onClick={() => {
-                    setTempName(teacher.name);
-                    setIsEditingName(true);
-                  }}
-                  className="cursor-pointer group select-none"
-                  title="Click to edit teacher name"
-                >
-                  <p className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-[#FFD000] transition-colors whitespace-nowrap leading-tight">
-                    {teacher.name}
-                  </p>
-                  <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#FFD000] font-semibold whitespace-nowrap">
-                    <Star className={`w-3 h-3 ${teacher.rating > 0 ? 'fill-amber-500 text-amber-500 dark:fill-[#FFD000] dark:text-[#FFD000]' : 'text-slate-400 dark:text-gray-500'}`} />
-                    <span>{teacher.rating > 0 ? `${teacher.rating.toFixed(2)} Rating` : '0.00 Faculty'}</span>
-                  </div>
+            {activeRole === 'admin' ? (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                  👑
                 </div>
-              )}
-            </div>
+                <div className="text-left shrink-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap leading-tight">
+                    Owner (Admin)
+                  </p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold whitespace-nowrap">
+                    Executive Access
+                  </p>
+                </div>
+              </div>
+            ) : activeRole === 'parent' ? (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                  👨‍👩‍👧
+                </div>
+                <div className="text-left shrink-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap leading-tight">
+                    Marcus Vance
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap">
+                    Parent (Aria)
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="relative shrink-0">
+                  <img
+                    src={teacher.avatarUrl}
+                    alt={teacher.name}
+                    className="w-8 h-8 rounded-xl object-cover border-2 border-amber-400 dark:border-[#FFD000]/60 shrink-0 shadow-xs"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white dark:border-[#050507]" />
+                </div>
+
+                <div className="text-left shrink-0">
+                  {isEditingName ? (
+                    <form onSubmit={handleNameSubmit} className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="bg-white dark:bg-[#181824] border border-amber-400 dark:border-[#FFD000] text-slate-900 dark:text-white text-xs px-2 py-0.5 rounded-lg focus:outline-none w-28"
+                        autoFocus
+                        onBlur={() => setIsEditingName(false)}
+                      />
+                      <button type="submit" className="bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[10px] font-bold px-2 py-0.5 rounded-lg cursor-pointer">
+                        Save
+                      </button>
+                    </form>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        setTempName(teacher.name);
+                        setIsEditingName(true);
+                      }}
+                      className="cursor-pointer group select-none"
+                      title="Click to edit teacher name"
+                    >
+                      <p className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-[#FFD000] transition-colors whitespace-nowrap leading-tight">
+                        {teacher.name}
+                      </p>
+                      <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#FFD000] font-semibold whitespace-nowrap">
+                        <Star className={`w-3 h-3 ${teacher.rating > 0 ? 'fill-amber-500 text-amber-500 dark:fill-[#FFD000] dark:text-[#FFD000]' : 'text-slate-400 dark:text-gray-500'}`} />
+                        <span>{teacher.rating > 0 ? `${teacher.rating.toFixed(2)} Rating` : '0.00 Faculty'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -337,16 +400,22 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 min-w-0">
           <Activity className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFD000] shrink-0" />
           <span className="truncate">
-            Welcome back, <strong className="text-amber-600 dark:text-[#FFD000] font-bold">{teacher.name}</strong> • Academic Tutoring & Faculty Hub
+            {activeRole === 'admin' ? (
+              <span>👑 <strong className="text-amber-600 dark:text-amber-400 font-bold">Admin Command Center</strong> • Real-time triangular activity audit & center oversight active</span>
+            ) : activeRole === 'parent' ? (
+              <span>👨‍👩‍👧 <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Parent & Student Hub</strong> • Monitoring Aria Vance (Grade 11 - Calculus & Physics)</span>
+            ) : (
+              <span>Welcome back, <strong className="text-amber-600 dark:text-[#FFD000] font-bold">{teacher.name}</strong> • Academic Tutoring & Faculty Hub</span>
+            )}
           </span>
         </div>
 
         <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-gray-400 shrink-0">
           <span className="hidden sm:inline">Today: <strong className="text-slate-700 dark:text-gray-200">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</strong></span>
           <span className="hidden sm:inline">•</span>
-          <span>Schedule: <strong className="text-amber-600 dark:text-amber-400 font-semibold">16:00 (Advanced Calculus)</strong></span>
+          <span>Faculty Shift: <strong className="text-emerald-600 dark:text-emerald-400">{tutorOnlineStatus.toUpperCase()}</strong></span>
           <span>•</span>
-          <span>Faculty Status: <strong className="text-emerald-600 dark:text-emerald-400">Ready & Synced</strong></span>
+          <span>Triangular Link: <strong className="text-amber-600 dark:text-amber-400 font-semibold">Live Synced</strong></span>
         </div>
       </div>
     </header>

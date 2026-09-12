@@ -65,6 +65,9 @@ export const HomeView: React.FC = () => {
     lateArrivalsCount,
     referralsCount,
     rewardsINR,
+    tutorOnlineStatus,
+    loginTutor,
+    logoutTutor,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -112,10 +115,25 @@ export const HomeView: React.FC = () => {
                 )}
               </button>
 
-              <div className="flex items-center gap-1.5 text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Active Shift</span>
-              </div>
+              {tutorOnlineStatus === 'online' || tutorOnlineStatus === 'in_session' ? (
+                <button
+                  onClick={logoutTutor}
+                  className="flex items-center gap-1.5 text-emerald-400 hover:text-red-400 font-bold bg-emerald-500/10 hover:bg-red-500/10 px-3 py-1 rounded-full border border-emerald-500/20 hover:border-red-500/30 transition-all cursor-pointer group"
+                  title="Click to Log Out (dispatches alert to Admin and Parents)"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 group-hover:bg-red-400 animate-pulse" />
+                  <span>Online • Click to Log Out</span>
+                </button>
+              ) : (
+                <button
+                  onClick={loginTutor}
+                  className="flex items-center gap-1.5 text-amber-400 hover:text-emerald-400 font-bold bg-amber-500/10 hover:bg-emerald-500/10 px-3 py-1 rounded-full border border-amber-500/20 hover:border-emerald-500/30 transition-all cursor-pointer group"
+                  title="Click to Log In (dispatches alert to Admin and Parents)"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 group-hover:bg-emerald-400" />
+                  <span>Offline • Click to Log In</span>
+                </button>
+              )}
             </div>
           </div>
 

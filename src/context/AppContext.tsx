@@ -14,6 +14,11 @@ import {
   Student,
   ReferredCandidate,
   ReferralProgressStage,
+  UserRole,
+  TutorOnlineStatus,
+  ActivityEvent,
+  TutorAccount,
+  ParentAccount,
 } from '../types';
 import {
   INITIAL_BATCHES,
@@ -27,6 +32,9 @@ import {
   DEMO_SESSIONS,
   DEMO_REFERRAL_STATS,
   DEMO_STUDENTS,
+  INITIAL_TUTORS,
+  INITIAL_PARENTS,
+  INITIAL_ACTIVITY_EVENTS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
@@ -182,6 +190,25 @@ interface AppContextType {
   lateArrivalsCount: number;
   referralsCount: number;
   rewardsINR: number;
+
+  // 3-Persona Triangular Architecture
+  activeRole: UserRole;
+  setActiveRole: (role: UserRole) => void;
+  roleGatewayModalOpen: boolean;
+  setRoleGatewayModalOpen: (open: boolean) => void;
+  tutorOnlineStatus: TutorOnlineStatus;
+  loginTutor: () => void;
+  logoutTutor: () => void;
+  tutors: TutorAccount[];
+  parents: ParentAccount[];
+  selectedParentStudentId: string;
+  setSelectedParentStudentId: (id: string) => void;
+  activityEvents: ActivityEvent[];
+  addActivityEvent: (event: Omit<ActivityEvent, 'id' | 'timestamp' | 'readByAdmin' | 'readByParent'>) => void;
+  unreadAdminActivityCount: number;
+  unreadParentActivityCount: number;
+  markActivityReadByAdmin: () => void;
+  markActivityReadByParent: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -319,6 +346,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
   const [runningLateReason, setRunningLateReason] = useState<string>('');
 
+  // 3-Persona Architecture State
+  const [activeRole, setActiveRoleState] = useState<UserRole>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_active_role`);
+      return (saved === 'admin' || saved === 'tutor' || saved === 'parent') ? saved : 'admin';
+    } catch {
+      return 'admin';
+    }
+  });
+
+  const [roleGatewayModalOpen, setRoleGatewayModalOpen] = useState<boolean>(false);
+  const [tutorOnlineStatus, setTutorOnlineStatus] = useState<TutorOnlineStatus>('online');
+
+  const [tutors, setTutors] = useState<TutorAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_tutors`);
+      return saved ? JSON.parse(saved) : INITIAL_TUTORS;
+    } catch {
+      return INITIAL_TUTORS;
+    }
+  });
+
+  const [parents, setParents] = useState<ParentAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_parents`);
+      return saved ? JSON.parse(saved) : INITIAL_PARENTS;
+    } catch {
+      return INITIAL_PARENTS;
+    }
+  });
+
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_activity`);
+      return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_EVENTS;
+    } catch {
+      return INITIAL_ACTIVITY_EVENTS;
+    }
+  });
+
+  const [selectedParentStudentId, setSelectedParentStudentIdState] = useState<string>(() => {
+    try {
+      return localStorage.getItem(`${STORAGE_KEY}_parent_stud_id`) || 'stud-3';
+    } catch {
+      return 'stud-3';
+    }
+  });
+
+  const setSelectedParentStudentId = (id: string) => {
+    setSelectedParentStudentIdState(id);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_parent_stud_id`, id);
+    } catch {}
+  };
+
   // Modals
   const [checkInModalOpen, setCheckInModalOpen] = useState<boolean>(false);
   const [checkOutModalOpen, setCheckOutModalOpen] = useState<boolean>(false);
@@ -328,6 +410,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
   const [parentPreviewModalOpen, setParentPreviewModalOpen] = useState<boolean>(false);
   const [selectedSessionForParentPreview, setSelectedSessionForParentPreview] = useState<Session | null>(null);
+
 
   const openParentPreviewForSession = (session: Session) => {
     sound.playClick();
@@ -763,6 +846,121 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const rewardsINR = Math.round(actualEarnings) + (referralStats.bonusEarned || 0);
 
+  // 3-Persona Action Helpers
+  const setActiveRole = (role: UserRole) => {
+    sound.playClick();
+    setActiveRoleState(role);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
+    } catch {}
+    showToast({
+      type: 'info',
+      title: `Switched to ${role === 'admin' ? '👑 Admin / App Owner' : role === 'tutor' ? '🧑‍🏫 Tutor Faculty' : '👨‍👩‍👧 Parent & Student'} View`,
+      description: `Viewing application interface tailored for ${role.toUpperCase()}.`,
+    });
+  };
+
+  const addActivityEvent = useCallback((event: Omit<ActivityEvent, 'id' | 'timestamp' | 'readByAdmin' | 'readByParent'>) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const newEvent: ActivityEvent = {
+      ...event,
+      id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      timestamp: timeStr,
+      readByAdmin: activeRole === 'admin',
+      readByParent: activeRole === 'parent',
+    };
+    setActivityEvents((prev) => {
+      const updated = [newEvent, ...prev.slice(0, 49)];
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_activity`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, [activeRole]);
+
+  const loginTutor = () => {
+    sound.playCheckIn();
+    setTutorOnlineStatus('online');
+    setTutors((prev) => {
+      const updated = prev.map((t) =>
+        t.id === 'tutor-shazz'
+          ? { ...t, status: 'online' as const, lastLoginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+          : t
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    addActivityEvent({
+      type: 'login',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      targetBatchId: 'batch-math-01',
+      targetBatchName: 'Advanced Calculus & Vectors',
+      title: 'Tutor Online & Shift Started',
+      description: `${teacher.name} has logged into the academic hub. Alerts dispatched to Admin & Parents.`,
+    });
+    showToast({
+      type: 'success',
+      title: 'Tutor Online (Alerts Dispatched)',
+      description: `${teacher.name} is now ONLINE. Instant notifications dispatched to App Owner and all linked Parents.`,
+    });
+  };
+
+  const logoutTutor = () => {
+    sound.playClick();
+    setTutorOnlineStatus('offline');
+    setTutors((prev) => {
+      const updated = prev.map((t) =>
+        t.id === 'tutor-shazz'
+          ? { ...t, status: 'offline' as const, lastLogoutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+          : t
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    addActivityEvent({
+      type: 'logout',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      title: 'Tutor Offline / Shift Ended',
+      description: `${teacher.name} logged out from the academic portal.`,
+    });
+    showToast({
+      type: 'info',
+      title: 'Tutor Logged Out (Alerts Dispatched)',
+      description: `${teacher.name} is now OFFLINE. Activity logged and notified to Admin & Parents.`,
+    });
+  };
+
+  const unreadAdminActivityCount = activityEvents.filter((e) => !e.readByAdmin).length;
+  const unreadParentActivityCount = activityEvents.filter((e) => !e.readByParent).length;
+
+  const markActivityReadByAdmin = () => {
+    setActivityEvents((prev) => {
+      const updated = prev.map((e) => ({ ...e, readByAdmin: true }));
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_activity`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const markActivityReadByParent = () => {
+    setActivityEvents((prev) => {
+      const updated = prev.map((e) => ({ ...e, readByParent: true }));
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_activity`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   // Actions
   const checkIn = (sessionId: string) => {
     // 1:1 Rule Enforcement: For every check-in there must be one and only one check-out.
@@ -808,11 +1006,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
+    setTutorOnlineStatus('in_session');
+    addActivityEvent({
+      type: 'check_in',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      targetBatchId: session.batchId,
+      targetBatchName: session.batchName,
+      title: `Class In-Session: ${session.batchName}`,
+      description: `Tutor ${teacher.name} checked in at ${timeString} in ${session.studioRoom}. Student attendance & session timer active.`,
+    });
+
     sound.playCheckIn();
     showToast({
       type: 'success',
-      title: 'Checked In Successfully (1:1 Pair Started)',
-      description: `Active in ${session.batchName} at ${session.studioRoom} (${timeString}). Ready for its one-and-only Check Out upon class completion.`,
+      title: 'Checked In Successfully (Alert Dispatched)',
+      description: `Active in ${session.batchName} at ${session.studioRoom} (${timeString}). Live notification sent to Admin & Parents.`,
     });
     setCheckInModalOpen(false);
   };
@@ -906,11 +1116,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCheckOutModalOpen(false);
     sound.playSuccess();
 
+    setTutorOnlineStatus('online');
+    addActivityEvent({
+      type: 'check_out',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      targetBatchId: session.batchId,
+      targetBatchName: session.batchName,
+      title: `Class Completed: ${session.batchName}`,
+      description: `Tutor ${teacher.name} checked out at ${timeString}. Attendance logged for ${attendance.length} students. ₹${Math.round(sessionEarnings)} earnings credited.`,
+    });
+
     const presentCount = attendance.filter((a) => a.status === 'present').length;
     showToast({
       type: 'success',
-      title: 'Session Checked Out (1:1 Pair Completed)',
-      description: `Logged +${hours} hrs (+₹${sessionEarnings.toLocaleString()}) for ${teacher.name}. Attendance: ${presentCount}/${attendance.length} recorded.`,
+      title: 'Session Checked Out (Alert Dispatched)',
+      description: `Logged +${hours} hrs (+₹${sessionEarnings.toLocaleString()}) for ${teacher.name}. Attendance (${presentCount}/${attendance.length}) shared with Parents & Admin.`,
     });
   };
 
@@ -938,10 +1160,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setUpdates((prev) => [newUpdate, ...prev]);
 
+    setTutorOnlineStatus('running_late');
+    addActivityEvent({
+      type: 'running_late',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      targetBatchName: batchName,
+      title: `Tutor Delayed: ${minutes} Minutes`,
+      description: `Tutor ${teacher.name} reported running late (${minutes}m) for ${batchName}. Reason: "${reason || 'Transit delay'}".`,
+    });
+
     showToast({
       type: 'alert',
       title: `Late Notice Broadcasted (+${minutes}m)`,
-      description: `Notice dispatched to parents of ${batchName} and Studio Reception.`,
+      description: `Notice dispatched to Parents of ${batchName} and App Owner.`,
     });
     setRunningLateModalOpen(false);
   };
@@ -999,10 +1232,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUpdates((prev) => [newUpdate, ...prev]);
 
     sound.playCheckIn();
+    addActivityEvent({
+      type: 'reschedule',
+      actorId: 'tutor-shazz',
+      actorName: teacher.name,
+      actorRole: 'tutor',
+      targetBatchId: session.batchId,
+      targetBatchName: session.batchName,
+      title: `Reschedule Requested: ${session.batchName}`,
+      description: `Tutor requested reschedule to ${proposedDate} (${proposedTime}). Reason: "${reason}". Code: ${calendarCode}.`,
+    });
     showToast({
       type: 'info',
       title: `Reschedule Request Dispatched (Code: ${calendarCode})`,
-      description: `Automated parent notification sent for ${session.batchName}. Pending parent acceptance.`,
+      description: `Automated notification sent to Parents & Admin for ${session.batchName}. Pending parent acceptance.`,
     });
     setRescheduleModalOpen(false);
   };
@@ -1052,6 +1295,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       channels: ['app', 'whatsapp', 'sms'],
     };
     setUpdates((prev) => [newUpdate, ...prev]);
+
+    addActivityEvent({
+      type: 'reschedule',
+      actorId: 'parent-marcus',
+      actorName: 'Marcus Vance (Parent)',
+      actorRole: 'parent',
+      targetBatchId: session.batchId,
+      targetBatchName: session.batchName,
+      title: `Reschedule Confirmed: ${session.batchName}`,
+      description: `Parent accepted slot change for ${session.batchName} to ${newDate} at ${newTime}. Schedule and Calendar synced.`,
+    });
 
     sound.playSuccess();
     showToast({
@@ -1698,6 +1952,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lateArrivalsCount,
         referralsCount,
         rewardsINR,
+        activeRole,
+        setActiveRole,
+        roleGatewayModalOpen,
+        setRoleGatewayModalOpen,
+        tutorOnlineStatus,
+        loginTutor,
+        logoutTutor,
+        tutors,
+        parents,
+        selectedParentStudentId,
+        setSelectedParentStudentId,
+        activityEvents,
+        addActivityEvent,
+        unreadAdminActivityCount,
+        unreadParentActivityCount,
+        markActivityReadByAdmin,
+        markActivityReadByParent,
       }}
     >
       {children}

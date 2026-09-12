@@ -188,3 +188,55 @@ export interface AddBatchParams {
   students?: Student[];
   autoScheduleToday?: boolean;
 }
+
+// ---------------- 3-PERSONA ARCHITECTURE TYPES ---------------- //
+
+export type UserRole = 'admin' | 'tutor' | 'parent';
+
+export type TutorOnlineStatus = 'offline' | 'online' | 'in_session' | 'running_late';
+
+export interface ActivityEvent {
+  id: string;
+  timestamp: string;
+  type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement';
+  actorId: string;
+  actorName: string;
+  actorRole: UserRole;
+  targetBatchId?: string;
+  targetBatchName?: string;
+  title: string;
+  description: string;
+  metadata?: Record<string, any>;
+  readByAdmin: boolean;
+  readByParent: boolean;
+}
+
+export interface TutorAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  subjects: string[];
+  hourlyRate: number;
+  totalHoursMonth: number;
+  totalEarningsMonth: number;
+  rating: number;
+  status: TutorOnlineStatus;
+  lastLoginTime?: string;
+  lastLogoutTime?: string;
+}
+
+export interface ParentAccount {
+  id: string;
+  parentName: string;
+  phone: string;
+  email: string;
+  children: {
+    studentId: string;
+    studentName: string;
+    grade: string;
+    enrolledBatches: string[];
+  }[];
+}
+

@@ -1,4 +1,18 @@
-import { Batch, Lead, UpdateMessage, WorkbookOrder, FreeSlot, TeacherReview, ReferralStats, Session, Student } from '../types';
+import {
+  Batch,
+  Lead,
+  UpdateMessage,
+  WorkbookOrder,
+  FreeSlot,
+  TeacherReview,
+  ReferralStats,
+  Session,
+  Student,
+  TutorAccount,
+  ParentAccount,
+  ActivityEvent
+} from '../types';
+
 
 export const INITIAL_BATCHES: Batch[] = [
   {
@@ -304,5 +318,137 @@ export const DEMO_STUDENTS: Student[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     notes: 'Grade 10 • Preparing for Physics Olympiad & STEM Honors.',
     lastAttendance: 'present' as const
+  },
+  {
+    id: 'stud-3',
+    name: 'Aria Vance',
+    parentName: 'Marcus Vance',
+    parentPhone: '+1 (555) 234-8891',
+    parentEmail: 'marcus.vance@gmail.com',
+    age: 16,
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    notes: 'Grade 11 • Pure Mathematics & Physics candidate.',
+    lastAttendance: 'present' as const
+  }
+];
+
+export const INITIAL_TUTORS: TutorAccount[] = [
+  {
+    id: 'tutor-shazz',
+    name: 'Shazz (Lead Faculty)',
+    email: 'shazz.faculty@ryd.edu',
+    phone: '+1 (555) 789-0123',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    subjects: ['Advanced Calculus & Vectors', 'Physics Mechanics & Dynamics'],
+    hourlyRate: 500,
+    totalHoursMonth: 0,
+    totalEarningsMonth: 0,
+    rating: 0,
+    status: 'online',
+    lastLoginTime: '15:45'
+  },
+  {
+    id: 'tutor-alex',
+    name: 'Dr. Alex Mercer',
+    email: 'a.mercer@ryd.edu',
+    phone: '+1 (555) 678-9012',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    subjects: ['Organic & Physical Chemistry'],
+    hourlyRate: 600,
+    totalHoursMonth: 12,
+    totalEarningsMonth: 7200,
+    rating: 4.95,
+    status: 'online',
+    lastLoginTime: '14:30'
+  },
+  {
+    id: 'tutor-priya',
+    name: 'Priya Sundaram',
+    email: 'p.sundaram@ryd.edu',
+    phone: '+1 (555) 456-7890',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    subjects: ['Computer Science & Python Coding'],
+    hourlyRate: 550,
+    totalHoursMonth: 8,
+    totalEarningsMonth: 4400,
+    rating: 4.9,
+    status: 'offline',
+    lastLogoutTime: '13:00'
+  }
+];
+
+export const INITIAL_PARENTS: ParentAccount[] = [
+  {
+    id: 'parent-marcus',
+    parentName: 'Marcus Vance',
+    phone: '+1 (555) 234-8891',
+    email: 'marcus.vance@gmail.com',
+    children: [
+      {
+        studentId: 'stud-3',
+        studentName: 'Aria Vance',
+        grade: '11th Grade STEM',
+        enrolledBatches: ['batch-math-01', 'batch-physics-02']
+      }
+    ]
+  },
+  {
+    id: 'parent-elena',
+    parentName: 'Elena Lin',
+    phone: '+1 (555) 912-3456',
+    email: 'elena.lin@gmail.com',
+    children: [
+      {
+        studentId: 'stud-1',
+        studentName: 'Maya Lin',
+        grade: '11th Grade AP Honors',
+        enrolledBatches: ['batch-math-01']
+      }
+    ]
+  },
+  {
+    id: 'parent-david',
+    parentName: 'David Chen',
+    phone: '+1 (555) 987-6543',
+    email: 'david.chen@gmail.com',
+    children: [
+      {
+        studentId: 'stud-2',
+        studentName: 'Leo Chen',
+        grade: '10th Grade STEM',
+        enrolledBatches: ['batch-physics-02']
+      }
+    ]
+  }
+];
+
+export const INITIAL_ACTIVITY_EVENTS: ActivityEvent[] = [
+  {
+    id: 'act-init-1',
+    timestamp: '15:45',
+    type: 'login',
+    actorId: 'tutor-shazz',
+    actorName: 'Shazz (Lead Faculty)',
+    actorRole: 'tutor',
+    targetBatchId: 'batch-math-01',
+    targetBatchName: 'Advanced Calculus & Vectors',
+    title: 'Tutor Online & Shift Started',
+    description: 'Tutor Shazz logged in to the portal and initialized today’s schedule.',
+    readByAdmin: true,
+    readByParent: true
+  },
+  {
+    id: 'act-init-2',
+    timestamp: '14:30',
+    type: 'login',
+    actorId: 'tutor-alex',
+    actorName: 'Dr. Alex Mercer',
+    actorRole: 'tutor',
+    targetBatchId: 'batch-chem-03',
+    targetBatchName: 'Organic & Physical Chemistry',
+    title: 'Tutor Online & Shift Started',
+    description: 'Dr. Alex Mercer logged into the academic hub.',
+    readByAdmin: true,
+    readByParent: true
   }
 ];

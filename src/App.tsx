@@ -15,6 +15,8 @@ import { OrderWorkbookModal } from './components/modals/OrderWorkbookModal';
 import { ComposeUpdateModal } from './components/modals/ComposeUpdateModal';
 import { NewSessionModal } from './components/modals/NewSessionModal';
 import { ParentAcceptRescheduleModal } from './components/modals/ParentAcceptRescheduleModal';
+import { RoleLoginGatewayModal } from './components/modals/RoleLoginGatewayModal';
+import { PersonaSwitcher } from './components/PersonaSwitcher';
 
 // Views
 import { HomeView } from './views/HomeView';
@@ -27,9 +29,12 @@ import { WorkbooksView } from './views/WorkbooksView';
 import { FreeSlotsView } from './views/FreeSlotsView';
 import { RatingsView } from './views/RatingsView';
 import { ReferralView } from './views/ReferralView';
+import { AdminPortal } from './views/admin/AdminPortal';
+import { ParentPortal } from './views/parent/ParentPortal';
 
 const MainLayout: React.FC = () => {
   const {
+    activeRole,
     activeTab,
     viewMode,
     themeMode,
@@ -39,6 +44,16 @@ const MainLayout: React.FC = () => {
   } = useApp();
 
   const renderActiveView = () => {
+    // Triangular Role-Based Portal Routing
+    if (activeRole === 'admin') {
+      return <AdminPortal />;
+    }
+
+    if (activeRole === 'parent') {
+      return <ParentPortal />;
+    }
+
+    // Faculty Tutor View
     switch (activeTab) {
       case 'home':
         return <HomeView />;
@@ -67,13 +82,14 @@ const MainLayout: React.FC = () => {
 
   const appContent = (
     <div className={`min-h-screen ${themeMode === 'light' ? 'crm-light-viewport text-slate-900' : 'glossy-black-viewport text-white'} flex flex-col selection:bg-[#F59E0B] selection:text-white transition-colors duration-300`}>
+      <PersonaSwitcher />
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-5 pb-20 sm:pb-24">
         {renderActiveView()}
       </main>
 
-      <BottomNav />
+      {activeRole === 'tutor' && <BottomNav />}
 
       {/* Global Modals */}
       <CheckInModal />
@@ -84,6 +100,7 @@ const MainLayout: React.FC = () => {
       <OrderWorkbookModal />
       <ComposeUpdateModal />
       <NewSessionModal />
+      <RoleLoginGatewayModal />
       <ParentAcceptRescheduleModal
         isOpen={parentPreviewModalOpen}
         session={selectedSessionForParentPreview}
