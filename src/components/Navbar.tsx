@@ -23,6 +23,7 @@ import {
   RotateCcw,
   LogOut,
   GraduationCap,
+  KeyRound,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -59,6 +60,7 @@ export const Navbar: React.FC = () => {
     setRoleGatewayModalOpen,
     currentUser,
     logout,
+    setAccountSecurityModalOpen,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -403,6 +405,20 @@ export const Navbar: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Account Security & Password Change Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              sound.playClick();
+              setAccountSecurityModalOpen(true);
+            }}
+            title="Account Security: Update My Email & Password"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Security</span>
+          </button>
 
           {/* Dedicated Persona Logout Button */}
           <button

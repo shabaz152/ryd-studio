@@ -20,6 +20,7 @@ import {
   TutorAccount,
   ParentAccount,
   AuthUser,
+  AuthorizedUser,
   TutorLocation,
 } from '../types';
 import {
@@ -38,6 +39,7 @@ import {
   INITIAL_PARENTS,
   INITIAL_ACTIVITY_EVENTS,
   DEMO_AUTH_USERS,
+  INITIAL_AUTHORIZED_USERS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
@@ -216,12 +218,20 @@ interface AppContextType {
   markActivityReadByAdmin: () => void;
   markActivityReadByParent: () => void;
 
-  // Real Credential & Google Authentication
+  // Real Credential & Admin-Authorized Authentication
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
+  authorizedUsers: AuthorizedUser[];
   loginWithCredentials: (email: string, password: string, role?: UserRole) => { success: boolean; error?: string };
-  loginWithGoogle: (account: { name: string; email: string; avatarUrl?: string; role: UserRole }) => void;
+  loginWithGoogle: (account: { name: string; email: string; avatarUrl?: string; role: UserRole }) => { success: boolean; error?: string };
   logout: () => void;
+  updateMyCredentials: (newEmail: string, newPassword?: string, currentPassword?: string) => { success: boolean; error?: string };
+  requestPasswordReset: (email: string) => { success: boolean; error?: string; otpCode?: string };
+  resetPasswordWithCode: (email: string, code: string, newPassword: string) => { success: boolean; error?: string };
+  authorizeNewUser: (user: { name: string; email: string; role: UserRole; password?: string; studentId?: string }) => { success: boolean; error?: string };
+  toggleUserAuthorization: (userId: string) => { success: boolean; error?: string };
+  accountSecurityModalOpen: boolean;
+  setAccountSecurityModalOpen: (open: boolean) => void;
 
   // Live Tutor GPS Location Map
   simulateTutorMovement: () => void;
@@ -362,13 +372,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRunningLate, setIsRunningLate] = useState<boolean>(false);
   const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
   const [runningLateReason, setRunningLateReason] = useState<string>('');
-  // Real Credential Authentication State
+  // Real Credential & Admin-Authorized Authentication State
+  const [authorizedUsers, setAuthorizedUsers] = useState<AuthorizedUser[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_authorized_users`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_AUTHORIZED_USERS;
+  });
+
+  const [accountSecurityModalOpen, setAccountSecurityModalOpen] = useState<boolean>(false);
+  const passwordResetTokens = useRef<Record<string, { code: string; expiresAt: number }>>({});
+
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_auth_user`);
       if (saved) return JSON.parse(saved);
       const authRole = (localStorage.getItem(`${STORAGE_KEY}_auth_role`) as UserRole) || 'admin';
-      const user = DEMO_AUTH_USERS.find((u) => u.role === authRole) || DEMO_AUTH_USERS[0];
+      const user = INITIAL_AUTHORIZED_USERS.find((u) => u.role === authRole) || INITIAL_AUTHORIZED_USERS[0];
       return {
         id: user.id,
         email: user.email,
@@ -379,7 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         studentId: user.studentId,
       };
     } catch {
-      return DEMO_AUTH_USERS[0];
+      return INITIAL_AUTHORIZED_USERS[0];
     }
   });
 
@@ -950,106 +974,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logout();
   };
 
-  const loginWithCredentials = (email: string, password: string, role?: UserRole): { success: boolean; error?: string } => {
+  const loginWithCredentials = (email: string, password: string, _role?: UserRole): { success: boolean; error?: string } => {
     const trimmedEmail = email.trim().toLowerCase();
-    const user = DEMO_AUTH_USERS.find(
+    const user = authorizedUsers.find(
       (u) => u.email.toLowerCase() === trimmedEmail
     );
 
-    if (user) {
-      if (user.password !== password) {
-        sound.playAlert();
-        return { success: false, error: 'Incorrect password.' };
-      }
-
-      sound.playSuccess();
-      const { password: _, ...authData } = user;
-      setCurrentUser(authData);
-      setIsAuthenticated(true);
-      setCurrentAuthRole(authData.role);
-      setActiveRoleState(authData.role);
-      setActiveTabState('home');
-
-      if (authData.studentId) {
-        setSelectedParentStudentId(authData.studentId);
-      }
-      if (authData.role === 'tutor') {
-        loginTutor();
-      }
-
-      try {
-        localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
-        localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
-        localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
-        localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
-      } catch {}
-
-      showToast({
-        type: 'success',
-        title: `Welcome, ${authData.name}!`,
-        description: `Signed in as ${authData.title}.`,
-      });
-
-      return { success: true };
-    }
-
-    // Support any custom email and credentials
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    if (!user) {
       sound.playAlert();
-      return { success: false, error: 'Please enter a valid email address.' };
+      return {
+        success: false,
+        error: 'Access Denied: This account is not authorized by the Admin. Please contact admin@ryd.studio to request platform access.',
+      };
     }
 
-    if (password.length < 4) {
+    if (!user.isAuthorized) {
       sound.playAlert();
-      return { success: false, error: 'Password must be at least 4 characters.' };
+      return {
+        success: false,
+        error: 'Access Denied: Your account authorization has been revoked by the Admin. Please contact admin@ryd.studio.',
+      };
     }
 
-    let assignedRole: UserRole = role || 'parent';
-    if (trimmedEmail.includes('admin') || trimmedEmail.includes('owner')) {
-      assignedRole = 'admin';
-    } else if (trimmedEmail.includes('tutor') || trimmedEmail.includes('faculty') || trimmedEmail.includes('teacher')) {
-      assignedRole = 'tutor';
+    if (user.password !== password) {
+      sound.playAlert();
+      return { success: false, error: 'Incorrect password. Please check your password or click Forgot Password.' };
     }
 
     sound.playSuccess();
-    const newUser: AuthUser = {
-      id: `user-${Date.now()}`,
-      name: trimmedEmail.split('@')[0].replace('.', ' ').replace(/^./, (c) => c.toUpperCase()),
-      email: trimmedEmail,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      role: assignedRole,
-      title: assignedRole === 'admin'
-        ? 'Executive Admin'
-        : assignedRole === 'tutor'
-        ? 'Faculty Tutor'
-        : 'Parent & Learner',
-      studentId: assignedRole === 'parent' ? 'stud-3' : undefined,
-    };
-
-    setCurrentUser(newUser);
+    const { password: _, ...authData } = user;
+    setCurrentUser(authData);
     setIsAuthenticated(true);
-    setCurrentAuthRole(assignedRole);
-    setActiveRoleState(assignedRole);
+    setCurrentAuthRole(authData.role);
+    setActiveRoleState(authData.role);
     setActiveTabState('home');
 
-    if (assignedRole === 'parent') {
-      setSelectedParentStudentId('stud-3');
+    if (authData.studentId) {
+      setSelectedParentStudentId(authData.studentId);
     }
-    if (assignedRole === 'tutor') {
+    if (authData.role === 'tutor') {
       loginTutor();
     }
 
     try {
       localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
-      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(newUser));
-      localStorage.setItem(`${STORAGE_KEY}_auth_role`, assignedRole);
-      localStorage.setItem(`${STORAGE_KEY}_active_role`, assignedRole);
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
     } catch {}
 
     showToast({
       type: 'success',
-      title: `Welcome, ${newUser.name}!`,
-      description: `Signed in as ${newUser.title}.`,
+      title: `Welcome, ${authData.name}!`,
+      description: `Signed in as ${authData.title}.`,
     });
 
     return { success: true };
@@ -1060,47 +1037,326 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     email: string;
     avatarUrl?: string;
     role: UserRole;
-  }) => {
+  }): { success: boolean; error?: string } => {
+    const trimmedEmail = account.email.trim().toLowerCase();
+    const user = authorizedUsers.find(
+      (u) => u.email.toLowerCase() === trimmedEmail
+    );
+
+    if (!user) {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Google Access Denied',
+        description: `The Google account (${account.email}) has not been authorized by the Admin. Only pre-approved accounts can access RYD STUDIO.`,
+      });
+      return {
+        success: false,
+        error: `Access Denied: Google account (${account.email}) is not authorized by the Admin.`,
+      };
+    }
+
+    if (!user.isAuthorized) {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Google Access Revoked',
+        description: `Access for ${account.email} has been revoked by the Admin.`,
+      });
+      return {
+        success: false,
+        error: `Access Denied: Your account authorization has been revoked by the Admin.`,
+      };
+    }
+
     sound.playSuccess();
-    const newUser: AuthUser = {
-      id: `google-${Date.now()}`,
-      name: account.name,
-      email: account.email,
-      avatarUrl: account.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      role: account.role,
-      title: account.role === 'admin'
-        ? 'Executive Admin & Owner'
-        : account.role === 'tutor'
-        ? 'Academic Faculty Tutor'
-        : 'Student & Family Member',
-      studentId: account.role === 'parent' ? 'stud-3' : undefined,
+    const authData: AuthUser = {
+      id: user.id,
+      name: user.name || account.name,
+      email: user.email,
+      avatarUrl: account.avatarUrl || user.avatarUrl,
+      role: user.role,
+      title: user.title,
+      studentId: user.studentId,
     };
 
-    setCurrentUser(newUser);
+    setCurrentUser(authData);
     setIsAuthenticated(true);
-    setCurrentAuthRole(newUser.role);
-    setActiveRoleState(newUser.role);
+    setCurrentAuthRole(authData.role);
+    setActiveRoleState(authData.role);
     setActiveTabState('home');
 
-    if (newUser.role === 'parent') {
-      setSelectedParentStudentId('stud-3');
+    if (authData.studentId) {
+      setSelectedParentStudentId(authData.studentId);
     }
-    if (newUser.role === 'tutor') {
+    if (authData.role === 'tutor') {
       loginTutor();
     }
 
     try {
       localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
-      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(newUser));
-      localStorage.setItem(`${STORAGE_KEY}_auth_role`, newUser.role);
-      localStorage.setItem(`${STORAGE_KEY}_active_role`, newUser.role);
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
     } catch {}
 
     showToast({
       type: 'success',
-      title: `Google Sign-In: ${newUser.name}`,
-      description: `Authenticated via Google as ${newUser.role.toUpperCase()}.`,
+      title: `Google Sign-In: ${authData.name}`,
+      description: `Authenticated via Google as ${authData.role.toUpperCase()}.`,
     });
+
+    return { success: true };
+  };
+
+  const updateMyCredentials = (
+    newEmail: string,
+    newPassword?: string,
+    currentPassword?: string
+  ): { success: boolean; error?: string } => {
+    if (!currentUser) {
+      return { success: false, error: 'No authenticated user session found.' };
+    }
+
+    const trimmedNewEmail = newEmail.trim().toLowerCase();
+    if (!trimmedNewEmail || !trimmedNewEmail.includes('@')) {
+      return { success: false, error: 'Please provide a valid email address.' };
+    }
+
+    // Find the record of the currently authenticated user in authorizedUsers
+    const userIndex = authorizedUsers.findIndex(
+      (u) => u.id === currentUser.id || u.email.toLowerCase() === currentUser.email.toLowerCase()
+    );
+    if (userIndex === -1) {
+      return { success: false, error: 'User record not found in system.' };
+    }
+
+    const targetUser = authorizedUsers[userIndex];
+
+    // Verify current password
+    if (!currentPassword || currentPassword !== targetUser.password) {
+      sound.playAlert();
+      return {
+        success: false,
+        error: 'Current password verification failed. Please enter your correct current password.',
+      };
+    }
+
+    // Check if new email is taken by someone else
+    const duplicateEmail = authorizedUsers.find(
+      (u, idx) => idx !== userIndex && u.email.toLowerCase() === trimmedNewEmail
+    );
+    if (duplicateEmail) {
+      sound.playAlert();
+      return { success: false, error: 'This email is already registered to another account.' };
+    }
+
+    // Validate new password if provided
+    if (newPassword && newPassword.trim().length < 4) {
+      sound.playAlert();
+      return { success: false, error: 'New password must be at least 4 characters long.' };
+    }
+
+    const updatedUser: AuthorizedUser = {
+      ...targetUser,
+      email: trimmedNewEmail,
+      password: newPassword ? newPassword.trim() : targetUser.password,
+    };
+
+    const nextAuthorizedUsers = [...authorizedUsers];
+    nextAuthorizedUsers[userIndex] = updatedUser;
+    setAuthorizedUsers(nextAuthorizedUsers);
+
+    // Update currentUser state
+    const nextCurrentUser: AuthUser = {
+      ...currentUser,
+      email: trimmedNewEmail,
+    };
+    setCurrentUser(nextCurrentUser);
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthorizedUsers));
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(nextCurrentUser));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Credentials Updated',
+      description: 'Your personal login email and password were saved successfully.',
+    });
+
+    return { success: true };
+  };
+
+  const requestPasswordReset = (email: string): { success: boolean; error?: string; otpCode?: string } => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = authorizedUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+
+    if (!user) {
+      sound.playAlert();
+      return {
+        success: false,
+        error: 'No authorized account found with this email. Please contact the administrator.',
+      };
+    }
+
+    if (!user.isAuthorized) {
+      sound.playAlert();
+      return {
+        success: false,
+        error: 'This account authorization has been revoked by the Admin. Cannot reset password.',
+      };
+    }
+
+    // Generate random 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    passwordResetTokens.current[trimmedEmail] = {
+      code: otp,
+      expiresAt: Date.now() + 15 * 60 * 1000,
+    };
+
+    sound.playSuccess();
+    return { success: true, otpCode: otp };
+  };
+
+  const resetPasswordWithCode = (
+    email: string,
+    code: string,
+    newPassword: string
+  ): { success: boolean; error?: string } => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedCode = code.trim();
+
+    const token = passwordResetTokens.current[trimmedEmail];
+    if (!token || token.code !== trimmedCode || Date.now() > token.expiresAt) {
+      sound.playAlert();
+      return { success: false, error: 'Invalid or expired 6-digit verification code.' };
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      sound.playAlert();
+      return { success: false, error: 'Password must be at least 4 characters.' };
+    }
+
+    const userIndex = authorizedUsers.findIndex((u) => u.email.toLowerCase() === trimmedEmail);
+    if (userIndex === -1) {
+      sound.playAlert();
+      return { success: false, error: 'Account record could not be found.' };
+    }
+
+    const nextAuthorizedUsers = [...authorizedUsers];
+    nextAuthorizedUsers[userIndex] = {
+      ...nextAuthorizedUsers[userIndex],
+      password: newPassword.trim(),
+    };
+    setAuthorizedUsers(nextAuthorizedUsers);
+
+    delete passwordResetTokens.current[trimmedEmail];
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthorizedUsers));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Password Reset Successful',
+      description: 'Your password has been updated. You can now sign in with your new credentials.',
+    });
+
+    return { success: true };
+  };
+
+  const authorizeNewUser = (user: {
+    name: string;
+    email: string;
+    role: UserRole;
+    password?: string;
+    studentId?: string;
+  }): { success: boolean; error?: string } => {
+    const trimmedEmail = user.email.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      return { success: false, error: 'Please provide a valid email address.' };
+    }
+
+    const exists = authorizedUsers.some((u) => u.email.toLowerCase() === trimmedEmail);
+    if (exists) {
+      return { success: false, error: 'An authorized account already exists for this email.' };
+    }
+
+    const newUser: AuthorizedUser = {
+      id: `user-auth-${Date.now()}`,
+      name: user.name.trim(),
+      email: trimmedEmail,
+      role: user.role,
+      password: user.password && user.password.trim() ? user.password.trim() : 'ryd2026',
+      title:
+        user.role === 'admin'
+          ? 'Authorized Executive'
+          : user.role === 'tutor'
+          ? 'Faculty Tutor'
+          : 'Parent & Learner',
+      studentId: user.studentId || (user.role === 'parent' ? 'stud-3' : undefined),
+      avatarUrl:
+        user.role === 'admin'
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+          : user.role === 'tutor'
+          ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      isAuthorized: true,
+      authorizedAt: new Date().toISOString().split('T')[0],
+      authorizedBy: currentUser?.email || 'admin@ryd.studio',
+    };
+
+    const nextList = [newUser, ...authorizedUsers];
+    setAuthorizedUsers(nextList);
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextList));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'User Authorized',
+      description: `${newUser.name} (${newUser.email}) has been granted ${newUser.role.toUpperCase()} access.`,
+    });
+
+    return { success: true };
+  };
+
+  const toggleUserAuthorization = (userId: string): { success: boolean; error?: string } => {
+    const userIndex = authorizedUsers.findIndex((u) => u.id === userId);
+    if (userIndex === -1) {
+      return { success: false, error: 'User not found.' };
+    }
+
+    const targetUser = authorizedUsers[userIndex];
+    if (targetUser.id === 'user-admin' || targetUser.email.toLowerCase() === 'admin@ryd.studio') {
+      return { success: false, error: 'Cannot revoke access for the primary Administrator account.' };
+    }
+
+    const nextAuthorizedUsers = [...authorizedUsers];
+    const newStatus = !targetUser.isAuthorized;
+    nextAuthorizedUsers[userIndex] = {
+      ...targetUser,
+      isAuthorized: newStatus,
+    };
+    setAuthorizedUsers(nextAuthorizedUsers);
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthorizedUsers));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: newStatus ? 'success' : 'alert',
+      title: newStatus ? 'Access Restored' : 'Access Revoked',
+      description: `${targetUser.name}'s platform access is now ${newStatus ? 'AUTHORIZED' : 'REVOKED'}.`,
+    });
+
+    return { success: true };
   };
 
   const logout = () => {
@@ -2340,9 +2596,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markActivityReadByParent,
         currentUser,
         isAuthenticated,
+        authorizedUsers,
         loginWithCredentials,
         loginWithGoogle,
         logout,
+        updateMyCredentials,
+        requestPasswordReset,
+        resetPasswordWithCode,
+        authorizeNewUser,
+        toggleUserAuthorization,
+        accountSecurityModalOpen,
+        setAccountSecurityModalOpen,
         simulateTutorMovement,
         pingTutor,
       }}

@@ -14,12 +14,18 @@ import {
   Mail,
   Filter,
   Check,
-  RotateCcw,
   Radio,
   MapPin,
+  KeyRound,
+  UserPlus,
+  Lock,
+  UserCheck,
+  UserX,
+  Search,
+  X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ActivityEvent } from '../../types';
+import { ActivityEvent, UserRole } from '../../types';
 import { TutorLocationMap } from '../../components/admin/TutorLocationMap';
 
 export const AdminPortal: React.FC = () => {
@@ -36,10 +42,22 @@ export const AdminPortal: React.FC = () => {
     loginTutor,
     logoutTutor,
     rewardsINR,
+    authorizedUsers,
+    authorizeNewUser,
+    toggleUserAuthorization,
+    setAccountSecurityModalOpen,
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'activity' | 'map' | 'tutors' | 'students' | 'schedules'>('activity');
+  const [activeSubTab, setActiveSubTab] = useState<'activity' | 'map' | 'access' | 'tutors' | 'students' | 'schedules'>('activity');
   const [filterType, setFilterType] = useState<string>('all');
+  const [accessFilterRole, setAccessFilterRole] = useState<string>('all');
+  const [accessSearch, setAccessSearch] = useState<string>('');
+  const [isAuthorizeModalOpen, setIsAuthorizeModalOpen] = useState<boolean>(false);
+  const [newUserName, setNewUserName] = useState<string>('');
+  const [newUserEmail, setNewUserEmail] = useState<string>('');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('tutor');
+  const [newUserPassword, setNewUserPassword] = useState<string>('ryd2026');
+  const [authorizeError, setAuthorizeError] = useState<string | null>(null);
 
   // Filtered activity events
   const filteredEvents = activityEvents.filter((ev) => {
@@ -137,6 +155,16 @@ export const AdminPortal: React.FC = () => {
                 <span>Simulate Logout</span>
               </button>
             )}
+
+            {/* Admin Self-Service Credentials Button */}
+            <button
+              onClick={() => setAccountSecurityModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              title="Update Admin Login Email & Password"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+              <span>My Credentials</span>
+            </button>
           </div>
         </div>
 
@@ -222,6 +250,18 @@ export const AdminPortal: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('access')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'access'
+                ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                : 'bg-white dark:bg-[#151522] text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/5'
+            }`}
+          >
+            <Shield className="w-4 h-4 text-amber-500" />
+            <span>🔐 Access Control ({authorizedUsers.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('tutors')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeSubTab === 'tutors'
@@ -271,6 +311,322 @@ export const AdminPortal: React.FC = () => {
 
       {/* Subtab 0: Live Tutor GPS Radar Map */}
       {activeSubTab === 'map' && <TutorLocationMap />}
+
+      {/* Subtab 0.5: Access Control & Authorized Accounts */}
+      {activeSubTab === 'access' && (
+        <div className="space-y-5 animate-fadeIn">
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] font-black uppercase tracking-wider">
+                  Admin Authorization Gate
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">Strict Role Isolation</span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white mt-1">
+                Authorized Accounts & Security Access Control
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-gray-400 max-w-xl mt-0.5">
+                Only email addresses authorized by the Admin can log into the platform. Users can only update their own personal email/password from within their respective accounts.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setNewUserName('');
+                setNewUserEmail('');
+                setNewUserRole('tutor');
+                setNewUserPassword('ryd2026');
+                setAuthorizeError(null);
+                setIsAuthorizeModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Authorize New User</span>
+            </button>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
+              <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Total Authorized</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{authorizedUsers.length}</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Active Granted</p>
+              <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                {authorizedUsers.filter((u) => u.isAuthorized).length}
+              </p>
+            </div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">Faculty Tutors</p>
+              <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
+                {authorizedUsers.filter((u) => u.role === 'tutor').length}
+              </p>
+            </div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
+              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">Parents & Students</p>
+              <p className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
+                {authorizedUsers.filter((u) => u.role === 'parent').length}
+              </p>
+            </div>
+          </div>
+
+          {/* Filters and Search Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              <input
+                type="text"
+                value={accessSearch}
+                onChange={(e) => setAccessSearch(e.target.value)}
+                placeholder="Search authorized user by name or email..."
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {['all', 'admin', 'tutor', 'parent'].map((roleKey) => (
+                <button
+                  key={roleKey}
+                  onClick={() => setAccessFilterRole(roleKey)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
+                    accessFilterRole === roleKey
+                      ? 'bg-amber-500 text-black shadow-xs'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {roleKey === 'all' ? 'All Roles' : roleKey}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* User Cards / Table */}
+          <div className="space-y-2.5">
+            {authorizedUsers
+              .filter((u) => {
+                if (accessFilterRole !== 'all' && u.role !== accessFilterRole) return false;
+                if (accessSearch) {
+                  const q = accessSearch.toLowerCase();
+                  return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+                }
+                return true;
+              })
+              .map((user) => {
+                const isRoot = user.id === 'user-admin' || user.email.toLowerCase() === 'admin@ryd.studio';
+
+                return (
+                  <div
+                    key={user.id}
+                    className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-amber-400/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                            {user.name}
+                          </h4>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                              user.role === 'admin'
+                                ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+                                : user.role === 'tutor'
+                                ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
+                                : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+                            }`}
+                          >
+                            {user.role}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-gray-400 truncate mt-0.5">
+                          {user.email} • {user.title}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
+                          user.isAuthorized
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                        }`}
+                      >
+                        {user.isAuthorized ? (
+                          <>
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Authorized</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserX className="w-3.5 h-3.5" />
+                            <span>Revoked</span>
+                          </>
+                        )}
+                      </span>
+
+                      {isRoot ? (
+                        <span className="text-[11px] text-amber-500 font-semibold italic px-2">
+                          👑 Root Director
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => toggleUserAuthorization(user.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            user.isAuthorized
+                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20'
+                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          }`}
+                        >
+                          {user.isAuthorized ? 'Revoke Access' : 'Re-Authorize'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Authorize New User Modal */}
+          {isAuthorizeModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+              <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Authorize New Platform User</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-gray-400">Grant login access to faculty or parent</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsAuthorizeModalOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {authorizeError && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                    <span>{authorizeError}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setAuthorizeError(null);
+                    const res = authorizeNewUser({
+                      name: newUserName,
+                      email: newUserEmail,
+                      role: newUserRole,
+                      password: newUserPassword,
+                    });
+                    if (!res.success) {
+                      setAuthorizeError(res.error || 'Failed to authorize user.');
+                    } else {
+                      setIsAuthorizeModalOpen(false);
+                    }
+                  }}
+                  className="space-y-3.5"
+                >
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      placeholder="e.g. Dr. Sarah Jenkins"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Authorized Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      placeholder="e.g. s.jenkins@ryd.edu"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Portal Access Role
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['tutor', 'parent', 'admin'] as UserRole[]).map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setNewUserRole(r)}
+                          className={`py-1.5 px-2 rounded-xl border text-xs font-bold capitalize transition-all cursor-pointer ${
+                            newUserRole === r
+                              ? 'bg-amber-500 text-black border-amber-500'
+                              : 'border-slate-200 dark:border-white/10 text-slate-500'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Initial Temporary Password
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newUserPassword}
+                      onChange={(e) => setNewUserPassword(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      User can change this password at any time via Account Security.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthorizeModalOpen(false)}
+                      className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-md cursor-pointer"
+                    >
+                      Grant Access
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Subtab 1: Live Activity Stream */}
       {activeSubTab === 'activity' && (

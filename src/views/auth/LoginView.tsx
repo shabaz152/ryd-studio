@@ -12,11 +12,19 @@ import {
   AlertCircle,
   X,
   User,
+  KeyRound,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
 export const LoginView: React.FC = () => {
-  const { loginWithCredentials, loginWithGoogle } = useApp();
+  const {
+    loginWithCredentials,
+    loginWithGoogle,
+    requestPasswordReset,
+    resetPasswordWithCode,
+  } = useApp();
 
   // Form states - strictly private, NEVER prefilled with exposed credentials!
   const [email, setEmail] = useState<string>('');
@@ -32,6 +40,19 @@ export const LoginView: React.FC = () => {
   const [googleCustomName, setGoogleCustomName] = useState<string>('');
   const [googleRole, setGoogleRole] = useState<'admin' | 'tutor' | 'parent'>('tutor');
   const [isCustomGoogleActive, setIsCustomGoogleActive] = useState<boolean>(false);
+
+  // Forgot Password Modal state
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState<boolean>(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState<string>('');
+  const [generatedOtp, setGeneratedOtp] = useState<string>('');
+  const [enteredOtp, setEnteredOtp] = useState<string>('');
+  const [newResetPassword, setNewResetPassword] = useState<string>('');
+  const [confirmResetPassword, setConfirmResetPassword] = useState<string>('');
+  const [showResetPassword, setShowResetPassword] = useState<boolean>(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+  const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +79,17 @@ export const LoginView: React.FC = () => {
   };
 
   const handleGoogleQuickSignIn = (name: string, googleEmail: string, role: 'admin' | 'tutor' | 'parent', avatarUrl?: string) => {
-    setIsGoogleModalOpen(false);
-    loginWithGoogle({
+    const result = loginWithGoogle({
       name,
       email: googleEmail,
       avatarUrl,
       role,
     });
+    if (!result.success) {
+      setErrorMessage(result.error || `Access Denied: ${googleEmail} is not authorized by the Admin.`);
+    } else {
+      setIsGoogleModalOpen(false);
+    }
   };
 
   const handleCustomGoogleSubmit = (e: React.FormEvent) => {
@@ -74,12 +99,73 @@ export const LoginView: React.FC = () => {
       return;
     }
     const finalName = googleCustomName.trim() || googleCustomEmail.split('@')[0];
-    setIsGoogleModalOpen(false);
-    loginWithGoogle({
+    const result = loginWithGoogle({
       name: finalName,
       email: googleCustomEmail.trim(),
       role: googleRole,
     });
+    if (!result.success) {
+      alert(result.error || `Access Denied: ${googleCustomEmail} is not authorized by the Admin.`);
+    } else {
+      setIsGoogleModalOpen(false);
+    }
+  };
+
+  const handleRequestOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
+      setForgotError('Please enter a valid authorized account email address.');
+      return;
+    }
+
+    setIsResetLoading(true);
+    setTimeout(() => {
+      const res = requestPasswordReset(forgotEmail);
+      setIsResetLoading(false);
+      if (!res.success) {
+        setForgotError(res.error || 'No authorized account found with this email.');
+      } else {
+        setGeneratedOtp(res.otpCode || '849201');
+        setForgotStep(2);
+      }
+    }, 300);
+  };
+
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+
+    if (!enteredOtp.trim()) {
+      setForgotError('Please enter the 6-digit verification code.');
+      return;
+    }
+    if (!newResetPassword || newResetPassword.length < 4) {
+      setForgotError('Password must be at least 4 characters long.');
+      return;
+    }
+    if (newResetPassword !== confirmResetPassword) {
+      setForgotError('Passwords do not match. Please retype identical passwords.');
+      return;
+    }
+
+    setIsResetLoading(true);
+    setTimeout(() => {
+      const res = resetPasswordWithCode(forgotEmail, enteredOtp, newResetPassword);
+      setIsResetLoading(false);
+      if (!res.success) {
+        setForgotError(res.error || 'Invalid or expired verification code.');
+      } else {
+        setForgotSuccess('Password reset successfully! You can now sign in with your new password.');
+        setEmail(forgotEmail);
+        setPassword('');
+        setTimeout(() => {
+          setIsForgotModalOpen(false);
+          setForgotSuccess(null);
+          setForgotStep(1);
+        }, 1200);
+      }
+    }, 300);
   };
 
   return (
@@ -250,9 +336,25 @@ export const LoginView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-slate-300">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setForgotEmail(email);
+                    setForgotStep(1);
+                    setForgotError(null);
+                    setForgotSuccess(null);
+                    setIsForgotModalOpen(true);
+                  }}
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
                 <input
@@ -532,6 +634,196 @@ export const LoginView: React.FC = () => {
                     className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md cursor-pointer"
                   >
                     Sign In with Google
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Interactive Modal */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 dark:bg-amber-400/20 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Reset Account Password</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                    {forgotStep === 1 ? 'Step 1 of 2: Verify Authorized Email' : 'Step 2 of 2: Verification & New Password'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsForgotModalOpen(false);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {forgotError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 text-xs flex items-center gap-2 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {forgotSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            {forgotStep === 1 ? (
+              /* Step 1: Request OTP */
+              <form onSubmit={handleRequestOtp} className="space-y-4">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Enter your registered account email. If authorized by the Admin, a secure 6-digit verification OTP will be issued immediately.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Your Registered Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="e.g. tutor@ryd.studio or parent@ryd.studio"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotModalOpen(false)}
+                    className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isResetLoading}
+                    className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {isResetLoading ? 'Checking...' : 'Send Verification OTP'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Step 2: Verify OTP and Set New Password */
+              <form onSubmit={handleResetPasswordSubmit} className="space-y-3.5">
+                {/* OTP Dispatch Simulation Box */}
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between text-amber-700 dark:text-amber-300 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>OTP Code Dispatched</span>
+                    </span>
+                    <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">
+                      {generatedOtp}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                    A 6-digit verification code was sent for <strong>{forgotEmail}</strong>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setEnteredOtp(generatedOtp)}
+                    className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                  >
+                    ⚡ Click to Auto-fill Code ({generatedOtp})
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={enteredOtp}
+                    onChange={(e) => setEnteredOtp(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs font-mono tracking-widest text-center focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      required
+                      value={newResetPassword}
+                      onChange={(e) => setNewResetPassword(e.target.value)}
+                      placeholder="Minimum 4 characters"
+                      className="w-full pl-9 pr-10 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    >
+                      {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="password"
+                      required
+                      value={confirmResetPassword}
+                      onChange={(e) => setConfirmResetPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep(1)}
+                    className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isResetLoading}
+                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {isResetLoading ? 'Saving...' : 'Reset Password'}
                   </button>
                 </div>
               </form>

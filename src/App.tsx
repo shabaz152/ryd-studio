@@ -16,6 +16,7 @@ import { ComposeUpdateModal } from './components/modals/ComposeUpdateModal';
 import { NewSessionModal } from './components/modals/NewSessionModal';
 import { ParentAcceptRescheduleModal } from './components/modals/ParentAcceptRescheduleModal';
 import { RoleLoginGatewayModal } from './components/modals/RoleLoginGatewayModal';
+import { AccountSecurityModal } from './components/modals/AccountSecurityModal';
 import { PersonaSwitcher } from './components/PersonaSwitcher';
 
 // Views
@@ -121,6 +122,7 @@ const MainLayout: React.FC = () => {
       <ComposeUpdateModal />
       <NewSessionModal />
       <RoleLoginGatewayModal />
+      <AccountSecurityModal />
       <ParentAcceptRescheduleModal
         isOpen={parentPreviewModalOpen}
         session={selectedSessionForParentPreview}

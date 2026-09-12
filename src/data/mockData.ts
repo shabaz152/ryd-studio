@@ -11,7 +11,8 @@ import {
   TutorAccount,
   ParentAccount,
   ActivityEvent,
-  AuthUser
+  AuthUser,
+  AuthorizedUser
 } from '../types';
 
 
@@ -417,7 +418,7 @@ export const INITIAL_TUTORS: TutorAccount[] = [
   }
 ];
 
-export const DEMO_AUTH_USERS: (AuthUser & { password: string })[] = [
+export const INITIAL_AUTHORIZED_USERS: AuthorizedUser[] = [
   {
     id: 'user-admin',
     email: 'admin@ryd.studio',
@@ -425,7 +426,10 @@ export const DEMO_AUTH_USERS: (AuthUser & { password: string })[] = [
     name: 'Owner (Admin)',
     role: 'admin',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    title: 'Head of Platform & Center Director'
+    title: 'Head of Platform & Center Director',
+    isAuthorized: true,
+    authorizedAt: '2026-01-01',
+    authorizedBy: 'System Root Provisioning',
   },
   {
     id: 'user-tutor',
@@ -434,7 +438,46 @@ export const DEMO_AUTH_USERS: (AuthUser & { password: string })[] = [
     name: 'Shazz (Lead Faculty)',
     role: 'tutor',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    title: 'Senior STEM & Calculus Faculty'
+    title: 'Senior STEM & Calculus Faculty',
+    isAuthorized: true,
+    authorizedAt: '2026-01-05',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-tutor-shazz-gmail',
+    email: 'shazz.faculty@gmail.com',
+    password: 'tutor123',
+    name: 'Shazz (Lead STEM Faculty)',
+    role: 'tutor',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    title: 'Senior STEM & Calculus Faculty',
+    isAuthorized: true,
+    authorizedAt: '2026-01-05',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-tutor-mercer',
+    email: 'a.mercer@ryd.edu',
+    password: 'tutor123',
+    name: 'Dr. Alex Mercer',
+    role: 'tutor',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    title: 'Senior Calculus & Pure Mathematics Lead',
+    isAuthorized: true,
+    authorizedAt: '2026-01-10',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-tutor-sundaram',
+    email: 'p.sundaram@ryd.edu',
+    password: 'tutor123',
+    name: 'Prof. Priya Sundaram',
+    role: 'tutor',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    title: 'Applied Mechanics & Quantum Physics Faculty',
+    isAuthorized: true,
+    authorizedAt: '2026-01-12',
+    authorizedBy: 'admin@ryd.studio',
   },
   {
     id: 'user-parent',
@@ -444,9 +487,53 @@ export const DEMO_AUTH_USERS: (AuthUser & { password: string })[] = [
     role: 'parent',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     title: 'Parent of Aria Vance (11th Grade STEM)',
-    studentId: 'stud-3'
-  }
+    studentId: 'stud-3',
+    isAuthorized: true,
+    authorizedAt: '2026-01-15',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-parent-marcus-gmail',
+    email: 'marcus.vance@gmail.com',
+    password: 'parent123',
+    name: 'Marcus Vance',
+    role: 'parent',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    title: 'Parent of Aria Vance (11th Grade STEM)',
+    studentId: 'stud-3',
+    isAuthorized: true,
+    authorizedAt: '2026-01-15',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-parent-elena',
+    email: 'elena.lin@gmail.com',
+    password: 'parent123',
+    name: 'Elena Lin',
+    role: 'parent',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    title: 'Parent of Maya Lin (11th Grade AP Honors)',
+    studentId: 'stud-1',
+    isAuthorized: true,
+    authorizedAt: '2026-01-18',
+    authorizedBy: 'admin@ryd.studio',
+  },
+  {
+    id: 'user-parent-david',
+    email: 'david.chen@gmail.com',
+    password: 'parent123',
+    name: 'David Chen',
+    role: 'parent',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    title: 'Parent of Leo Chen (10th Grade STEM)',
+    studentId: 'stud-2',
+    isAuthorized: true,
+    authorizedAt: '2026-01-20',
+    authorizedBy: 'admin@ryd.studio',
+  },
 ];
+
+export const DEMO_AUTH_USERS = INITIAL_AUTHORIZED_USERS;
 
 export const INITIAL_PARENTS: ParentAccount[] = [
   {

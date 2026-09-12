@@ -29,6 +29,7 @@ import {
   Sparkles,
   RotateCcw,
   BellRing,
+  KeyRound,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -69,6 +70,7 @@ export const HomeView: React.FC = () => {
     tutorOnlineStatus,
     loginTutor,
     logoutTutor,
+    setAccountSecurityModalOpen,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -135,6 +137,16 @@ export const HomeView: React.FC = () => {
                   <span>Offline • Click to Log In</span>
                 </button>
               )}
+
+              {/* Tutor Personal Credentials Button */}
+              <button
+                onClick={() => setAccountSecurityModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer"
+                title="Update your login email and password"
+              >
+                <KeyRound className="w-3 h-3" />
+                <span>My Credentials</span>
+              </button>
             </div>
           </div>
 

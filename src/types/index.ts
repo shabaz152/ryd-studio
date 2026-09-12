@@ -265,3 +265,10 @@ export interface AuthUser {
   studentId?: string;
 }
 
+export interface AuthorizedUser extends AuthUser {
+  password: string;
+  isAuthorized: boolean;
+  authorizedAt: string;
+  authorizedBy: string;
+}
+

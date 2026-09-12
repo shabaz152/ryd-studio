@@ -13,6 +13,7 @@ import {
   Check,
   Send,
   MessageSquare,
+  KeyRound,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -32,6 +33,7 @@ export const ParentPortal: React.FC = () => {
     markActivityReadByParent,
     acceptReschedule,
     showToast,
+    setAccountSecurityModalOpen,
   } = useApp();
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -113,6 +115,16 @@ export const ParentPortal: React.FC = () => {
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-emerald-400 absolute right-2 top-2.5 pointer-events-none" />
             </div>
+
+            {/* Parent Credentials Security Button */}
+            <button
+              onClick={() => setAccountSecurityModalOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              title="Update your personal login email and password"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+              <span>My Credentials</span>
+            </button>
           </div>
         </div>
       </div>
