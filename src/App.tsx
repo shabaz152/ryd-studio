@@ -44,18 +44,10 @@ const MainLayout: React.FC = () => {
   } = useApp();
 
   const renderActiveView = () => {
-    // Triangular Role-Based Portal Routing
-    if (activeRole === 'admin') {
-      return <AdminPortal />;
-    }
-
-    if (activeRole === 'parent') {
-      return <ParentPortal />;
-    }
-
-    // Faculty Tutor View
     switch (activeTab) {
       case 'home':
+        if (activeRole === 'admin') return <AdminPortal />;
+        if (activeRole === 'parent') return <ParentPortal />;
         return <HomeView />;
       case 'batches':
         return <BatchesView />;
@@ -76,6 +68,8 @@ const MainLayout: React.FC = () => {
       case 'referral':
         return <ReferralView />;
       default:
+        if (activeRole === 'admin') return <AdminPortal />;
+        if (activeRole === 'parent') return <ParentPortal />;
         return <HomeView />;
     }
   };
@@ -89,7 +83,7 @@ const MainLayout: React.FC = () => {
         {renderActiveView()}
       </main>
 
-      {activeRole === 'tutor' && <BottomNav />}
+      <BottomNav />
 
       {/* Global Modals */}
       <CheckInModal />

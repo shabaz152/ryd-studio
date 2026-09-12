@@ -865,6 +865,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playClick();
     setCurrentAuthRole(role);
     setActiveRoleState(role);
+    setActiveTab('home');
     try {
       localStorage.setItem(`${STORAGE_KEY}_auth_role`, role);
       localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
@@ -901,6 +902,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     sound.playClick();
     setActiveRoleState(role);
+    setActiveTab('home');
     try {
       localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
     } catch {}

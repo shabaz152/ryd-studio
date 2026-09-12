@@ -99,8 +99,8 @@ export const Navbar: React.FC = () => {
             </div>
           </button>
 
-          {/* Role-Specific Desktop Navigation */}
-          {viewMode !== 'mobile' && activeRole === 'tutor' && (
+          {/* Desktop Navigation Tabs for All Personas (Admin, Tutor, Parent) */}
+          {viewMode !== 'mobile' && (
             <nav className="hidden lg:flex items-center gap-1 ml-1 xl:ml-3 pl-2 xl:pl-3 border-l border-slate-200 dark:border-white/10">
               {navLinks.map((tab) => {
                 const Icon = tab.icon;
@@ -131,22 +131,6 @@ export const Navbar: React.FC = () => {
                 );
               })}
             </nav>
-          )}
-
-          {viewMode !== 'mobile' && activeRole === 'admin' && (
-            <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-3 border-l border-slate-200 dark:border-white/10 text-xs">
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
-                <span>👑 Admin (Head of Platform) • Full Access Across All Portals</span>
-              </span>
-            </div>
-          )}
-
-          {viewMode !== 'mobile' && activeRole === 'parent' && (
-            <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-3 border-l border-slate-200 dark:border-white/10 text-xs">
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
-                <span>👨‍👩‍👧 Family Portal • Viewing Student Profile</span>
-              </span>
-            </div>
           )}
         </div>
 
