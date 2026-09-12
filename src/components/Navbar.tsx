@@ -53,6 +53,7 @@ export const Navbar: React.FC = () => {
     tutorOnlineStatus,
     unreadAdminActivityCount,
     unreadParentActivityCount,
+    setRoleGatewayModalOpen,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -92,12 +93,14 @@ export const Navbar: React.FC = () => {
                 <span className="font-display font-black tracking-tight text-slate-900 dark:text-white text-sm">RYD</span>
                 <span className="font-display font-black tracking-tight text-amber-500 dark:text-[#FFD000]">STUDIO</span>
               </div>
-              <p className="text-[9px] text-slate-500 dark:text-gray-400 font-bold tracking-widest uppercase mt-0.5">Faculty Platform</p>
+              <p className="text-[9px] text-slate-500 dark:text-gray-400 font-bold tracking-widest uppercase mt-0.5">
+                {activeRole === 'admin' ? '👑 Owner Console' : activeRole === 'parent' ? '👨‍👩‍👧 Family Portal' : '🧑‍🏫 Faculty Platform'}
+              </p>
             </div>
           </button>
 
-          {/* Desktop Navigation Links */}
-          {viewMode !== 'mobile' && (
+          {/* Role-Specific Desktop Navigation */}
+          {viewMode !== 'mobile' && activeRole === 'tutor' && (
             <nav className="hidden lg:flex items-center gap-1 ml-1 xl:ml-3 pl-2 xl:pl-3 border-l border-slate-200 dark:border-white/10">
               {navLinks.map((tab) => {
                 const Icon = tab.icon;
@@ -128,6 +131,22 @@ export const Navbar: React.FC = () => {
                 );
               })}
             </nav>
+          )}
+
+          {viewMode !== 'mobile' && activeRole === 'admin' && (
+            <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-3 border-l border-slate-200 dark:border-white/10 text-xs">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                <span>👑 Admin (Head of Platform) • Full Access Across All Portals</span>
+              </span>
+            </div>
+          )}
+
+          {viewMode !== 'mobile' && activeRole === 'parent' && (
+            <div className="hidden lg:flex items-center gap-1.5 ml-2 pl-3 border-l border-slate-200 dark:border-white/10 text-xs">
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                <span>👨‍👩‍👧 Family Portal • Viewing Student Profile</span>
+              </span>
+            </div>
           )}
         </div>
 
@@ -273,33 +292,6 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleThemeMode}
-            title={themeMode === 'light' ? 'Switch to Dark Viewport' : 'Switch to CRM Light Viewport'}
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
-          >
-            {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-          </button>
-
-          {/* Audio Feedback Toggle */}
-          <button
-            onClick={toggleSound}
-            title={soundEnabled ? 'Mute Audio Cues' : 'Enable Audio Cues'}
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-500 dark:text-[#FFD000]" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-          </button>
-
-          {/* Viewport Mode Switcher */}
-          <button
-            onClick={toggleViewMode}
-            title={viewMode === 'responsive' ? 'Switch to Mobile Frame View' : 'Switch to Full Screen View'}
-            className="hidden sm:flex p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
-          >
-            {viewMode === 'responsive' ? <Smartphone className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-          </button>
-
           {/* Notifications Bell */}
           <button
             onClick={() => setActiveTab('updates')}
@@ -315,7 +307,11 @@ export const Navbar: React.FC = () => {
           </button>
 
           {/* Role-Aware Profile Pill: NEVER clipped, full width, clear text in light and dark mode */}
-          <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0">
+          <div
+            onClick={() => setRoleGatewayModalOpen(true)}
+            className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0 cursor-pointer group select-none pr-1"
+            title="Click to Switch Persona / Log Out"
+          >
             {activeRole === 'admin' ? (
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center text-xs shadow-xs shrink-0">

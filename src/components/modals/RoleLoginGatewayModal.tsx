@@ -6,25 +6,15 @@ export const RoleLoginGatewayModal: React.FC = () => {
   const {
     roleGatewayModalOpen,
     setRoleGatewayModalOpen,
-    activeRole,
-    setActiveRole,
+    currentAuthRole,
+    loginAsRole,
     teacher,
-    setSelectedParentStudentId,
-    loginTutor,
-    tutorOnlineStatus,
   } = useApp();
 
   if (!roleGatewayModalOpen) return null;
 
   const handleSelectRole = (role: 'admin' | 'tutor' | 'parent', studentId?: string) => {
-    setActiveRole(role);
-    if (studentId) {
-      setSelectedParentStudentId(studentId);
-    }
-    if (role === 'tutor' && tutorOnlineStatus === 'offline') {
-      loginTutor();
-    }
-    setRoleGatewayModalOpen(false);
+    loginAsRole(role, studentId);
   };
 
   return (
@@ -35,12 +25,12 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                Triangular Platform Gateway
+                Authentication & Access Control
               </span>
-              <h2 className="text-lg font-black text-slate-900 dark:text-white">Select User Persona</h2>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">Sign In / Switch Persona</h2>
             </div>
             <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-              Choose an identity to experience the application from that perspective:
+              Admin is the Head and can access all UIs. Tutors and Parents can only view their dedicated pages.
             </p>
           </div>
           <button
@@ -57,7 +47,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('admin')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              activeRole === 'admin'
+              currentAuthRole === 'admin'
                 ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-amber-400 dark:hover:border-amber-500/50'
             }`}
@@ -67,13 +57,16 @@ export const RoleLoginGatewayModal: React.FC = () => {
                 <Shield className="w-5 h-5" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Admin / Owner</h3>
-                {activeRole === 'admin' && (
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Admin (Head)</h3>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase">Full Access</span>
+                </div>
+                {currentAuthRole === 'admin' && (
                   <CheckCircle2 className="w-4 h-4 text-amber-500" />
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-                App requirement owner. Oversees all tutors, student rosters, schedules, and live activity audit logs.
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-2 leading-relaxed">
+                Head of Platform. Has exclusive permission to access all three UIs, audit real-time tutor activities, and oversee center schedules.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-amber-600 dark:text-amber-400">
@@ -86,7 +79,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('tutor')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              activeRole === 'tutor'
+              currentAuthRole === 'tutor'
                 ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-blue-400 dark:hover:border-blue-500/50'
             }`}
@@ -96,13 +89,16 @@ export const RoleLoginGatewayModal: React.FC = () => {
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Tutor ({teacher.name.split(' ')[0]})</h3>
-                {activeRole === 'tutor' && (
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Tutor ({teacher.name.split(' ')[0]})</h3>
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold uppercase">Tutor Pages Only</span>
+                </div>
+                {currentAuthRole === 'tutor' && (
                   <CheckCircle2 className="w-4 h-4 text-blue-500" />
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-                Conducts classes, logs in/out, check-in, check-out with attendance, marks late arrival, and reschedules.
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-2 leading-relaxed">
+                Faculty member. Restricted view: Conducts tutoring classes, marks attendance, logs shift in/out, and proposes reschedules.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
@@ -115,7 +111,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('parent', 'stud-3')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              activeRole === 'parent'
+              currentAuthRole === 'parent'
                 ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-emerald-400 dark:hover:border-emerald-500/50'
             }`}
@@ -125,13 +121,16 @@ export const RoleLoginGatewayModal: React.FC = () => {
                 <Users className="w-5 h-5" />
               </div>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Parent / Student</h3>
-                {activeRole === 'parent' && (
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Parent / Student</h3>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase">Family Pages Only</span>
+                </div>
+                {currentAuthRole === 'parent' && (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-                Marcus Vance (Parent of Aria). Receives tutor login/logout alerts, live in-session timers, and approves reschedules.
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-2 leading-relaxed">
+                Marcus Vance (Parent of Aria). Restricted view: Views child's timetable, live tutor status, attendance notes, and approves reschedules.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">

@@ -191,9 +191,12 @@ interface AppContextType {
   referralsCount: number;
   rewardsINR: number;
 
-  // 3-Persona Triangular Architecture
+  // 3-Persona Triangular Architecture & Role Hierarchy
+  currentAuthRole: UserRole;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
+  loginAsRole: (role: UserRole, studentId?: string) => void;
+  logoutAuth: () => void;
   roleGatewayModalOpen: boolean;
   setRoleGatewayModalOpen: (open: boolean) => void;
   tutorOnlineStatus: TutorOnlineStatus;
@@ -345,10 +348,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRunningLate, setIsRunningLate] = useState<boolean>(false);
   const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
   const [runningLateReason, setRunningLateReason] = useState<string>('');
+  // 3-Persona Architecture State & Role Guard
+  const [currentAuthRole, setCurrentAuthRole] = useState<UserRole>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_auth_role`);
+      return (saved === 'admin' || saved === 'tutor' || saved === 'parent') ? saved : 'admin';
+    } catch {
+      return 'admin';
+    }
+  });
 
-  // 3-Persona Architecture State
   const [activeRole, setActiveRoleState] = useState<UserRole>(() => {
     try {
+      const auth = localStorage.getItem(`${STORAGE_KEY}_auth_role`) as UserRole;
+      if (auth === 'tutor') return 'tutor';
+      if (auth === 'parent') return 'parent';
       const saved = localStorage.getItem(`${STORAGE_KEY}_active_role`);
       return (saved === 'admin' || saved === 'tutor' || saved === 'parent') ? saved : 'admin';
     } catch {
@@ -846,8 +860,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const rewardsINR = Math.round(actualEarnings) + (referralStats.bonusEarned || 0);
 
-  // 3-Persona Action Helpers
+  // 3-Persona Action Helpers & Role Hierarchy Guard
+  const loginAsRole = (role: UserRole, studentId?: string) => {
+    sound.playClick();
+    setCurrentAuthRole(role);
+    setActiveRoleState(role);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, role);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
+    } catch {}
+    if (studentId) {
+      setSelectedParentStudentId(studentId);
+    }
+    if (role === 'tutor') {
+      loginTutor();
+    }
+    setRoleGatewayModalOpen(false);
+    showToast({
+      type: 'info',
+      title: `Signed In as ${role === 'admin' ? '👑 Admin (Head of Platform)' : role === 'tutor' ? '🧑‍🏫 Faculty Tutor' : '👨‍👩‍👧 Parent & Student'}`,
+      description: role === 'admin' ? 'Admin has head access to view and control all 3 portals.' : `You are restricted to your dedicated ${role.toUpperCase()} UI only.`,
+    });
+  };
+
+  const logoutAuth = () => {
+    sound.playClick();
+    setRoleGatewayModalOpen(true);
+  };
+
   const setActiveRole = (role: UserRole) => {
+    // Admin is the Head: ONLY Admin can switch active view to tutor or parent!
+    if (currentAuthRole !== 'admin') {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Access Restricted',
+        description: `Only Admin (Head of Platform) can access other role UIs. As a ${currentAuthRole}, you can only view your own pages.`,
+      });
+      return;
+    }
     sound.playClick();
     setActiveRoleState(role);
     try {
@@ -855,8 +906,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     showToast({
       type: 'info',
-      title: `Switched to ${role === 'admin' ? '👑 Admin / App Owner' : role === 'tutor' ? '🧑‍🏫 Tutor Faculty' : '👨‍👩‍👧 Parent & Student'} View`,
-      description: `Viewing application interface tailored for ${role.toUpperCase()}.`,
+      title: `Admin Viewing: ${role === 'admin' ? '👑 Admin Command' : role === 'tutor' ? '🧑‍🏫 Tutor Faculty Workbench' : '👨‍👩‍👧 Parent & Student Portal'}`,
+      description: `Displaying interface preview for ${role.toUpperCase()}.`,
     });
   };
 
@@ -1952,8 +2003,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lateArrivalsCount,
         referralsCount,
         rewardsINR,
+        currentAuthRole,
         activeRole,
         setActiveRole,
+        loginAsRole,
+        logoutAuth,
         roleGatewayModalOpen,
         setRoleGatewayModalOpen,
         tutorOnlineStatus,
