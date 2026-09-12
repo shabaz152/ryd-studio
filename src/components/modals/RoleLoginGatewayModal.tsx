@@ -7,11 +7,12 @@ export const RoleLoginGatewayModal: React.FC = () => {
     roleGatewayModalOpen,
     setRoleGatewayModalOpen,
     currentAuthRole,
+    activeRole,
     loginAsRole,
     teacher,
   } = useApp();
 
-  if (!roleGatewayModalOpen) return null;
+  if (!roleGatewayModalOpen || currentAuthRole !== 'admin') return null;
 
   const handleSelectRole = (role: 'admin' | 'tutor' | 'parent', studentId?: string) => {
     loginAsRole(role, studentId);
@@ -47,7 +48,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('admin')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              currentAuthRole === 'admin'
+              activeRole === 'admin'
                 ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-amber-400 dark:hover:border-amber-500/50'
             }`}
@@ -61,7 +62,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Admin (Head)</h3>
                   <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase">Full Access</span>
                 </div>
-                {currentAuthRole === 'admin' && (
+                {activeRole === 'admin' && (
                   <CheckCircle2 className="w-4 h-4 text-amber-500" />
                 )}
               </div>
@@ -79,7 +80,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('tutor')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              currentAuthRole === 'tutor'
+              activeRole === 'tutor'
                 ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-blue-400 dark:hover:border-blue-500/50'
             }`}
@@ -93,7 +94,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Tutor ({teacher.name.split(' ')[0]})</h3>
                   <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold uppercase">Tutor Pages Only</span>
                 </div>
-                {currentAuthRole === 'tutor' && (
+                {activeRole === 'tutor' && (
                   <CheckCircle2 className="w-4 h-4 text-blue-500" />
                 )}
               </div>
@@ -111,7 +112,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
           <div
             onClick={() => handleSelectRole('parent', 'stud-3')}
             className={`group p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-              currentAuthRole === 'parent'
+              activeRole === 'parent'
                 ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/30'
                 : 'bg-slate-50 dark:bg-[#151522] border-slate-200 dark:border-white/5 hover:border-emerald-400 dark:hover:border-emerald-500/50'
             }`}
@@ -125,7 +126,7 @@ export const RoleLoginGatewayModal: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Parent / Student</h3>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase">Family Pages Only</span>
                 </div>
-                {currentAuthRole === 'parent' && (
+                {activeRole === 'parent' && (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 )}
               </div>

@@ -385,9 +385,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_is_auth`);
-      return saved !== null ? saved === 'true' : true;
+      return saved === 'true';
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -905,6 +905,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // 3-Persona Action Helpers & Role Hierarchy Guard
   const loginAsRole = (role: UserRole, studentId?: string) => {
+    // If already authenticated and not admin, block switching personas directly
+    if (isAuthenticated && currentAuthRole !== 'admin') {
+      sound.playAlert();
+      showToast({
+        type: 'alert',
+        title: 'Access Restricted',
+        description: `Only Admin (Head of Platform) can switch roles. As a ${currentAuthRole}, you can only view your own page. Please log out to change accounts.`,
+      });
+      return;
+    }
+
     sound.playClick();
     const matchedUser = DEMO_AUTH_USERS.find((u) => u.role === role) || DEMO_AUTH_USERS[0];
     const { password: _, ...authData } = matchedUser;
@@ -987,8 +998,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     sound.playClick();
     setIsAuthenticated(false);
+    setCurrentUser(null);
+    setCurrentAuthRole('admin');
+    setActiveRoleState('admin');
+    setActiveTabState('home');
     try {
       localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'false');
+      localStorage.removeItem(`${STORAGE_KEY}_auth_user`);
+      localStorage.removeItem(`${STORAGE_KEY}_auth_role`);
+      localStorage.removeItem(`${STORAGE_KEY}_active_role`);
     } catch {}
     showToast({
       type: 'info',

@@ -34,6 +34,7 @@ import { sound } from '../utils/sound';
 
 export const HomeView: React.FC = () => {
   const {
+    currentAuthRole,
     teacher,
     setTeacherName,
     sessions,
@@ -311,20 +312,19 @@ export const HomeView: React.FC = () => {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 text-[#FFD000]" />
-            <span>Today's Studio Sessions & Schedule</span>
+            <Activity className="w-3.5 h-3.5 text-[#FFD000]" />
+            <span>Today's Academic Sessions & Schedule</span>
           </h2>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {todaySessions.length > 0 && (
               <button
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to delete all scheduled sessions for today?")) {
-                    clearAllSessions();
-                  }
+                  sound.playClick();
+                  clearAllSessions();
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all cursor-pointer"
-                title="Delete all sessions today"
+                title="Reset / Clear all active sessions to test 0-baseline state"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Clear Sessions</span>
@@ -342,16 +342,18 @@ export const HomeView: React.FC = () => {
               <span>Add Schedule & Session</span>
             </button>
 
-            <button
-              onClick={() => {
-                sound.playClick();
-                setActiveTab('batches');
-              }}
-              className="text-xs font-bold text-[#FFD000] hover:underline flex items-center gap-1 cursor-pointer pl-1"
-            >
-              <span>View All Batches</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            {currentAuthRole === 'admin' && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setActiveTab('batches');
+                }}
+                className="text-xs font-bold text-[#FFD000] hover:underline flex items-center gap-1 cursor-pointer pl-1"
+              >
+                <span>View All Batches</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -361,7 +363,7 @@ export const HomeView: React.FC = () => {
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">No Studio Sessions Scheduled Today</h4>
+              <h4 className="text-sm font-bold text-white">No Academic Sessions Scheduled Today</h4>
               <p className="text-xs text-gray-400 mt-1">
                 All class sessions for today have been removed or completed.
               </p>
@@ -578,14 +580,22 @@ export const HomeView: React.FC = () => {
             <p className="text-xs font-bold text-white group-hover:text-[#FFD000] transition-colors">
               Order Workbooks
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">Syllabus & uniforms</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Curriculum & Handbooks</p>
           </div>
 
           {/* Free Slots */}
           <div
             onClick={() => {
               sound.playClick();
-              setActiveTab('freeslots');
+              if (currentAuthRole === 'admin') {
+                setActiveTab('freeslots');
+              } else {
+                showToast({
+                  type: 'info',
+                  title: 'Free Slot Availability',
+                  description: 'Your shift slots and availability are live synced with the central timetable.',
+                });
+              }
             }}
             className="p-4 rounded-3xl glossy-card glossy-card-hover text-left cursor-pointer"
           >
@@ -602,7 +612,15 @@ export const HomeView: React.FC = () => {
           <div
             onClick={() => {
               sound.playClick();
-              setActiveTab('ratings');
+              if (currentAuthRole === 'admin') {
+                setActiveTab('ratings');
+              } else {
+                showToast({
+                  type: 'info',
+                  title: 'Faculty Ratings & Reviews',
+                  description: `${teacher.name} has a verified rating of ${teacher.rating > 0 ? teacher.rating.toFixed(2) : '5.00'} based on student submissions.`,
+                });
+              }
             }}
             className="p-4 rounded-3xl glossy-card glossy-card-hover text-left cursor-pointer"
           >
@@ -621,7 +639,15 @@ export const HomeView: React.FC = () => {
           <div
             onClick={() => {
               sound.playClick();
-              setActiveTab('referral');
+              if (currentAuthRole === 'admin') {
+                setActiveTab('referral');
+              } else {
+                showToast({
+                  type: 'info',
+                  title: 'Faculty Referral Program',
+                  description: 'Earn ₹2,500 bonus for every qualified instructor referred to RYD Studio.',
+                });
+              }
             }}
             className="p-4 rounded-3xl glossy-card glossy-card-hover text-left cursor-pointer"
           >
@@ -632,7 +658,7 @@ export const HomeView: React.FC = () => {
               Refer a Teacher
             </p>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              {referralStats.bonusEarned > 0 ? `$${referralStats.bonusEarned} Bonus earned` : '$0 Bonus earned'}
+              {referralStats.bonusEarned > 0 ? `₹${referralStats.bonusEarned} Bonus earned` : '₹0 Bonus earned'}
             </p>
           </div>
         </div>
@@ -645,16 +671,18 @@ export const HomeView: React.FC = () => {
             <Radio className="w-3.5 h-3.5 text-[#FFD000]" />
             <span>Recent Studio Updates Feed</span>
           </h2>
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveTab('updates');
-            }}
-            className="text-xs font-bold text-[#FFD000] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <span>All Updates</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          {currentAuthRole === 'admin' && (
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('updates');
+              }}
+              className="text-xs font-bold text-[#FFD000] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>All Updates</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-2.5">

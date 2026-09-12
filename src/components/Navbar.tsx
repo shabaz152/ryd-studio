@@ -242,28 +242,30 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* Demo Mode / Clean 0-Baseline Switcher */}
-          <button
-            onClick={toggleDemoMode}
-            title={isDemoMode ? 'Active: Demo Data Loaded. Click to reset to clean 0-baseline account' : 'Active: Clean 0-Baseline. Click to load realistic sample demo data'}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shrink-0 ${
-              isDemoMode
-                ? 'bg-amber-100 dark:bg-[#FFD000]/15 border-amber-300 dark:border-[#FFD000]/40 text-amber-900 dark:text-[#FFD000]'
-                : 'bg-white border-slate-200 dark:bg-[#151520] dark:border-white/10 text-slate-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-[#FFD000] shadow-xs'
-            }`}
-          >
-            {isDemoMode ? (
-              <>
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-[#FFD000] shrink-0" />
-                <span className="text-[11px] whitespace-nowrap">0-Baseline</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFD000] shrink-0" />
-                <span className="text-[11px] whitespace-nowrap">Demo</span>
-              </>
-            )}
-          </button>
+          {/* Demo Mode / Clean 0-Baseline Switcher (Admin Only) */}
+          {currentAuthRole === 'admin' && (
+            <button
+              onClick={toggleDemoMode}
+              title={isDemoMode ? 'Active: Demo Data Loaded. Click to reset to clean 0-baseline account' : 'Active: Clean 0-Baseline. Click to load realistic sample demo data'}
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                isDemoMode
+                  ? 'bg-amber-100 dark:bg-[#FFD000]/15 border-amber-300 dark:border-[#FFD000]/40 text-amber-900 dark:text-[#FFD000]'
+                  : 'bg-white border-slate-200 dark:bg-[#151520] dark:border-white/10 text-slate-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-[#FFD000] shadow-xs'
+              }`}
+            >
+              {isDemoMode ? (
+                <>
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-[#FFD000] shrink-0" />
+                  <span className="text-[11px] whitespace-nowrap">0-Baseline</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFD000] shrink-0" />
+                  <span className="text-[11px] whitespace-nowrap">Demo</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Real-Time Cross-Device Cloud Sync Button */}
           <button
@@ -301,27 +303,31 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
-          {/* Notifications Bell */}
-          <button
-            onClick={() => setActiveTab('updates')}
-            title="View Updates & Messages"
-            className="relative p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
-          >
-            <Bell className="w-4 h-4" />
-            {updates.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[9px] font-black flex items-center justify-center shadow-sm">
-                {updates.length}
-              </span>
-            )}
-          </button>
+          {/* Notifications Bell (Admin Only) */}
+          {currentAuthRole === 'admin' && (
+            <button
+              onClick={() => setActiveTab('updates')}
+              title="View Updates & Messages"
+              className="relative p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 dark:bg-[#151520] dark:border-white/10 dark:text-gray-300 dark:hover:text-[#FFD000] transition-colors cursor-pointer shadow-xs shrink-0"
+            >
+              <Bell className="w-4 h-4" />
+              {updates.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white dark:bg-[#FFD000] dark:text-black text-[9px] font-black flex items-center justify-center shadow-sm">
+                  {updates.length}
+                </span>
+              )}
+            </button>
+          )}
 
-          {/* Role-Aware Profile Pill: NEVER clipped, full width, clear text in light and dark mode */}
+          {/* Role-Aware Profile Pill: NEVER clipped, strictly scoped to authenticated role */}
           <div
-            onClick={() => setRoleGatewayModalOpen(true)}
-            className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0 cursor-pointer group select-none pr-1"
-            title="Click to Switch Persona / Log Out"
+            onClick={currentAuthRole === 'admin' ? () => setRoleGatewayModalOpen(true) : undefined}
+            className={`flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-white/10 shrink-0 select-none pr-1 ${
+              currentAuthRole === 'admin' ? 'cursor-pointer group' : 'cursor-default'
+            }`}
+            title={currentAuthRole === 'admin' ? 'Click to Switch Persona / Access All Views' : `Signed in as ${currentAuthRole === 'tutor' ? 'Faculty Tutor' : 'Parent'}`}
           >
-            {activeRole === 'admin' ? (
+            {currentAuthRole === 'admin' ? (
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                   👑
@@ -335,7 +341,7 @@ export const Navbar: React.FC = () => {
                   </p>
                 </div>
               </div>
-            ) : activeRole === 'parent' ? (
+            ) : currentAuthRole === 'parent' ? (
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                   👨‍👩‍👧
@@ -404,7 +410,7 @@ export const Navbar: React.FC = () => {
               e.stopPropagation();
               logout();
             }}
-            title={`Signed in as ${currentUser?.name || activeRole}. Click to Log Out.`}
+            title={`Signed in as ${currentUser?.name || currentAuthRole}. Click to Log Out.`}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -418,9 +424,9 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 min-w-0">
           <Activity className="w-3.5 h-3.5 text-amber-500 dark:text-[#FFD000] shrink-0" />
           <span className="truncate">
-            {activeRole === 'admin' ? (
+            {currentAuthRole === 'admin' ? (
               <span>👑 <strong className="text-amber-600 dark:text-amber-400 font-bold">Admin Command Center</strong> • Real-time triangular activity audit & center oversight active</span>
-            ) : activeRole === 'parent' ? (
+            ) : currentAuthRole === 'parent' ? (
               <span>👨‍👩‍👧 <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Parent & Student Hub</strong> • Monitoring Aria Vance (Grade 11 - Calculus & Physics)</span>
             ) : (
               <span>Welcome back, <strong className="text-amber-600 dark:text-[#FFD000] font-bold">{teacher.name}</strong> • Academic Tutoring & Faculty Hub</span>
