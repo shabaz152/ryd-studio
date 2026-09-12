@@ -216,10 +216,11 @@ interface AppContextType {
   markActivityReadByAdmin: () => void;
   markActivityReadByParent: () => void;
 
-  // Real Credential Authentication
+  // Real Credential & Google Authentication
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
-  loginWithCredentials: (email: string, password: string) => { success: boolean; error?: string };
+  loginWithCredentials: (email: string, password: string, role?: UserRole) => { success: boolean; error?: string };
+  loginWithGoogle: (account: { name: string; email: string; avatarUrl?: string; role: UserRole }) => void;
   logout: () => void;
 
   // Live Tutor GPS Location Map
@@ -949,50 +950,157 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logout();
   };
 
-  const loginWithCredentials = (email: string, password: string): { success: boolean; error?: string } => {
+  const loginWithCredentials = (email: string, password: string, role?: UserRole): { success: boolean; error?: string } => {
+    const trimmedEmail = email.trim().toLowerCase();
     const user = DEMO_AUTH_USERS.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+      (u) => u.email.toLowerCase() === trimmedEmail
     );
 
-    if (!user) {
-      sound.playAlert();
-      return { success: false, error: 'No account registered with this email address.' };
+    if (user) {
+      if (user.password !== password) {
+        sound.playAlert();
+        return { success: false, error: 'Incorrect password.' };
+      }
+
+      sound.playSuccess();
+      const { password: _, ...authData } = user;
+      setCurrentUser(authData);
+      setIsAuthenticated(true);
+      setCurrentAuthRole(authData.role);
+      setActiveRoleState(authData.role);
+      setActiveTabState('home');
+
+      if (authData.studentId) {
+        setSelectedParentStudentId(authData.studentId);
+      }
+      if (authData.role === 'tutor') {
+        loginTutor();
+      }
+
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
+        localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
+        localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
+        localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
+      } catch {}
+
+      showToast({
+        type: 'success',
+        title: `Welcome, ${authData.name}!`,
+        description: `Signed in as ${authData.title}.`,
+      });
+
+      return { success: true };
     }
 
-    if (user.password !== password) {
+    // Support any custom email and credentials
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
       sound.playAlert();
-      return { success: false, error: 'Incorrect password. Check demo credentials.' };
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    if (password.length < 4) {
+      sound.playAlert();
+      return { success: false, error: 'Password must be at least 4 characters.' };
+    }
+
+    let assignedRole: UserRole = role || 'parent';
+    if (trimmedEmail.includes('admin') || trimmedEmail.includes('owner')) {
+      assignedRole = 'admin';
+    } else if (trimmedEmail.includes('tutor') || trimmedEmail.includes('faculty') || trimmedEmail.includes('teacher')) {
+      assignedRole = 'tutor';
     }
 
     sound.playSuccess();
-    const { password: _, ...authData } = user;
-    setCurrentUser(authData);
+    const newUser: AuthUser = {
+      id: `user-${Date.now()}`,
+      name: trimmedEmail.split('@')[0].replace('.', ' ').replace(/^./, (c) => c.toUpperCase()),
+      email: trimmedEmail,
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      role: assignedRole,
+      title: assignedRole === 'admin'
+        ? 'Executive Admin'
+        : assignedRole === 'tutor'
+        ? 'Faculty Tutor'
+        : 'Parent & Learner',
+      studentId: assignedRole === 'parent' ? 'stud-3' : undefined,
+    };
+
+    setCurrentUser(newUser);
     setIsAuthenticated(true);
-    setCurrentAuthRole(authData.role);
-    setActiveRoleState(authData.role);
+    setCurrentAuthRole(assignedRole);
+    setActiveRoleState(assignedRole);
     setActiveTabState('home');
 
-    if (authData.studentId) {
-      setSelectedParentStudentId(authData.studentId);
+    if (assignedRole === 'parent') {
+      setSelectedParentStudentId('stud-3');
     }
-    if (authData.role === 'tutor') {
+    if (assignedRole === 'tutor') {
       loginTutor();
     }
 
     try {
       localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
-      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
-      localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
-      localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(newUser));
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, assignedRole);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, assignedRole);
     } catch {}
 
     showToast({
       type: 'success',
-      title: `Welcome, ${authData.name}!`,
-      description: `Signed in as ${authData.title}.`,
+      title: `Welcome, ${newUser.name}!`,
+      description: `Signed in as ${newUser.title}.`,
     });
 
     return { success: true };
+  };
+
+  const loginWithGoogle = (account: {
+    name: string;
+    email: string;
+    avatarUrl?: string;
+    role: UserRole;
+  }) => {
+    sound.playSuccess();
+    const newUser: AuthUser = {
+      id: `google-${Date.now()}`,
+      name: account.name,
+      email: account.email,
+      avatarUrl: account.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      role: account.role,
+      title: account.role === 'admin'
+        ? 'Executive Admin & Owner'
+        : account.role === 'tutor'
+        ? 'Academic Faculty Tutor'
+        : 'Student & Family Member',
+      studentId: account.role === 'parent' ? 'stud-3' : undefined,
+    };
+
+    setCurrentUser(newUser);
+    setIsAuthenticated(true);
+    setCurrentAuthRole(newUser.role);
+    setActiveRoleState(newUser.role);
+    setActiveTabState('home');
+
+    if (newUser.role === 'parent') {
+      setSelectedParentStudentId('stud-3');
+    }
+    if (newUser.role === 'tutor') {
+      loginTutor();
+    }
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(newUser));
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, newUser.role);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, newUser.role);
+    } catch {}
+
+    showToast({
+      type: 'success',
+      title: `Google Sign-In: ${newUser.name}`,
+      description: `Authenticated via Google as ${newUser.role.toUpperCase()}.`,
+    });
   };
 
   const logout = () => {
@@ -2233,6 +2341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentUser,
         isAuthenticated,
         loginWithCredentials,
+        loginWithGoogle,
         logout,
         simulateTutorMovement,
         pingTutor,
