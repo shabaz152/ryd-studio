@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Batch, Student } from '../types';
 import { StudioMap } from '../components/common/StudioMap';
+import { TutorLocationMap } from '../components/admin/TutorLocationMap';
 import {
   Users,
   Clock,
@@ -14,6 +15,7 @@ import {
   Plus,
   Trash2,
   Calendar,
+  Radio,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -28,10 +30,12 @@ export const BatchesView: React.FC = () => {
     setComposeUpdateModalOpen,
     setOrderWorkbookModalOpen,
     setNewSessionModalOpen,
+    activeRole,
   } = useApp();
   const [selectedBatchId, setSelectedBatchId] = useState<string>(batches[0]?.id || '');
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [mapType, setMapType] = useState<'floorplan' | 'tutors'>('floorplan');
 
   // Enroll student modal state
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -262,13 +266,58 @@ export const BatchesView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Embedded Studio Map for this location */}
-              <StudioMap
-                locationName={activeBatch.locationName}
-                address={activeBatch.address}
-                studioRoom={activeBatch.studioRoom}
-                navigationUrl={activeBatch.navigationUrl}
-              />
+              {/* Admin Map Mode Switcher */}
+              {activeRole === 'admin' && (
+                <div className="flex items-center justify-between pt-2 pb-1">
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setMapType('floorplan');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                        mapType === 'floorplan'
+                          ? 'bg-amber-500 text-black shadow-xs'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🏢 Campus Floorplan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setMapType('tutors');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                        mapType === 'tutors'
+                          ? 'bg-amber-500 text-black shadow-xs'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Radio className="w-3.5 h-3.5 text-amber-400" />
+                      <span>🛰️ Live Tutor GPS Radar</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    Admin capability: track real-time faculty transit & arrival
+                  </span>
+                </div>
+              )}
+
+              {/* Embedded Map Display */}
+              {activeRole === 'admin' && mapType === 'tutors' ? (
+                <TutorLocationMap />
+              ) : (
+                <StudioMap
+                  locationName={activeBatch.locationName}
+                  address={activeBatch.address}
+                  studioRoom={activeBatch.studioRoom}
+                  navigationUrl={activeBatch.navigationUrl}
+                />
+              )}
             </div>
 
             {/* Student Roster Section */}

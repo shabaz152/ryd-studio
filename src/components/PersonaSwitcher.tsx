@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, GraduationCap, Users, LogIn, Lock, ArrowLeftRight } from 'lucide-react';
+import { Shield, GraduationCap, Users, LogIn, Lock, ArrowLeftRight, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const PersonaSwitcher: React.FC = () => {
@@ -12,6 +12,7 @@ export const PersonaSwitcher: React.FC = () => {
     teacher,
     unreadAdminActivityCount,
     unreadParentActivityCount,
+    logout,
   } = useApp();
 
   const getTutorStatusBadge = () => {
@@ -56,7 +57,16 @@ export const PersonaSwitcher: React.FC = () => {
               title="Switch to Admin or Parent account"
             >
               <ArrowLeftRight className="w-3 h-3 text-amber-400" />
-              <span>Switch Account / Logout</span>
+              <span>Switch</span>
+            </button>
+
+            <button
+              onClick={logout}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-[11px] font-bold border border-red-500/30 transition-colors cursor-pointer"
+              title="Log Out of Tutor Account"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Log Out</span>
             </button>
           </div>
         </div>
@@ -86,7 +96,16 @@ export const PersonaSwitcher: React.FC = () => {
               title="Switch to Admin or Tutor account"
             >
               <ArrowLeftRight className="w-3 h-3 text-amber-400" />
-              <span>Switch Account / Logout</span>
+              <span>Switch</span>
+            </button>
+
+            <button
+              onClick={logout}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-[11px] font-bold border border-red-500/30 transition-colors cursor-pointer"
+              title="Log Out of Parent Account"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Log Out</span>
             </button>
           </div>
         </div>
@@ -168,7 +187,7 @@ export const PersonaSwitcher: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Role login gateway trigger */}
+        {/* Right: Role login gateway trigger & Log Out */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setRoleGatewayModalOpen(true)}
@@ -177,6 +196,15 @@ export const PersonaSwitcher: React.FC = () => {
           >
             <LogIn className="w-3 h-3 text-amber-400" />
             <span className="hidden sm:inline">Role Gateway</span>
+          </button>
+
+          <button
+            onClick={logout}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-red-200 text-[11px] font-bold border border-red-500/30 transition-colors cursor-pointer"
+            title="Log Out of Admin Account"
+          >
+            <LogOut className="w-3 h-3" />
+            <span>Log Out</span>
           </button>
         </div>
       </div>

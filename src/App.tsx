@@ -31,6 +31,7 @@ import { RatingsView } from './views/RatingsView';
 import { ReferralView } from './views/ReferralView';
 import { AdminPortal } from './views/admin/AdminPortal';
 import { ParentPortal } from './views/parent/ParentPortal';
+import { LoginView } from './views/auth/LoginView';
 
 const MainLayout: React.FC = () => {
   const {
@@ -41,7 +42,17 @@ const MainLayout: React.FC = () => {
     parentPreviewModalOpen,
     setParentPreviewModalOpen,
     selectedSessionForParentPreview,
+    isAuthenticated,
   } = useApp();
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginView />
+        <NotificationToast />
+      </>
+    );
+  }
 
   const renderActiveView = () => {
     switch (activeTab) {

@@ -211,6 +211,20 @@ export interface ActivityEvent {
   readByParent: boolean;
 }
 
+export interface TutorLocation {
+  lat: number;
+  lng: number;
+  locationName: string;
+  area: string;
+  status: 'on_site' | 'in_transit' | 'off_duty';
+  etaMinutes?: number;
+  distanceKm?: number;
+  lastPingTime: string;
+  batteryLevel?: number;
+  speedKmH?: number;
+  isWithinGeofence: boolean;
+}
+
 export interface TutorAccount {
   id: string;
   name: string;
@@ -225,6 +239,7 @@ export interface TutorAccount {
   status: TutorOnlineStatus;
   lastLoginTime?: string;
   lastLogoutTime?: string;
+  location?: TutorLocation;
 }
 
 export interface ParentAccount {
@@ -238,5 +253,15 @@ export interface ParentAccount {
     grade: string;
     enrolledBatches: string[];
   }[];
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  avatarUrl: string;
+  title: string;
+  studentId?: string;
 }
 

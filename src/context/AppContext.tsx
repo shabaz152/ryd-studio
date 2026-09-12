@@ -19,6 +19,8 @@ import {
   ActivityEvent,
   TutorAccount,
   ParentAccount,
+  AuthUser,
+  TutorLocation,
 } from '../types';
 import {
   INITIAL_BATCHES,
@@ -35,6 +37,7 @@ import {
   INITIAL_TUTORS,
   INITIAL_PARENTS,
   INITIAL_ACTIVITY_EVENTS,
+  DEMO_AUTH_USERS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
@@ -212,6 +215,16 @@ interface AppContextType {
   unreadParentActivityCount: number;
   markActivityReadByAdmin: () => void;
   markActivityReadByParent: () => void;
+
+  // Real Credential Authentication
+  currentUser: AuthUser | null;
+  isAuthenticated: boolean;
+  loginWithCredentials: (email: string, password: string) => { success: boolean; error?: string };
+  logout: () => void;
+
+  // Live Tutor GPS Location Map
+  simulateTutorMovement: () => void;
+  pingTutor: (tutorId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -348,6 +361,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRunningLate, setIsRunningLate] = useState<boolean>(false);
   const [runningLateMinutes, setRunningLateMinutes] = useState<number | null>(null);
   const [runningLateReason, setRunningLateReason] = useState<string>('');
+  // Real Credential Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_auth_user`);
+      if (saved) return JSON.parse(saved);
+      const authRole = (localStorage.getItem(`${STORAGE_KEY}_auth_role`) as UserRole) || 'admin';
+      const user = DEMO_AUTH_USERS.find((u) => u.role === authRole) || DEMO_AUTH_USERS[0];
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        title: user.title,
+        studentId: user.studentId,
+      };
+    } catch {
+      return DEMO_AUTH_USERS[0];
+    }
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_is_auth`);
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
   // 3-Persona Architecture State & Role Guard
   const [currentAuthRole, setCurrentAuthRole] = useState<UserRole>(() => {
     try {
@@ -863,10 +906,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 3-Persona Action Helpers & Role Hierarchy Guard
   const loginAsRole = (role: UserRole, studentId?: string) => {
     sound.playClick();
+    const matchedUser = DEMO_AUTH_USERS.find((u) => u.role === role) || DEMO_AUTH_USERS[0];
+    const { password: _, ...authData } = matchedUser;
+    setCurrentUser(authData);
+    setIsAuthenticated(true);
     setCurrentAuthRole(role);
     setActiveRoleState(role);
     setActiveTab('home');
     try {
+      localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
       localStorage.setItem(`${STORAGE_KEY}_auth_role`, role);
       localStorage.setItem(`${STORAGE_KEY}_active_role`, role);
     } catch {}
@@ -886,7 +935,130 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logoutAuth = () => {
     sound.playClick();
-    setRoleGatewayModalOpen(true);
+    logout();
+  };
+
+  const loginWithCredentials = (email: string, password: string): { success: boolean; error?: string } => {
+    const user = DEMO_AUTH_USERS.find(
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+    );
+
+    if (!user) {
+      sound.playAlert();
+      return { success: false, error: 'No account registered with this email address.' };
+    }
+
+    if (user.password !== password) {
+      sound.playAlert();
+      return { success: false, error: 'Incorrect password. Check demo credentials.' };
+    }
+
+    sound.playSuccess();
+    const { password: _, ...authData } = user;
+    setCurrentUser(authData);
+    setIsAuthenticated(true);
+    setCurrentAuthRole(authData.role);
+    setActiveRoleState(authData.role);
+    setActiveTab('home');
+
+    if (authData.studentId) {
+      setSelectedParentStudentId(authData.studentId);
+    }
+    if (authData.role === 'tutor') {
+      loginTutor();
+    }
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'true');
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(authData));
+      localStorage.setItem(`${STORAGE_KEY}_auth_role`, authData.role);
+      localStorage.setItem(`${STORAGE_KEY}_active_role`, authData.role);
+    } catch {}
+
+    showToast({
+      type: 'success',
+      title: `Welcome, ${authData.name}!`,
+      description: `Signed in as ${authData.title}.`,
+    });
+
+    return { success: true };
+  };
+
+  const logout = () => {
+    sound.playClick();
+    setIsAuthenticated(false);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_is_auth`, 'false');
+    } catch {}
+    showToast({
+      type: 'info',
+      title: 'Logged Out Successfully',
+      description: 'You have exited the session. Sign in with your persona credentials to continue.',
+    });
+  };
+
+  const simulateTutorMovement = () => {
+    sound.playClick();
+    setTutors((prev) =>
+      prev.map((t) => {
+        if (t.id === 'tutor-alex' && t.location) {
+          const newDistance = Math.max(0.1, Math.round((t.location.distanceKm! - 0.2) * 10) / 10);
+          const newEta = Math.max(1, Math.round(t.location.etaMinutes! - 1));
+          const isNowOnSite = newDistance <= 0.2;
+          return {
+            ...t,
+            location: {
+              ...t.location,
+              distanceKm: newDistance,
+              etaMinutes: isNowOnSite ? 0 : newEta,
+              locationName: isNowOnSite ? 'Arrived at Campus - Pod Alpha' : 'Transit - Approaching 2nd Ave',
+              status: isNowOnSite ? 'on_site' : 'in_transit',
+              isWithinGeofence: isNowOnSite,
+              lastPingTime: 'Just now',
+              speedKmH: isNowOnSite ? 0 : 22,
+              batteryLevel: Math.max(10, (t.location.batteryLevel || 80) - 1),
+            },
+          };
+        }
+        if (t.location) {
+          return {
+            ...t,
+            location: {
+              ...t.location,
+              lastPingTime: 'Just now',
+            },
+          };
+        }
+        return t;
+      })
+    );
+
+    addActivityEvent({
+      type: 'announcement',
+      actorId: 'system',
+      actorName: 'GPS Radar System',
+      actorRole: 'admin',
+      title: '🛰️ Faculty GPS Telemetry Updated',
+      description: 'Live ping received: Dr. Alex Mercer distance updated (ETA 5 mins). Geofence tracking verified.',
+    });
+
+    showToast({
+      type: 'info',
+      title: '🛰️ GPS Telemetry Ping Broadcasted',
+      description: 'Tutor live coordinates and arrival ETAs refreshed in real time.',
+    });
+  };
+
+  const pingTutor = (tutorId: string) => {
+    sound.playClick();
+    const tutor = tutors.find((t) => t.id === tutorId);
+    if (!tutor) return;
+
+    showToast({
+      type: 'success',
+      title: `📍 GPS Ping Sent to ${tutor.name}`,
+      description: `Telemetry ping acknowledged. Signal strength: 98% (±3m accuracy).`,
+    });
   };
 
   const setActiveRole = (role: UserRole) => {
@@ -2025,6 +2197,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unreadParentActivityCount,
         markActivityReadByAdmin,
         markActivityReadByParent,
+        currentUser,
+        isAuthenticated,
+        loginWithCredentials,
+        logout,
+        simulateTutorMovement,
+        pingTutor,
       }}
     >
       {children}

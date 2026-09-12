@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Sparkles,
   RotateCcw,
+  LogOut,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -54,6 +55,8 @@ export const Navbar: React.FC = () => {
     unreadAdminActivityCount,
     unreadParentActivityCount,
     setRoleGatewayModalOpen,
+    currentUser,
+    logout,
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -372,6 +375,19 @@ export const Navbar: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Dedicated Persona Logout Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              logout();
+            }}
+            title={`Signed in as ${currentUser?.name || activeRole}. Click to Log Out.`}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Log Out</span>
+          </button>
         </div>
       </div>
 

@@ -15,9 +15,12 @@ import {
   Filter,
   Check,
   RotateCcw,
+  Radio,
+  MapPin,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ActivityEvent } from '../../types';
+import { TutorLocationMap } from '../../components/admin/TutorLocationMap';
 
 export const AdminPortal: React.FC = () => {
   const {
@@ -35,7 +38,7 @@ export const AdminPortal: React.FC = () => {
     rewardsINR,
   } = useApp();
 
-  const [activeSubTab, setActiveSubTab] = useState<'activity' | 'tutors' | 'students' | 'schedules'>('activity');
+  const [activeSubTab, setActiveSubTab] = useState<'activity' | 'map' | 'tutors' | 'students' | 'schedules'>('activity');
   const [filterType, setFilterType] = useState<string>('all');
 
   // Filtered activity events
@@ -206,6 +209,19 @@ export const AdminPortal: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveSubTab('map')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'map'
+                ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                : 'bg-white dark:bg-[#151522] text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/5'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-amber-500" />
+            <span>🗺️ Live Tutor GPS Map</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('tutors')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeSubTab === 'tutors'
@@ -252,6 +268,9 @@ export const AdminPortal: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Subtab 0: Live Tutor GPS Radar Map */}
+      {activeSubTab === 'map' && <TutorLocationMap />}
 
       {/* Subtab 1: Live Activity Stream */}
       {activeSubTab === 'activity' && (

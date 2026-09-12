@@ -10,7 +10,8 @@ import {
   Student,
   TutorAccount,
   ParentAccount,
-  ActivityEvent
+  ActivityEvent,
+  AuthUser
 } from '../types';
 
 
@@ -345,7 +346,20 @@ export const INITIAL_TUTORS: TutorAccount[] = [
     totalEarningsMonth: 0,
     rating: 0,
     status: 'online',
-    lastLoginTime: '15:45'
+    lastLoginTime: '15:45',
+    location: {
+      lat: 40.7128,
+      lng: -74.0060,
+      locationName: 'Tutoring Pod Alpha - Room 1',
+      area: 'Main Campus Floor 3',
+      status: 'on_site',
+      distanceKm: 0.0,
+      etaMinutes: 0,
+      lastPingTime: 'Just now',
+      batteryLevel: 94,
+      speedKmH: 0,
+      isWithinGeofence: true,
+    }
   },
   {
     id: 'tutor-alex',
@@ -359,7 +373,20 @@ export const INITIAL_TUTORS: TutorAccount[] = [
     totalEarningsMonth: 7200,
     rating: 4.95,
     status: 'online',
-    lastLoginTime: '14:30'
+    lastLoginTime: '14:30',
+    location: {
+      lat: 40.7180,
+      lng: -74.0110,
+      locationName: 'Transit - Broadway & 4th Ave',
+      area: 'Downtown Corridor (Zone B)',
+      status: 'in_transit',
+      distanceKm: 0.8,
+      etaMinutes: 6,
+      lastPingTime: '24s ago',
+      batteryLevel: 78,
+      speedKmH: 26,
+      isWithinGeofence: false,
+    }
   },
   {
     id: 'tutor-priya',
@@ -373,7 +400,51 @@ export const INITIAL_TUTORS: TutorAccount[] = [
     totalEarningsMonth: 4400,
     rating: 4.9,
     status: 'offline',
-    lastLogoutTime: '13:00'
+    lastLogoutTime: '13:00',
+    location: {
+      lat: 40.7135,
+      lng: -74.0050,
+      locationName: 'Computing Lab Delta - Room 4',
+      area: 'Tech Wing',
+      status: 'on_site',
+      distanceKm: 0.05,
+      etaMinutes: 0,
+      lastPingTime: '1m ago',
+      batteryLevel: 88,
+      speedKmH: 0,
+      isWithinGeofence: true,
+    }
+  }
+];
+
+export const DEMO_AUTH_USERS: (AuthUser & { password: string })[] = [
+  {
+    id: 'user-admin',
+    email: 'admin@ryd.studio',
+    password: 'admin123',
+    name: 'Owner (Admin)',
+    role: 'admin',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    title: 'Head of Platform & Center Director'
+  },
+  {
+    id: 'user-tutor',
+    email: 'tutor@ryd.studio',
+    password: 'tutor123',
+    name: 'Shazz (Lead Faculty)',
+    role: 'tutor',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    title: 'Senior STEM & Calculus Faculty'
+  },
+  {
+    id: 'user-parent',
+    email: 'parent@ryd.studio',
+    password: 'parent123',
+    name: 'Marcus Vance',
+    role: 'parent',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    title: 'Parent of Aria Vance (11th Grade STEM)',
+    studentId: 'stud-3'
   }
 ];
 
