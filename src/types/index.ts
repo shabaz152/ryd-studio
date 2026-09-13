@@ -267,11 +267,26 @@ export interface TutorAccount {
   location?: TutorLocation;
 }
 
+export interface DesignatedHallLocation {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  geofenceRadiusMeters: number;
+  code?: string;
+  designatedBy?: string;
+  updatedAt?: string;
+  notes?: string;
+}
+
 export interface ParentAccount {
   id: string;
   parentName: string;
   phone: string;
   email: string;
+  avatarUrl?: string;
+  location?: TutorLocation;
   children: {
     studentId: string;
     studentName: string;

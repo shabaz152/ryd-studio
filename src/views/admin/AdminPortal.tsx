@@ -519,7 +519,7 @@ export const AdminPortal: React.FC = () => {
             }`}
           >
             <Radio className="w-4 h-4 text-amber-500" />
-            <span>🗺️ Live Tutor GPS Map</span>
+            <span>🗺️ Live GPS Radar & Google Map</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
           </button>
 

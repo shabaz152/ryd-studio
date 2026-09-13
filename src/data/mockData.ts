@@ -12,7 +12,8 @@ import {
   ParentAccount,
   ActivityEvent,
   AuthUser,
-  AuthorizedUser
+  AuthorizedUser,
+  DesignatedHallLocation,
 } from '../types';
 
 
@@ -615,49 +616,134 @@ export const INITIAL_AUTHORIZED_USERS: AuthorizedUser[] = [
 
 export const DEMO_AUTH_USERS = INITIAL_AUTHORIZED_USERS;
 
+export const PRESET_HALL_LOCATIONS: DesignatedHallLocation[] = [
+  {
+    id: 'hall-alpha',
+    name: 'RYD Central Academic Hall A',
+    address: '124 Academic Way, Tech Corridor, NY 10001',
+    lat: 40.7128,
+    lng: -74.0060,
+    geofenceRadiusMeters: 200,
+    code: 'HALL-ALPHA',
+    notes: 'Main academic lecture hall, admissions reception and faculty check-in station.',
+  },
+  {
+    id: 'hall-newton',
+    name: 'Newton STEM Lecture Hall B',
+    address: '48 Innovation Blvd, North Campus, NY 10002',
+    lat: 40.7145,
+    lng: -74.0082,
+    geofenceRadiusMeters: 150,
+    code: 'HALL-NEWTON',
+    notes: 'Pure mathematics, calculus recitation & theoretical physics auditorium.',
+  },
+  {
+    id: 'hall-lovelace',
+    name: 'Ada Lovelace Computing & AI Auditorium',
+    address: '88 Turing Square, Tech Park, NY 10003',
+    lat: 40.7112,
+    lng: -74.0035,
+    geofenceRadiusMeters: 300,
+    code: 'HALL-LOVELACE',
+    notes: 'Computer science algorithms lab, robotics arena & parent waiting lounge.',
+  },
+  {
+    id: 'hall-curie',
+    name: 'Curie Science & Lab Pavilion C',
+    address: '12 Research Drive, East Campus, NY 10004',
+    lat: 40.7150,
+    lng: -74.0040,
+    geofenceRadiusMeters: 250,
+    code: 'HALL-CURIE',
+    notes: 'Biochemistry, experimental mechanics & student project exhibition hall.',
+  },
+];
+
 export const INITIAL_PARENTS: ParentAccount[] = [
   {
     id: 'parent-marcus',
     parentName: 'Marcus Vance',
     phone: '+1 (555) 234-8891',
     email: 'marcus.vance@gmail.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    location: {
+      lat: 40.7126,
+      lng: -74.0058,
+      locationName: 'Designated Hall Entrance & Lobby',
+      area: 'Main Hall A',
+      status: 'on_site',
+      etaMinutes: 0,
+      distanceKm: 0.05,
+      lastPingTime: 'Just now',
+      batteryLevel: 78,
+      speedKmH: 0,
+      isWithinGeofence: true,
+    },
     children: [
       {
         studentId: 'stud-3',
         studentName: 'Aria Vance',
         grade: '11th Grade STEM',
-        enrolledBatches: ['batch-math-01', 'batch-physics-02']
-      }
-    ]
+        enrolledBatches: ['batch-math-01', 'batch-physics-02'],
+      },
+    ],
   },
   {
     id: 'parent-elena',
     parentName: 'Elena Lin',
     phone: '+1 (555) 912-3456',
     email: 'elena.lin@gmail.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    location: {
+      lat: 40.7142,
+      lng: -74.0078,
+      locationName: 'Academic Way East - En Route',
+      area: 'Campus Perimeter',
+      status: 'in_transit',
+      etaMinutes: 4,
+      distanceKm: 0.4,
+      lastPingTime: '1 min ago',
+      batteryLevel: 92,
+      speedKmH: 28,
+      isWithinGeofence: false,
+    },
     children: [
       {
         studentId: 'stud-1',
         studentName: 'Maya Lin',
         grade: '11th Grade AP Honors',
-        enrolledBatches: ['batch-math-01']
-      }
-    ]
+        enrolledBatches: ['batch-math-01'],
+      },
+    ],
   },
   {
     id: 'parent-david',
     parentName: 'David Chen',
     phone: '+1 (555) 987-6543',
     email: 'david.chen@gmail.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    location: {
+      lat: 40.7170,
+      lng: -74.0025,
+      locationName: 'Broadway Crossing (North)',
+      area: 'City Transit Line',
+      status: 'in_transit',
+      etaMinutes: 8,
+      distanceKm: 0.9,
+      lastPingTime: '2 mins ago',
+      batteryLevel: 65,
+      speedKmH: 35,
+      isWithinGeofence: false,
+    },
     children: [
       {
         studentId: 'stud-2',
         studentName: 'Leo Chen',
         grade: '10th Grade STEM',
-        enrolledBatches: ['batch-physics-02']
-      }
-    ]
-  }
+        enrolledBatches: ['batch-physics-02'],
+      },
+    ],
+  },
 ];
 
 const todayDateStr = new Date().toISOString().split('T')[0];

@@ -22,6 +22,7 @@ import {
   AuthUser,
   AuthorizedUser,
   TutorLocation,
+  DesignatedHallLocation,
 } from '../types';
 import {
   INITIAL_BATCHES,
@@ -40,6 +41,7 @@ import {
   INITIAL_ACTIVITY_EVENTS,
   DEMO_AUTH_USERS,
   INITIAL_AUTHORIZED_USERS,
+  PRESET_HALL_LOCATIONS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
 import { generateCalendarCode } from '../utils/calendar';
@@ -238,9 +240,13 @@ interface AppContextType {
   accountSecurityModalOpen: boolean;
   setAccountSecurityModalOpen: (open: boolean) => void;
 
-  // Live Tutor GPS Location Map
+  // Live Tutor & Parent GPS Location Map & Designated Hall
+  designatedHall: DesignatedHallLocation;
+  updateDesignatedHall: (hall: Partial<DesignatedHallLocation>) => void;
   simulateTutorMovement: () => void;
   pingTutor: (tutorId: string) => void;
+  pingParent: (parentId: string) => void;
+  setParents: React.Dispatch<React.SetStateAction<ParentAccount[]>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -458,11 +464,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [parents, setParents] = useState<ParentAccount[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_parents`);
-      return saved ? JSON.parse(saved) : INITIAL_PARENTS;
+      if (saved) {
+        const parsed: ParentAccount[] = JSON.parse(saved);
+        return parsed.map((p) => {
+          const init = INITIAL_PARENTS.find((ip) => ip.id === p.id);
+          return {
+            ...p,
+            avatarUrl: p.avatarUrl || init?.avatarUrl,
+            location: p.location || init?.location,
+          };
+        });
+      }
+      return INITIAL_PARENTS;
     } catch {
       return INITIAL_PARENTS;
     }
   });
+
+  const [designatedHall, setDesignatedHall] = useState<DesignatedHallLocation>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_designated_hall`);
+      return saved ? JSON.parse(saved) : PRESET_HALL_LOCATIONS[0];
+    } catch {
+      return PRESET_HALL_LOCATIONS[0];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(parents));
+    } catch {}
+  }, [parents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_designated_hall`, JSON.stringify(designatedHall));
+    } catch {}
+  }, [designatedHall]);
 
   const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>(() => {
     try {
@@ -1515,21 +1553,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const updateDesignatedHall = (updated: Partial<DesignatedHallLocation>) => {
+    sound.playSuccess();
+    setDesignatedHall((prev) => {
+      const next = {
+        ...prev,
+        ...updated,
+        updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        designatedBy: currentUser?.name || 'Administrator',
+      };
+      return next;
+    });
+
+    addActivityEvent({
+      type: 'announcement',
+      actorId: currentUser?.id || 'admin-root',
+      actorName: currentUser?.name || 'Admin Coordinator',
+      actorRole: 'admin',
+      title: '🏛️ Campus / Hall Location Designated',
+      description: `Target venue set to "${updated.name || designatedHall.name}". GPS geofence radius calibrated to ${updated.geofenceRadiusMeters || designatedHall.geofenceRadiusMeters}m on Google Maps.`,
+    });
+
+    showToast({
+      type: 'success',
+      title: '🏛️ Designated Hall Location Updated',
+      description: `Venue set to "${updated.name || designatedHall.name}". Telemetry radar and Google Maps recalibrated.`,
+    });
+  };
+
   const simulateTutorMovement = () => {
     sound.playClick();
     setTutors((prev) =>
       prev.map((t) => {
         if (t.id === 'tutor-alex' && t.location) {
-          const newDistance = Math.max(0.1, Math.round((t.location.distanceKm! - 0.2) * 10) / 10);
+          const newDistance = Math.max(0.05, Math.round((t.location.distanceKm! - 0.2) * 10) / 10);
           const newEta = Math.max(1, Math.round(t.location.etaMinutes! - 1));
-          const isNowOnSite = newDistance <= 0.2;
+          const isNowOnSite = newDistance <= 0.15;
           return {
             ...t,
             location: {
               ...t.location,
               distanceKm: newDistance,
               etaMinutes: isNowOnSite ? 0 : newEta,
-              locationName: isNowOnSite ? 'Arrived at Campus - Pod Alpha' : 'Transit - Approaching 2nd Ave',
+              locationName: isNowOnSite ? `${designatedHall.name} - Academic Wing` : 'Transit - Approaching Campus Ave',
               status: isNowOnSite ? 'on_site' : 'in_transit',
               isWithinGeofence: isNowOnSite,
               lastPingTime: 'Just now',
@@ -1551,19 +1617,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
+    setParents((prev) =>
+      prev.map((p) => {
+        if (p.id === 'parent-elena' && p.location) {
+          const newDistance = Math.max(0.05, Math.round((p.location.distanceKm! - 0.15) * 100) / 100);
+          const newEta = Math.max(1, Math.round((p.location.etaMinutes || 4) - 1));
+          const isNowOnSite = newDistance <= 0.1;
+          return {
+            ...p,
+            location: {
+              ...p.location,
+              distanceKm: newDistance,
+              etaMinutes: isNowOnSite ? 0 : newEta,
+              locationName: isNowOnSite ? `${designatedHall.name} - Visitor Parking` : 'Academic Way - Turning towards Main Gate',
+              status: isNowOnSite ? 'on_site' : 'in_transit',
+              isWithinGeofence: isNowOnSite,
+              lastPingTime: 'Just now',
+              speedKmH: isNowOnSite ? 0 : 18,
+              batteryLevel: Math.max(10, (p.location.batteryLevel || 92) - 1),
+            },
+          };
+        }
+        if (p.id === 'parent-david' && p.location) {
+          const newDistance = Math.max(0.2, Math.round((p.location.distanceKm! - 0.25) * 100) / 100);
+          const newEta = Math.max(2, Math.round((p.location.etaMinutes || 8) - 1));
+          return {
+            ...p,
+            location: {
+              ...p.location,
+              distanceKm: newDistance,
+              etaMinutes: newEta,
+              locationName: 'Approaching Academic Boulevard North',
+              lastPingTime: 'Just now',
+              speedKmH: 26,
+              batteryLevel: Math.max(10, (p.location.batteryLevel || 65) - 1),
+            },
+          };
+        }
+        if (p.location) {
+          return {
+            ...p,
+            location: {
+              ...p.location,
+              lastPingTime: 'Just now',
+            },
+          };
+        }
+        return p;
+      })
+    );
+
     addActivityEvent({
       type: 'announcement',
       actorId: 'system',
-      actorName: 'GPS Radar System',
+      actorName: 'GPS Radar & Hall Dispatch',
       actorRole: 'admin',
-      title: '🛰️ Faculty GPS Telemetry Updated',
-      description: 'Live ping received: Dr. Alex Mercer distance updated (ETA 5 mins). Geofence tracking verified.',
+      title: '🛰️ Faculty & Parent Live GPS Telemetry Updated',
+      description: `Live pings synchronized relative to ${designatedHall.name}. Faculty & parent coordinates and arrival ETAs refreshed.`,
     });
 
     showToast({
       type: 'info',
       title: '🛰️ GPS Telemetry Ping Broadcasted',
-      description: 'Tutor live coordinates and arrival ETAs refreshed in real time.',
+      description: `Live coordinates for tutors & parents updated relative to ${designatedHall.name}.`,
     });
   };
 
@@ -1576,6 +1692,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'success',
       title: `📍 GPS Ping Sent to ${tutor.name}`,
       description: `Telemetry ping acknowledged. Signal strength: 98% (±3m accuracy).`,
+    });
+  };
+
+  const pingParent = (parentId: string) => {
+    sound.playClick();
+    const parent = parents.find((p) => p.id === parentId);
+    if (!parent) return;
+
+    showToast({
+      type: 'success',
+      title: `📍 GPS Ping Sent to ${parent.parentName}`,
+      description: `Parent telemetry ping acknowledged. Current ETA: ${parent.location?.etaMinutes ?? 0}m. Signal: 96%.`,
     });
   };
 
@@ -2855,8 +2983,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteUser,
         accountSecurityModalOpen,
         setAccountSecurityModalOpen,
+        designatedHall,
+        updateDesignatedHall,
         simulateTutorMovement,
         pingTutor,
+        pingParent,
+        setParents,
       }}
     >
       {children}
