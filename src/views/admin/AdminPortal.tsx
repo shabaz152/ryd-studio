@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Activity,
@@ -138,6 +138,15 @@ export const AdminPortal: React.FC = () => {
 
     return true;
   });
+
+  // Activity Event Visible Limit / Show More State (for expanding check-ins & checkouts)
+  const [visibleEventCount, setVisibleEventCount] = useState<number>(5);
+
+  useEffect(() => {
+    setVisibleEventCount(5);
+  }, [filterType, auditDate, isDateFilterActive]);
+
+  const displayedEvents = filteredEvents.slice(0, visibleEventCount);
 
   const getEventIcon = (type: ActivityEvent['type']) => {
     switch (type) {
@@ -1149,62 +1158,115 @@ export const AdminPortal: React.FC = () => {
                 )}
               </div>
             ) : (
-              filteredEvents.map((event) => {
-                const eventDate = getEventDate(event);
-                const isToday = eventDate === todayStr;
+              <>
+                {displayedEvents.map((event) => {
+                  const eventDate = getEventDate(event);
+                  const isToday = eventDate === todayStr;
 
-                return (
-                  <div
-                    key={event.id}
-                    className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                      !event.readByAdmin
-                        ? 'bg-amber-500/[0.04] border-amber-500/30 dark:border-amber-500/30'
-                        : 'bg-white dark:bg-[#10101A] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 shrink-0 mt-0.5">
-                        {getEventIcon(event.type)}
+                  return (
+                    <div
+                      key={event.id}
+                      className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        !event.readByAdmin
+                          ? 'bg-amber-500/[0.04] border-amber-500/30 dark:border-amber-500/30'
+                          : 'bg-white dark:bg-[#10101A] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 shrink-0 mt-0.5">
+                          {getEventIcon(event.type)}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${getEventBadge(event.type)}`}>
+                              {event.type.replace('_', ' ')}
+                            </span>
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                              {event.title}
+                            </h4>
+                            {!event.readByAdmin && (
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
+                            {event.description}
+                          </p>
+                          <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-gray-500 mt-2">
+                            <span>Actor: <strong className="text-slate-700 dark:text-gray-300">{event.actorName}</strong></span>
+                            {event.targetBatchName && (
+                              <>
+                                <span>•</span>
+                                <span>Cohort: <strong className="text-amber-600 dark:text-amber-400">{event.targetBatchName}</strong></span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${getEventBadge(event.type)}`}>
-                            {event.type.replace('_', ' ')}
-                          </span>
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                            {event.title}
-                          </h4>
-                          {!event.readByAdmin && (
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                          )}
+
+                      <div className="flex flex-col sm:items-end gap-1 text-xs text-slate-400 shrink-0 self-end sm:self-center">
+                        <div className="flex items-center gap-1.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{event.timestamp}</span>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
-                          {event.description}
-                        </p>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-gray-500 mt-2">
-                          <span>Actor: <strong className="text-slate-700 dark:text-gray-300">{event.actorName}</strong></span>
-                          {event.targetBatchName && (
-                            <>
-                              <span>•</span>
-                              <span>Cohort: <strong className="text-amber-600 dark:text-amber-400">{event.targetBatchName}</strong></span>
-                            </>
-                          )}
-                        </div>
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          {isToday ? 'Today' : eventDate}
+                        </span>
                       </div>
                     </div>
+                  );
+                })}
 
-                    <div className="flex flex-col sm:items-end gap-1 text-xs text-slate-400 shrink-0 self-end sm:self-center">
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-slate-700 dark:text-slate-300">
-                        <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{event.timestamp}</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-slate-500">
-                        {isToday ? 'Today' : eventDate}
-                      </span>
+                {/* Show More & Expand Bar for Check-ins, Check-outs & Logins */}
+                {filteredEvents.length > 5 && (
+                  <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-white/10">
+                    <div className="text-xs text-slate-500 dark:text-gray-400 font-medium">
+                      Showing <strong className="text-slate-900 dark:text-white font-bold">{displayedEvents.length}</strong> of{' '}
+                      <strong className="text-slate-900 dark:text-white font-bold">{filteredEvents.length}</strong> live check-in, check-out & shift events
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {displayedEvents.length < filteredEvents.length && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setVisibleEventCount((prev) => Math.min(prev + 5, filteredEvents.length));
+                          }}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span>⬇️ Show More Check-Ins & Checkouts (+5)</span>
+                        </button>
+                      )}
+
+                      {displayedEvents.length < filteredEvents.length && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setVisibleEventCount(filteredEvents.length);
+                          }}
+                          className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-xs font-bold text-slate-700 dark:text-white transition-all cursor-pointer"
+                        >
+                          <span>Show All ({filteredEvents.length})</span>
+                        </button>
+                      )}
+
+                      {visibleEventCount > 5 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setVisibleEventCount(5);
+                          }}
+                          className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-xs font-bold text-slate-700 dark:text-white transition-all cursor-pointer"
+                        >
+                          <span>⬆️ Show Less (Collapse)</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })
+                )}
+              </>
             )}
           </div>
         </div>
