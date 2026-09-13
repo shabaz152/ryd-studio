@@ -257,46 +257,126 @@ export const INITIAL_REVIEWS: TeacherReview[] = [
   }
 ];
 
-export const INITIAL_REFERRAL_STATS: ReferralStats = {
-  referralCode: 'RYD-SARAH-2026',
-  invitesSent: 0,
-  onboardedTeachers: 0,
-  bonusEarned: 0,
-  pendingBonuses: 0,
-  milestoneTarget: 5,
-  candidates: [],
-};
-
 export const DEMO_REFERRAL_STATS: ReferralStats = {
-  referralCode: 'RYD-SARAH-2026',
-  invitesSent: 4,
-  onboardedTeachers: 1,
-  bonusEarned: 1500,
-  pendingBonuses: 1500,
+  referralCode: 'RYD-SHAZZ-2026',
+  invitesSent: 6,
+  onboardedTeachers: 2,
+  bonusEarned: 5000,
+  pendingBonuses: 2500,
   milestoneTarget: 5,
   candidates: [
     {
       id: 'cand-1',
-      candidateName: 'Marcus Vance',
-      email: 'marcus.v@gmail.com',
-      phone: '+1 (555) 234-8891',
-      specialty: 'AP Physics & Advanced Mechanics',
-      stage: 'successfully_joined',
-      dateReferred: '2026-09-02',
-      notes: 'Onboarded for West End Academy - Weekend problem clinics.'
+      candidateName: 'Dr. Rajiv Mehta',
+      email: 'rajiv.mehta@ryd.edu',
+      phone: '+91 98234 56789',
+      specialty: 'Pure Mathematics & Linear Algebra',
+      stage: 'selected_successfully',
+      dateReferred: '2026-09-08',
+      referringTeacherId: 'tutor-shazz',
+      referringTeacherName: 'Shazz (Lead Faculty)',
+      payoutAmount: 2500,
+      payoutStatus: 'paid',
+      payoutDate: '2026-09-12',
+      notes: 'Completed teaching demonstration with distinction. Full faculty onboarding confirmed.'
     },
     {
       id: 'cand-2',
-      candidateName: 'Zara Morales',
-      email: 'zara.edu@outlook.com',
-      phone: '+1 (555) 345-9920',
+      candidateName: 'Prof. Elena Rostova',
+      email: 'e.rostova@ryd.edu',
+      phone: '+91 98345 67890',
+      specialty: 'Quantum Physics & Mechanics',
+      stage: 'interviewed',
+      dateReferred: '2026-09-11',
+      referringTeacherId: 'tutor-alex',
+      referringTeacherName: 'Dr. Alex Mercer',
+      payoutAmount: 2500,
+      payoutStatus: 'pending',
+      notes: 'Teaching demonstration and interview completed with Academic Director.'
+    },
+    {
+      id: 'cand-3',
+      candidateName: 'Ananya Sharma',
+      email: 'a.sharma@ryd.edu',
+      phone: '+91 98456 78901',
       specialty: 'Organic Chemistry & Biochemistry',
-      stage: 'selected',
-      dateReferred: '2026-09-05',
-      notes: 'Final academic qualification verification pending.'
+      stage: 'referred',
+      dateReferred: '2026-09-13',
+      referringTeacherId: 'tutor-priya',
+      referringTeacherName: 'Prof. Priya Sundaram',
+      payoutAmount: 2500,
+      payoutStatus: 'pending',
+      notes: 'Academic portfolio submitted. Initial credentials review in progress.'
+    },
+    {
+      id: 'cand-4',
+      candidateName: 'Vikram Malhotra',
+      email: 'v.malhotra@ryd.edu',
+      phone: '+91 98567 89012',
+      specialty: 'Computer Science & AI Algorithmic Lab',
+      stage: 'selected_successfully',
+      dateReferred: '2026-09-10',
+      referringTeacherId: 'tutor-shazz',
+      referringTeacherName: 'Shazz (Lead Faculty)',
+      payoutAmount: 2500,
+      payoutStatus: 'pending',
+      payoutDate: '2026-09-13',
+      notes: 'Selected for faculty cohort. Referral day payout pending admin disbursal.'
     }
   ],
+  dayPayouts: [
+    {
+      id: 'payout-1',
+      teacherId: 'tutor-shazz',
+      teacherName: 'Shazz (Lead Faculty)',
+      teacherEmail: 'tutor@ryd.studio',
+      candidateId: 'cand-1',
+      candidateName: 'Dr. Rajiv Mehta',
+      amountINR: 2500,
+      date: '2026-09-12',
+      status: 'paid',
+      milestoneDescription: 'Referral Day Payout: Dr. Rajiv Mehta Selected Successfully',
+    },
+    {
+      id: 'payout-2',
+      teacherId: 'tutor-shazz',
+      teacherName: 'Shazz (Lead Faculty)',
+      teacherEmail: 'tutor@ryd.studio',
+      candidateId: 'cand-4',
+      candidateName: 'Vikram Malhotra',
+      amountINR: 2500,
+      date: '2026-09-13',
+      status: 'pending',
+      milestoneDescription: 'Referral Day Payout: Vikram Malhotra Selected Successfully',
+    },
+    {
+      id: 'payout-3',
+      teacherId: 'tutor-alex',
+      teacherName: 'Dr. Alex Mercer',
+      teacherEmail: 'a.mercer@ryd.edu',
+      candidateId: 'cand-2',
+      candidateName: 'Prof. Elena Rostova',
+      amountINR: 2500,
+      date: '2026-09-13',
+      status: 'pending',
+      milestoneDescription: 'Referral Day Payout: Candidate in Interview Stage',
+    },
+    {
+      id: 'payout-4',
+      teacherId: 'tutor-priya',
+      teacherName: 'Prof. Priya Sundaram',
+      teacherEmail: 'p.sundaram@ryd.edu',
+      candidateId: 'cand-3',
+      candidateName: 'Ananya Sharma',
+      amountINR: 2500,
+      date: '2026-09-13',
+      status: 'pending',
+      milestoneDescription: 'Referral Day Payout: Candidate Referred',
+    },
+  ],
 };
+
+export const INITIAL_REFERRAL_STATS: ReferralStats = DEMO_REFERRAL_STATS;
 
 export const DEMO_STUDENTS: Student[] = [
   {

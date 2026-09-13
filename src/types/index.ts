@@ -137,6 +137,10 @@ export interface TeacherReview {
 }
 
 export type ReferralProgressStage =
+  | 'referred'
+  | 'interviewed'
+  | 'selected_successfully'
+  // Backward compatibility
   | 'starting_referral'
   | 'interview'
   | 'selected'
@@ -150,7 +154,25 @@ export interface ReferredCandidate {
   specialty: string;
   stage: ReferralProgressStage;
   dateReferred: string;
+  referringTeacherId?: string;
+  referringTeacherName?: string;
+  payoutAmount?: number;
+  payoutStatus?: 'pending' | 'paid';
+  payoutDate?: string;
   notes?: string;
+}
+
+export interface TeacherDayPayout {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  teacherEmail?: string;
+  candidateId?: string;
+  candidateName?: string;
+  amountINR: number;
+  date: string;
+  status: 'pending' | 'paid';
+  milestoneDescription: string;
 }
 
 export interface ReferralStats {
@@ -161,6 +183,7 @@ export interface ReferralStats {
   pendingBonuses: number;
   milestoneTarget: number;
   candidates: ReferredCandidate[];
+  dayPayouts?: TeacherDayPayout[];
 }
 
 export interface AddSessionParams {

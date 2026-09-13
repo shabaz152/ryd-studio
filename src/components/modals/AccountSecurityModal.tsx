@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  User,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -21,6 +22,7 @@ export const AccountSecurityModal: React.FC = () => {
     updateMyCredentials,
   } = useApp();
 
+  const [profileName, setProfileName] = useState<string>('');
   const [newEmail, setNewEmail] = useState<string>('');
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
@@ -32,6 +34,7 @@ export const AccountSecurityModal: React.FC = () => {
 
   useEffect(() => {
     if (accountSecurityModalOpen && currentUser) {
+      setProfileName(currentUser.name || '');
       setNewEmail(currentUser.email);
       setCurrentPassword('');
       setNewPassword('');
@@ -52,6 +55,12 @@ export const AccountSecurityModal: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    const trimmedName = profileName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setErrorMsg('Please enter a valid profile name (minimum 2 characters).');
+      return;
+    }
 
     const trimmedEmail = newEmail.trim().toLowerCase();
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
@@ -78,7 +87,7 @@ export const AccountSecurityModal: React.FC = () => {
     setIsSubmitting(true);
 
     setTimeout(() => {
-      const result = updateMyCredentials(trimmedEmail, newPassword || undefined, currentPassword);
+      const result = updateMyCredentials(trimmedEmail, newPassword || undefined, currentPassword, trimmedName);
       setIsSubmitting(false);
 
       if (!result.success) {
@@ -170,6 +179,24 @@ export const AccountSecurityModal: React.FC = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5">
+          {/* Profile Name field */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
+              Profile Display Name
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              <input
+                type="text"
+                required
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                placeholder="Enter your display name"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-400"
+              />
+            </div>
+          </div>
+
           {/* Email field */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">

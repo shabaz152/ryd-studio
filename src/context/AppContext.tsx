@@ -168,11 +168,14 @@ interface AppContextType {
   replyToReview: (reviewId: string, replyText: string) => void;
   shareReferralInvite: () => void;
   updateCandidateStage: (candidateId: string, stage: ReferralProgressStage) => void;
+  disburseDayPayout: (payoutId: string) => void;
   addCandidateReferral: (candidate: {
     candidateName: string;
     email: string;
     phone: string;
     specialty: string;
+    referringTeacherId?: string;
+    referringTeacherName?: string;
     notes?: string;
   }) => void;
 
@@ -225,7 +228,8 @@ interface AppContextType {
   loginWithCredentials: (email: string, password: string, role?: UserRole) => { success: boolean; error?: string };
   loginWithGoogle: (account: { name: string; email: string; avatarUrl?: string; role: UserRole }) => { success: boolean; error?: string };
   logout: () => void;
-  updateMyCredentials: (newEmail: string, newPassword?: string, currentPassword?: string) => { success: boolean; error?: string };
+  updateMyCredentials: (newEmail: string, newPassword?: string, currentPassword?: string, newName?: string) => { success: boolean; error?: string };
+  updateAdminProfileName: (newName: string) => { success: boolean; error?: string };
   requestPasswordReset: (email: string) => { success: boolean; error?: string; otpCode?: string };
   resetPasswordWithCode: (email: string, code: string, newPassword: string) => { success: boolean; error?: string };
   authorizeNewUser: (user: { name: string; email: string; role: UserRole; password?: string; studentId?: string }) => { success: boolean; error?: string };
@@ -1131,7 +1135,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateMyCredentials = (
     newEmail: string,
     newPassword?: string,
-    currentPassword?: string
+    currentPassword?: string,
+    newName?: string
   ): { success: boolean; error?: string } => {
     if (!currentUser) {
       return { success: false, error: 'No authenticated user session found.' };
@@ -1141,6 +1146,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!trimmedNewEmail || !trimmedNewEmail.includes('@')) {
       return { success: false, error: 'Please provide a valid email address.' };
     }
+
+    const trimmedName = newName && newName.trim().length >= 2 ? newName.trim() : currentUser.name;
 
     // Find the record of the currently authenticated user in authorizedUsers
     const userIndex = authorizedUsers.findIndex(
@@ -1178,6 +1185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const updatedUser: AuthorizedUser = {
       ...targetUser,
+      name: trimmedName,
       email: trimmedNewEmail,
       password: newPassword ? newPassword.trim() : targetUser.password,
     };
@@ -1189,6 +1197,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Update currentUser state
     const nextCurrentUser: AuthUser = {
       ...currentUser,
+      name: trimmedName,
       email: trimmedNewEmail,
     };
     setCurrentUser(nextCurrentUser);
@@ -1201,8 +1210,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: 'Credentials Updated',
-      description: 'Your personal login email and password were saved successfully.',
+      title: 'Profile & Credentials Updated',
+      description: 'Your profile name, login email, and security credentials were saved successfully.',
+    });
+
+    return { success: true };
+  };
+
+  const updateAdminProfileName = (newName: string): { success: boolean; error?: string } => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed.length < 2) {
+      sound.playAlert();
+      return { success: false, error: 'Profile name must be at least 2 characters long.' };
+    }
+
+    if (!currentUser) {
+      return { success: false, error: 'No active session found.' };
+    }
+
+    const userIndex = authorizedUsers.findIndex(
+      (u) => u.id === currentUser.id || u.email.toLowerCase() === currentUser.email.toLowerCase()
+    );
+
+    const nextAuthorizedUsers = [...authorizedUsers];
+    if (userIndex !== -1) {
+      nextAuthorizedUsers[userIndex] = {
+        ...nextAuthorizedUsers[userIndex],
+        name: trimmed,
+      };
+      setAuthorizedUsers(nextAuthorizedUsers);
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthorizedUsers));
+      } catch {}
+    }
+
+    const nextCurrentUser: AuthUser = {
+      ...currentUser,
+      name: trimmed,
+    };
+    setCurrentUser(nextCurrentUser);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_auth_user`, JSON.stringify(nextCurrentUser));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Profile Name Changed',
+      description: `Your profile name is now set to "${trimmed}".`,
     });
 
     return { success: true };
@@ -2482,46 +2537,138 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const currentCandidate = referralStats.candidates?.find((c) => c.id === candidateId);
     if (!currentCandidate) return;
 
-    const wasAlreadyJoined = currentCandidate.stage === 'successfully_joined';
-    const isNowJoined = nextStage === 'successfully_joined';
+    const wasAlreadySelected =
+      currentCandidate.stage === 'selected_successfully' ||
+      currentCandidate.stage === 'successfully_joined';
+    const isNowSelected =
+      nextStage === 'selected_successfully' || nextStage === 'successfully_joined';
+
+    const todayDate = new Date().toISOString().split('T')[0];
 
     setReferralStats((prev) => {
       const updatedCandidates = (prev.candidates || []).map((c) =>
-        c.id === candidateId ? { ...c, stage: nextStage } : c
+        c.id === candidateId
+          ? {
+              ...c,
+              stage: nextStage,
+              payoutStatus: isNowSelected ? ('paid' as const) : c.payoutStatus || 'pending',
+              payoutDate: isNowSelected ? todayDate : c.payoutDate,
+            }
+          : c
       );
 
-      const bonusDiff = !wasAlreadyJoined && isNowJoined ? 150 : (wasAlreadyJoined && !isNowJoined ? -150 : 0);
-      const hireDiff = !wasAlreadyJoined && isNowJoined ? 1 : (wasAlreadyJoined && !isNowJoined ? -1 : 0);
+      const bonusDiff = !wasAlreadySelected && isNowSelected ? 2500 : (wasAlreadySelected && !isNowSelected ? -2500 : 0);
+      const hireDiff = !wasAlreadySelected && isNowSelected ? 1 : (wasAlreadySelected && !isNowSelected ? -1 : 0);
 
-      return {
+      // Add or update dayPayouts
+      let nextPayouts = [...(prev.dayPayouts || [])];
+      if (!wasAlreadySelected && isNowSelected) {
+        const referringTeacher = currentCandidate.referringTeacherName || 'Shazz (Lead Faculty)';
+        const referringTeacherId = currentCandidate.referringTeacherId || 'tutor-shazz';
+
+        const existingPayoutIdx = nextPayouts.findIndex((p) => p.candidateId === candidateId);
+        if (existingPayoutIdx !== -1) {
+          nextPayouts[existingPayoutIdx] = {
+            ...nextPayouts[existingPayoutIdx],
+            status: 'paid',
+            date: todayDate,
+            milestoneDescription: `Referral Day Payout: ${currentCandidate.candidateName} Selected Successfully`,
+          };
+        } else {
+          nextPayouts.unshift({
+            id: 'payout-' + Date.now(),
+            teacherId: referringTeacherId,
+            teacherName: referringTeacher,
+            candidateId: currentCandidate.id,
+            candidateName: currentCandidate.candidateName,
+            amountINR: 2500,
+            date: todayDate,
+            status: 'paid',
+            milestoneDescription: `Referral Day Payout: ${currentCandidate.candidateName} Selected Successfully`,
+          });
+        }
+      }
+
+      const updated = {
         ...prev,
         candidates: updatedCandidates,
+        dayPayouts: nextPayouts,
         onboardedTeachers: Math.max(0, prev.onboardedTeachers + hireDiff),
         bonusEarned: Math.max(0, prev.bonusEarned + bonusDiff),
       };
+
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_referrals`, JSON.stringify(updated));
+      } catch {}
+
+      return updated;
     });
 
-    if (!wasAlreadyJoined && isNowJoined) {
+    if (!wasAlreadySelected && isNowSelected) {
       sound.playSuccess();
       showToast({
         type: 'success',
-        title: `Teacher Successfully Joined!`,
-        description: `${currentCandidate.candidateName} completed 30-day onboarding. +$150 Bonus credited to payroll!`,
+        title: `Teacher Selected Successfully!`,
+        description: `${currentCandidate.candidateName} has been selected! ₹2,500 Day Payout awarded to referring teacher (${currentCandidate.referringTeacherName || 'Faculty'}).`,
       });
     } else {
       sound.playClick();
-      const stageNames: Record<ReferralProgressStage, string> = {
-        starting_referral: 'Starting Referral',
-        interview: 'Studio Interview',
-        selected: 'Selected for Roster',
-        successfully_joined: 'Successfully Joined',
+      const stageLabels: Record<string, string> = {
+        referred: 'Referred',
+        interviewed: 'Interviewed',
+        selected_successfully: 'Selected Successfully',
+        starting_referral: 'Referred',
+        interview: 'Interviewed',
+        selected: 'Interviewed',
+        successfully_joined: 'Selected Successfully',
       };
       showToast({
         type: 'info',
-        title: `Progress Updated: ${stageNames[nextStage]}`,
-        description: `${currentCandidate.candidateName}'s application advanced to ${stageNames[nextStage]}.`,
+        title: `Pipeline Stage: ${stageLabels[nextStage] || nextStage}`,
+        description: `${currentCandidate.candidateName} advanced to ${stageLabels[nextStage] || nextStage}.`,
       });
     }
+  };
+
+  const disburseDayPayout = (payoutId: string) => {
+    setReferralStats((prev) => {
+      const targetPayout = (prev.dayPayouts || []).find(
+        (p) => p.id === payoutId || p.candidateId === payoutId
+      );
+      const actualPayoutId = targetPayout?.id || payoutId;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const updatedPayouts = (prev.dayPayouts || []).map((p) =>
+        p.id === actualPayoutId ? { ...p, status: 'paid' as const, date: todayStr } : p
+      );
+
+      const updatedCandidates = (prev.candidates || []).map((c) =>
+        c.id === payoutId || (targetPayout && c.id === targetPayout.candidateId)
+          ? { ...c, payoutStatus: 'paid' as const, payoutDate: todayStr }
+          : c
+      );
+
+      const updated = { ...prev, candidates: updatedCandidates, dayPayouts: updatedPayouts };
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_referrals`, JSON.stringify(updated));
+      } catch {}
+      if (targetPayout) {
+        sound.playSuccess();
+        showToast({
+          type: 'success',
+          title: 'Day Payout Disbursed',
+          description: `₹${targetPayout.amountINR.toLocaleString()} INR disbursed to ${targetPayout.teacherName}.`,
+        });
+      } else {
+        sound.playSuccess();
+        showToast({
+          type: 'success',
+          title: 'Day Payout Disbursed',
+          description: 'Referral day payout marked as disbursed.',
+        });
+      }
+      return updated;
+    });
   };
 
   const addCandidateReferral = (candidate: {
@@ -2529,30 +2676,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     email: string;
     phone: string;
     specialty: string;
+    referringTeacherId?: string;
+    referringTeacherName?: string;
     notes?: string;
   }) => {
+    const today = new Date().toISOString().split('T')[0];
     const newCand: ReferredCandidate = {
       id: 'cand-' + Date.now(),
       candidateName: candidate.candidateName.trim(),
       email: candidate.email.trim(),
       phone: candidate.phone.trim(),
-      specialty: candidate.specialty.trim() || 'Academic & STEM Tutor',
-      stage: 'starting_referral',
-      dateReferred: 'Today',
-      notes: candidate.notes || 'Invited with teacher code ' + referralStats.referralCode,
+      specialty: candidate.specialty.trim() || 'Academic STEM Tutor',
+      stage: 'referred',
+      dateReferred: today,
+      referringTeacherId: candidate.referringTeacherId || 'tutor-shazz',
+      referringTeacherName: candidate.referringTeacherName || 'Shazz (Lead Faculty)',
+      payoutAmount: 2500,
+      payoutStatus: 'pending',
+      notes: candidate.notes || 'Referred teacher candidate for academic faculty.',
     };
 
-    setReferralStats((prev) => ({
-      ...prev,
-      invitesSent: prev.invitesSent + 1,
-      candidates: [newCand, ...(prev.candidates || [])],
-    }));
+    setReferralStats((prev) => {
+      const updated = {
+        ...prev,
+        invitesSent: prev.invitesSent + 1,
+        candidates: [newCand, ...(prev.candidates || [])],
+      };
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_referrals`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: 'Candidate Referral Registered!',
-      description: `${newCand.candidateName} added at Starting Referral stage. Track application progress below.`,
+      title: 'Teacher Referral Registered!',
+      description: `${newCand.candidateName} added to the Referral pipeline (Stage: Referred).`,
     });
   };
 
@@ -2645,6 +2805,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         shareReferralInvite,
         updateCandidateStage,
         addCandidateReferral,
+        disburseDayPayout,
         syncStatus,
         lastSyncedAt,
         triggerCloudSync,
@@ -2686,6 +2847,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithGoogle,
         logout,
         updateMyCredentials,
+        updateAdminProfileName,
         requestPasswordReset,
         resetPasswordWithCode,
         authorizeNewUser,

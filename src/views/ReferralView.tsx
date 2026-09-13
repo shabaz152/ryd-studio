@@ -86,74 +86,77 @@ export const ReferralView: React.FC = () => {
 
   const stages: { key: ReferralProgressStage; label: string; stepNumber: number; description: string }[] = [
     {
-      key: 'starting_referral',
-      label: 'Starting Referral',
+      key: 'referred',
+      label: 'Referred',
       stepNumber: 1,
       description: 'Candidate applied via tutor referral code • Academic credentials in review',
     },
     {
-      key: 'interview',
-      label: 'Interview',
+      key: 'interviewed',
+      label: 'Interviewed',
       stepNumber: 2,
       description: 'Teaching demonstration session & interview with Academic Director',
     },
     {
-      key: 'selected',
-      label: 'Selected',
+      key: 'selected_successfully',
+      label: 'Selected Successfully',
       stepNumber: 3,
-      description: 'Demonstration passed • Selected for faculty cohort & contract offer',
-    },
-    {
-      key: 'successfully_joined',
-      label: 'Successfully Joined',
-      stepNumber: 4,
-      description: 'Onboarded & verified • ₹1,500 compensation bonus credited to payroll',
+      description: 'Candidate selected for faculty cohort • Particular teacher day payout of ₹2,500 awarded',
     },
   ];
 
   const getStageBadge = (stage: ReferralProgressStage) => {
     switch (stage) {
+      case 'referred':
       case 'starting_referral':
         return (
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px] font-bold uppercase">
-            1. Starting Referral
+          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px] font-bold uppercase tracking-wider">
+            1. Referred
           </span>
         );
+      case 'interviewed':
       case 'interview':
         return (
-          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase">
-            2. Interview
+          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider">
+            2. Interviewed
           </span>
         );
+      case 'selected_successfully':
       case 'selected':
-        return (
-          <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 text-[10px] font-bold uppercase">
-            3. Selected
-          </span>
-        );
       case 'successfully_joined':
+      default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">
-            4. Successfully Joined (+$150)
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            3. Selected Successfully (+₹2,500)
           </span>
         );
     }
   };
 
   const advanceCandidate = (candidate: ReferredCandidate) => {
-    if (candidate.stage === 'starting_referral') {
-      updateCandidateStage(candidate.id, 'interview');
-    } else if (candidate.stage === 'interview') {
-      updateCandidateStage(candidate.id, 'selected');
-    } else if (candidate.stage === 'selected') {
-      updateCandidateStage(candidate.id, 'successfully_joined');
+    if (candidate.stage === 'referred' || candidate.stage === 'starting_referral') {
+      updateCandidateStage(candidate.id, 'interviewed');
+    } else if (candidate.stage === 'interviewed' || candidate.stage === 'interview') {
+      updateCandidateStage(candidate.id, 'selected_successfully');
     }
   };
 
+  const getStageIndex = (stage: ReferralProgressStage) => {
+    if (stage === 'referred' || stage === 'starting_referral') return 0;
+    if (stage === 'interviewed' || stage === 'interview') return 1;
+    return 2;
+  };
+
   const candidatesList = referralStats.candidates || [];
-  const filteredCandidates = candidatesList.filter(
-    (c) => filterStage === 'all' || c.stage === filterStage
-  );
+  const filteredCandidates = candidatesList.filter((c) => {
+    if (filterStage === 'all') return true;
+    if (filterStage === 'referred') return c.stage === 'referred' || c.stage === 'starting_referral';
+    if (filterStage === 'interviewed') return c.stage === 'interviewed' || c.stage === 'interview';
+    if (filterStage === 'selected_successfully')
+      return c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined';
+    return c.stage === filterStage;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
@@ -165,7 +168,7 @@ export const ReferralView: React.FC = () => {
             <span>Faculty Referral Program & Hiring Progress</span>
           </h1>
           <p className="text-xs text-gray-400">
-            Invite fellow academic tutors, track candidate stages from referral to onboarding, and earn ₹1,500 per hire
+            Invite fellow academic tutors, track candidate stages (Referred ➔ Interviewed ➔ Selected Successfully), and earn ₹2,500 day payout per hire
           </p>
         </div>
 
@@ -188,7 +191,7 @@ export const ReferralView: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glossy-pill-yellow text-[#FFD000] text-xs font-bold uppercase tracking-wider">
                 <Activity className="w-3.5 h-3.5" />
-                <span>Earn $150 Per Successfully Joined Instructor</span>
+                <span>Earn ₹2,500 Day Payout Per Selected Teacher</span>
               </div>
 
               {/* Editable Name Trigger */}
@@ -320,17 +323,17 @@ export const ReferralView: React.FC = () => {
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
             <span className="text-[10px] text-purple-400 font-bold uppercase">In Faculty Pipeline</span>
             <p className="text-2xl font-black text-purple-400 mt-0.5">
-              {candidatesList.filter((c) => c.stage !== 'successfully_joined').length}
+              {candidatesList.filter((c) => c.stage !== 'selected_successfully' && c.stage !== 'selected' && c.stage !== 'successfully_joined').length}
             </p>
           </div>
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
-            <span className="text-[10px] text-emerald-400 font-bold uppercase">Successfully Joined</span>
+            <span className="text-[10px] text-emerald-400 font-bold uppercase">Selected Successfully</span>
             <p className="text-2xl font-black text-emerald-400 mt-0.5">
-              {referralStats.onboardedTeachers}
+              {candidatesList.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length}
             </p>
           </div>
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
-            <span className="text-[10px] text-[#FFD000] font-bold uppercase">Total Bonus Earned</span>
+            <span className="text-[10px] text-[#FFD000] font-bold uppercase">Total Day Payouts</span>
             <p className="text-2xl font-black text-[#FFD000] mt-0.5">₹{referralStats.bonusEarned.toLocaleString()}</p>
           </div>
         </div>
@@ -438,7 +441,7 @@ export const ReferralView: React.FC = () => {
               <span>Teacher Referral Hiring Pipeline</span>
             </h2>
             <p className="text-xs text-gray-400">
-              Track candidate progress: Starting Referral ➔ Interview ➔ Selected ➔ Successfully Joined
+              Track candidate progress: <strong>Referred ➔ Interviewed ➔ Selected Successfully</strong>
             </p>
           </div>
 
@@ -455,44 +458,34 @@ export const ReferralView: React.FC = () => {
               All ({candidatesList.length})
             </button>
             <button
-              onClick={() => setFilterStage('starting_referral')}
+              onClick={() => setFilterStage('referred')}
               className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                filterStage === 'starting_referral'
+                filterStage === 'referred'
                   ? 'bg-blue-500 text-white'
                   : 'bg-white/5 text-gray-400 hover:text-white'
               }`}
             >
-              Starting Referral ({candidatesList.filter((c) => c.stage === 'starting_referral').length})
+              1. Referred ({candidatesList.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length})
             </button>
             <button
-              onClick={() => setFilterStage('interview')}
+              onClick={() => setFilterStage('interviewed')}
               className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                filterStage === 'interview'
+                filterStage === 'interviewed'
                   ? 'bg-amber-500 text-black font-black'
                   : 'bg-white/5 text-gray-400 hover:text-white'
               }`}
             >
-              Interview ({candidatesList.filter((c) => c.stage === 'interview').length})
+              2. Interviewed ({candidatesList.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length})
             </button>
             <button
-              onClick={() => setFilterStage('selected')}
+              onClick={() => setFilterStage('selected_successfully')}
               className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                filterStage === 'selected'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-white/5 text-gray-400 hover:text-white'
-              }`}
-            >
-              Selected ({candidatesList.filter((c) => c.stage === 'selected').length})
-            </button>
-            <button
-              onClick={() => setFilterStage('successfully_joined')}
-              className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                filterStage === 'successfully_joined'
+                filterStage === 'selected_successfully'
                   ? 'bg-emerald-500 text-black font-black'
                   : 'bg-white/5 text-gray-400 hover:text-white'
               }`}
             >
-              Joined ({candidatesList.filter((c) => c.stage === 'successfully_joined').length})
+              3. Selected Successfully ({candidatesList.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length})
             </button>
           </div>
         </div>
@@ -509,8 +502,8 @@ export const ReferralView: React.FC = () => {
             </div>
           ) : (
             filteredCandidates.map((cand) => {
-              const currentStageIndex = stages.findIndex((s) => s.key === cand.stage);
-              const isJoined = cand.stage === 'successfully_joined';
+              const currentStageIndex = getStageIndex(cand.stage);
+              const isJoined = cand.stage === 'selected_successfully' || cand.stage === 'selected' || cand.stage === 'successfully_joined';
 
               return (
                 <div
@@ -564,14 +557,14 @@ export const ReferralView: React.FC = () => {
                     ) : (
                       <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>+$150 Bonus Credited</span>
+                        <span>+₹2,500 Day Payout Awarded</span>
                       </div>
                     )}
                   </div>
 
-                  {/* 4-Stage Interactive Visual Stepper */}
+                  {/* 3-Stage Interactive Visual Stepper */}
                   <div className="pt-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {stages.map((stg, idx) => {
                         const isCompleted = idx < currentStageIndex;
                         const isCurrent = idx === currentStageIndex;
@@ -646,6 +639,69 @@ export const ReferralView: React.FC = () => {
                 </div>
               );
             })
+          )}
+        </div>
+      </div>
+
+      {/* Particular Teacher Day Payouts Ledger Section */}
+      <div className="rounded-3xl glossy-card p-6 sm:p-7 shadow-card-dark space-y-4 top-sheen border border-amber-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-amber-500/10 text-[#FFD000]">
+                <DollarSign className="w-5 h-5" />
+              </span>
+              <h3 className="text-base font-extrabold text-white">
+                Teacher Referral Day Payouts Ledger
+              </h3>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Your earned day bonuses for successfully selected teacher referrals (credited per selected hire)
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="px-3.5 py-1.5 rounded-xl bg-[#08080C] border border-white/10 text-right">
+              <span className="text-[10px] text-gray-400 block uppercase">Total Earned</span>
+              <span className="text-sm font-black text-[#FFD000]">₹{referralStats.bonusEarned.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {(referralStats.dayPayouts || []).length === 0 ? (
+            <p className="text-xs text-gray-400 italic py-3 text-center">
+              No referral day payouts logged yet. When a referred teacher is selected, your ₹2,500 day payout will appear here.
+            </p>
+          ) : (
+            (referralStats.dayPayouts || []).map((payout) => (
+              <div
+                key={payout.id}
+                className="p-3.5 rounded-2xl bg-[#08080C] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-white">{payout.milestoneDescription || `Referral Payout: ${payout.candidateName || 'Candidate'}`}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      payout.status === 'paid'
+                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                    }`}>
+                      {payout.status === 'paid' ? 'Paid / Disbursed' : 'Pending Disbursal'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Date: {payout.date} • Attributed to: {payout.teacherName}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-base font-black text-[#FFD000]">
+                    ₹{payout.amountINR.toLocaleString()} INR
+                  </span>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
