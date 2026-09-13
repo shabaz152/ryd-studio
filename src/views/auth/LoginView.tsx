@@ -15,6 +15,11 @@ import {
   KeyRound,
   CheckCircle2,
   Sparkles,
+  UserPlus,
+  Clock,
+  Phone,
+  FileText,
+  Send,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -24,7 +29,11 @@ export const LoginView: React.FC = () => {
     loginWithGoogle,
     requestPasswordReset,
     resetPasswordWithCode,
+    requestAccess,
   } = useApp();
+
+  // Mode switcher: 'signin' | 'request_access'
+  const [authMode, setAuthMode] = useState<'signin' | 'request_access'>('signin');
 
   // Form states - strictly private, NEVER prefilled with exposed credentials!
   const [email, setEmail] = useState<string>('');
@@ -33,6 +42,23 @@ export const LoginView: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<'admin' | 'tutor' | 'parent'>('tutor');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loginStatusDetails, setLoginStatusDetails] = useState<{
+    isPendingApproval?: boolean;
+    isNewAccess?: boolean;
+    isDeclined?: boolean;
+  } | null>(null);
+
+  // Request Access Form state (for new Tutors / Parents)
+  const [reqName, setReqName] = useState<string>('');
+  const [reqEmail, setReqEmail] = useState<string>('');
+  const [reqPassword, setReqPassword] = useState<string>('');
+  const [showReqPassword, setShowReqPassword] = useState<boolean>(false);
+  const [reqRole, setReqRole] = useState<'tutor' | 'parent'>('tutor');
+  const [reqPhone, setReqPhone] = useState<string>('');
+  const [reqNotes, setReqNotes] = useState<string>('');
+  const [reqSuccessMessage, setReqSuccessMessage] = useState<string | null>(null);
+  const [reqErrorMessage, setReqErrorMessage] = useState<string | null>(null);
+  const [isReqSubmitting, setIsReqSubmitting] = useState<boolean>(false);
 
   // Google OAuth Modal state
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState<boolean>(false);
@@ -57,6 +83,7 @@ export const LoginView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setLoginStatusDetails(null);
 
     if (!email.trim()) {
       setErrorMessage('Please enter your account email.');
@@ -74,8 +101,54 @@ export const LoginView: React.FC = () => {
       setIsLoading(false);
       if (!result.success) {
         setErrorMessage(result.error || 'Authentication failed. Please check your credentials.');
+        setLoginStatusDetails({
+          isPendingApproval: result.isPendingApproval,
+          isNewAccess: result.isNewAccess,
+          isDeclined: result.isDeclined,
+        });
       }
     }, 250);
+  };
+
+  const handleRequestAccessSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setReqErrorMessage(null);
+    setReqSuccessMessage(null);
+
+    if (!reqName.trim()) {
+      setReqErrorMessage('Please enter your full name.');
+      return;
+    }
+    if (!reqEmail.trim() || !reqEmail.includes('@')) {
+      setReqErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!reqPassword || reqPassword.length < 4) {
+      setReqErrorMessage('Password must be at least 4 characters.');
+      return;
+    }
+
+    setIsReqSubmitting(true);
+    setTimeout(() => {
+      const res = requestAccess({
+        name: reqName,
+        email: reqEmail,
+        password: reqPassword,
+        role: reqRole,
+        phone: reqPhone,
+        notes: reqNotes,
+      });
+      setIsReqSubmitting(false);
+
+      if (!res.success) {
+        setReqErrorMessage(res.error || 'Failed to submit access request.');
+      } else {
+        sound.playSuccess();
+        setReqSuccessMessage(
+          `Your access request for ${reqRole.toUpperCase()} has been submitted to the Admin! The Admin has received your request with your chosen credentials. Once the Admin agrees and grants access, you will be able to log in immediately.`
+        );
+      }
+    }, 300);
   };
 
   const handleGoogleQuickSignIn = (name: string, googleEmail: string, role: 'admin' | 'tutor' | 'parent', avatarUrl?: string) => {
@@ -199,198 +272,571 @@ export const LoginView: React.FC = () => {
 
         {/* Main Card */}
         <div className="bg-slate-900/90 backdrop-blur-2xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
-          <div className="text-center space-y-1 pb-1">
-            <h2 className="text-lg font-black text-white">Welcome Back</h2>
-            <p className="text-xs text-slate-400">
-              Sign in with your Google account or personal credentials
-            </p>
-          </div>
-
-          {/* Primary Method: Continue with Google Button */}
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              setIsGoogleModalOpen(true);
-            }}
-            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg active:scale-[0.99] cursor-pointer"
-          >
-            {/* Official Google Multi-Color SVG Icon */}
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          {/* Divider */}
-          <div className="relative flex items-center justify-center my-2">
-            <div className="border-t border-white/10 w-full" />
-            <span className="bg-slate-900 px-3 text-[11px] text-slate-500 font-semibold uppercase tracking-wider whitespace-nowrap">
-              or sign in with email
-            </span>
-            <div className="border-t border-white/10 w-full" />
-          </div>
-
-          {/* Persona Role Selection Tabs */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Select Your Portal Role
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('tutor')}
-                className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  selectedRole === 'tutor'
-                    ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-bold leading-none">Tutor</span>
-                <span className="text-[9px] text-slate-400">Faculty</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('parent')}
-                className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  selectedRole === 'parent'
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/40'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold leading-none">Parent</span>
-                <span className="text-[9px] text-slate-400">Family</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('admin')}
-                className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                  selectedRole === 'admin'
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Shield className="w-4 h-4 text-amber-400" />
-                <span className="text-xs font-bold leading-none">Admin</span>
-                <span className="text-[9px] text-slate-400">Owner</span>
-              </button>
-            </div>
-          </div>
-
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Credentials Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErrorMessage(null);
-                  }}
-                  required
-                  autoComplete="off"
-                  placeholder={
-                    selectedRole === 'admin'
-                      ? 'admin@ryd.studio'
-                      : selectedRole === 'tutor'
-                      ? 'tutor@ryd.studio'
-                      : 'parent@ryd.studio'
-                  }
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-300">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound.playClick();
-                    setForgotEmail(email);
-                    setForgotStep(1);
-                    setForgotError(null);
-                    setForgotSuccess(null);
-                    setIsForgotModalOpen(true);
-                  }}
-                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrorMessage(null);
-                  }}
-                  required
-                  autoComplete="new-password"
-                  placeholder="Enter your private password"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
+          {/* Mode Switcher Tabs */}
+          <div className="flex rounded-2xl bg-black/40 p-1 border border-white/10">
             <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50 ${
-                selectedRole === 'admin'
-                  ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black shadow-amber-500/20 hover:brightness-110'
-                  : selectedRole === 'tutor'
-                  ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-blue-500/20 hover:brightness-110'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/20 hover:brightness-110'
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                setAuthMode('signin');
+                setErrorMessage(null);
+                setLoginStatusDetails(null);
+                setReqSuccessMessage(null);
+              }}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                authMode === 'signin'
+                  ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <span>{isLoading ? 'Authenticating...' : `Sign In as ${selectedRole.toUpperCase()}`}</span>
-              <ArrowRight className="w-4 h-4" />
+              <Lock className="w-3.5 h-3.5" />
+              <span>Sign In</span>
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                setAuthMode('request_access');
+                setErrorMessage(null);
+                setLoginStatusDetails(null);
+                if (email) setReqEmail(email);
+                if (password) setReqPassword(password);
+                if (selectedRole === 'tutor' || selectedRole === 'parent') setReqRole(selectedRole);
+              }}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                authMode === 'request_access'
+                  ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Request New Access</span>
+            </button>
+          </div>
+
+          {authMode === 'signin' ? (
+            <>
+              <div className="text-center space-y-1 pb-1">
+                <h2 className="text-lg font-black text-white">Welcome Back</h2>
+                <p className="text-xs text-slate-400">
+                  Sign in with your Google account or authorized credentials
+                </p>
+              </div>
+
+              {/* Primary Method: Continue with Google Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsGoogleModalOpen(true);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg active:scale-[0.99] cursor-pointer"
+              >
+                {/* Official Google Multi-Color SVG Icon */}
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              {/* Divider */}
+              <div className="relative flex items-center justify-center my-2">
+                <div className="border-t border-white/10 w-full" />
+                <span className="bg-slate-900 px-3 text-[11px] text-slate-500 font-semibold uppercase tracking-wider whitespace-nowrap">
+                  or sign in with email
+                </span>
+                <div className="border-t border-white/10 w-full" />
+              </div>
+
+              {/* Persona Role Selection Tabs */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Select Your Portal Role
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSelect('tutor')}
+                    className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                      selectedRole === 'tutor'
+                        ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <GraduationCap className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs font-bold leading-none">Tutor</span>
+                    <span className="text-[9px] text-slate-400">Faculty</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSelect('parent')}
+                    className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                      selectedRole === 'parent'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/40'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold leading-none">Parent</span>
+                    <span className="text-[9px] text-slate-400">Family</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSelect('admin')}
+                    className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                      selectedRole === 'admin'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold leading-none">Admin</span>
+                    <span className="text-[9px] text-slate-400">Owner</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status alerts for pending approval, new access, or declined */}
+              {loginStatusDetails?.isNewAccess && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/40 text-amber-200 text-xs space-y-3 animate-fadeIn shadow-lg">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-white text-xs">New Account: Admin Approval Required</h4>
+                      <p className="text-[11px] text-amber-100/90 mt-0.5 leading-relaxed">
+                        <strong className="text-white">{email}</strong> is not an authorized account yet. New Tutors and Parents must submit an Access Request to the Admin.
+                        Once the Admin agrees and grants access, you can log in immediately.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setReqEmail(email);
+                      setReqPassword(password);
+                      setReqRole(selectedRole === 'admin' ? 'tutor' : selectedRole);
+                      setReqName(email.split('@')[0]);
+                      setAuthMode('request_access');
+                      setErrorMessage(null);
+                      setLoginStatusDetails(null);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Send Access Request to Admin for this Account →</span>
+                  </button>
+                </div>
+              )}
+
+              {loginStatusDetails?.isPendingApproval && (
+                <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-100 text-xs space-y-2 animate-fadeIn shadow-lg">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-amber-300 text-xs">⏳ Access Request Pending Admin Agreement</h4>
+                      <p className="text-[11px] text-amber-100/90 mt-1 leading-relaxed">
+                        Your access request for <strong className="text-white">{email}</strong> has been submitted to Admin.
+                        <br />
+                        <span className="text-amber-200 font-semibold">Status: Awaiting Admin Approval.</span>
+                        <br />
+                        You cannot log in until the Admin reviews your request and clicks <strong className="text-emerald-400">"Agree & Grant Access"</strong>. Please check back shortly.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {loginStatusDetails?.isDeclined && (
+                <div className="p-4 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs space-y-2 animate-fadeIn shadow-lg">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-red-300 text-xs">❌ Access Request Declined by Admin</h4>
+                      <p className="text-[11px] text-red-100/80 mt-1 leading-relaxed">
+                        Your access request for <strong className="text-white">{email}</strong> was declined by the Admin.
+                        You cannot log in without Admin approval. Please contact <strong className="text-white">admin@ryd.studio</strong> if you require assistance.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {errorMessage && !loginStatusDetails?.isNewAccess && !loginStatusDetails?.isPendingApproval && !loginStatusDetails?.isDeclined && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Credentials Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrorMessage(null);
+                        setLoginStatusDetails(null);
+                      }}
+                      required
+                      autoComplete="off"
+                      placeholder={
+                        selectedRole === 'admin'
+                          ? 'admin@ryd.studio'
+                          : selectedRole === 'tutor'
+                          ? 'tutor@ryd.studio'
+                          : 'parent@ryd.studio'
+                      }
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setForgotEmail(email);
+                        setForgotStep(1);
+                        setForgotError(null);
+                        setForgotSuccess(null);
+                        setIsForgotModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErrorMessage(null);
+                        setLoginStatusDetails(null);
+                      }}
+                      required
+                      autoComplete="new-password"
+                      placeholder="Enter your private password"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50 ${
+                    selectedRole === 'admin'
+                      ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black shadow-amber-500/20 hover:brightness-110'
+                      : selectedRole === 'tutor'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-blue-500/20 hover:brightness-110'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/20 hover:brightness-110'
+                  }`}
+                >
+                  <span>{isLoading ? 'Authenticating...' : `Sign In as ${selectedRole.toUpperCase()}`}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+
+              <div className="text-center pt-1 border-t border-white/5">
+                <p className="text-xs text-slate-400">
+                  New Faculty Tutor or Parent?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      if (email) setReqEmail(email);
+                      if (password) setReqPassword(password);
+                      if (selectedRole === 'tutor' || selectedRole === 'parent') setReqRole(selectedRole);
+                      setAuthMode('request_access');
+                    }}
+                    className="font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer"
+                  >
+                    Request Access from Admin →
+                  </button>
+                </p>
+              </div>
+            </>
+          ) : (
+            /* Request Access Mode (New Tutor / Parent) */
+            <div className="space-y-4 animate-fadeIn">
+              <div className="text-center space-y-1 pb-1">
+                <h2 className="text-lg font-black text-white">Request Platform Access</h2>
+                <p className="text-xs text-slate-400">
+                  Submit your details to the Admin. Once Admin agrees and grants access, you can sign in.
+                </p>
+              </div>
+
+              {reqSuccessMessage ? (
+                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs space-y-3 animate-fadeIn text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-black text-white text-sm">Access Request Sent to Admin!</h3>
+                  <p className="text-slate-300 leading-relaxed text-[11px]">
+                    {reqSuccessMessage}
+                  </p>
+                  <div className="p-3 rounded-xl bg-black/40 border border-emerald-500/20 text-left space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Name:</span>
+                      <span className="font-bold text-white">{reqName}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Email:</span>
+                      <span className="font-bold text-white">{reqEmail}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Role:</span>
+                      <span className="font-bold uppercase text-amber-400">{reqRole}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Status:</span>
+                      <span className="font-bold text-amber-300">⏳ Pending Admin Agreement</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">
+                    Note: Login will remain locked until the Admin clicks "Agree & Grant Access" in the Admin portal.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setEmail(reqEmail);
+                      setPassword(reqPassword);
+                      setSelectedRole(reqRole);
+                      setAuthMode('signin');
+                      setReqSuccessMessage(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs transition-all cursor-pointer shadow-md"
+                  >
+                    Go to Sign In Screen
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleRequestAccessSubmit} className="space-y-3.5">
+                  {/* Role Selector for Request: Tutor or Parent */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Choose Your Role
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setReqRole('tutor')}
+                        className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          reqRole === 'tutor'
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <GraduationCap className="w-4 h-4 text-blue-400" />
+                        <span className="text-xs font-bold">Faculty Tutor</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReqRole('parent')}
+                        className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          reqRole === 'parent'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/40'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Users className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs font-bold">Parent & Family</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={reqName}
+                        onChange={(e) => setReqName(e.target.value)}
+                        required
+                        placeholder={reqRole === 'tutor' ? 'e.g. Elena Rostova' : 'e.g. David Miller'}
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type="email"
+                        value={reqEmail}
+                        onChange={(e) => setReqEmail(e.target.value)}
+                        required
+                        placeholder="yourname@domain.com"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Desired Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type={showReqPassword ? 'text' : 'password'}
+                        value={reqPassword}
+                        onChange={(e) => setReqPassword(e.target.value)}
+                        required
+                        autoComplete="new-password"
+                        placeholder="Create your private password"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowReqPassword(!showReqPassword)}
+                        className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        {showReqPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Once Admin agrees and grants access, you will sign in with this exact password.
+                    </p>
+                  </div>
+
+                  {/* Phone (optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Phone Number <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type="tel"
+                        value={reqPhone}
+                        onChange={(e) => setReqPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes / Specialization (optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      {reqRole === 'tutor' ? 'Subjects / Discipline' : 'Student Name & Grade'}{' '}
+                      <span className="text-[10px] text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={reqNotes}
+                        onChange={(e) => setReqNotes(e.target.value)}
+                        placeholder={
+                          reqRole === 'tutor'
+                            ? 'e.g. AP Physics, Contemporary Dance, Classical Music'
+                            : 'e.g. Leo Miller - Grade 8 STEM'
+                        }
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {reqErrorMessage && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-fadeIn">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                      <span>{reqErrorMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Security Policy Alert */}
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-[11px] flex items-start gap-2">
+                    <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong>Admin Authorization Gate:</strong> Submitting this request sends an immediate notification to the Admin. You cannot log in until the Admin agrees and grants access.
+                    </p>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isReqSubmitting}
+                    className="w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black shadow-amber-500/20 hover:brightness-110 disabled:opacity-50"
+                  >
+                    <span>{isReqSubmitting ? 'Sending Request to Admin...' : 'Submit Access Request to Admin'}</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setAuthMode('signin');
+                      }}
+                      className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Already have an approved account? <span className="text-amber-400 font-bold">Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Security / Confidentiality Badges */}

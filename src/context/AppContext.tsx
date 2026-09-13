@@ -23,6 +23,7 @@ import {
   AuthorizedUser,
   TutorLocation,
   DesignatedHallLocation,
+  AccessRequest,
 } from '../types';
 import {
   INITIAL_BATCHES,
@@ -41,6 +42,7 @@ import {
   INITIAL_ACTIVITY_EVENTS,
   DEMO_AUTH_USERS,
   INITIAL_AUTHORIZED_USERS,
+  INITIAL_ACCESS_REQUESTS,
   PRESET_HALL_LOCATIONS,
 } from '../data/mockData';
 import { sound } from '../utils/sound';
@@ -227,7 +229,11 @@ interface AppContextType {
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
   authorizedUsers: AuthorizedUser[];
-  loginWithCredentials: (email: string, password: string, role?: UserRole) => { success: boolean; error?: string };
+  loginWithCredentials: (
+    email: string,
+    password: string,
+    role?: UserRole
+  ) => { success: boolean; error?: string; isPendingApproval?: boolean; isNewAccess?: boolean; isDeclined?: boolean };
   loginWithGoogle: (account: { name: string; email: string; avatarUrl?: string; role: UserRole }) => { success: boolean; error?: string };
   logout: () => void;
   updateMyCredentials: (newEmail: string, newPassword?: string, currentPassword?: string, newName?: string) => { success: boolean; error?: string };
@@ -239,6 +245,21 @@ interface AppContextType {
   deleteUser: (userId: string) => { success: boolean; error?: string };
   accountSecurityModalOpen: boolean;
   setAccountSecurityModalOpen: (open: boolean) => void;
+
+  // Admin Access Request & Approval Workflow
+  accessRequests: AccessRequest[];
+  pendingAccessRequestsCount: number;
+  requestAccess: (requestData: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'tutor' | 'parent';
+    notes?: string;
+    phone?: string;
+  }) => { success: boolean; error?: string; message?: string };
+  grantAccessRequest: (requestId: string) => { success: boolean; error?: string };
+  declineAccessRequest: (requestId: string) => { success: boolean; error?: string };
+  deleteAccessRequest: (requestId: string) => { success: boolean };
 
   // Live Tutor & Parent GPS Location Map & Designated Hall
   designatedHall: DesignatedHallLocation;
@@ -399,6 +420,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     return INITIAL_AUTHORIZED_USERS;
   });
+
+  const [accessRequests, setAccessRequests] = useState<AccessRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_access_requests`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_ACCESS_REQUESTS;
+  });
+
+  const pendingAccessRequestsCount = accessRequests.filter((r) => r.status === 'pending').length;
 
   const [accountSecurityModalOpen, setAccountSecurityModalOpen] = useState<boolean>(false);
   const passwordResetTokens = useRef<Record<string, { code: string; expiresAt: number }>>({});
@@ -1022,32 +1056,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logout();
   };
 
-  const loginWithCredentials = (email: string, password: string, _role?: UserRole): { success: boolean; error?: string } => {
+  const loginWithCredentials = (
+    email: string,
+    password: string,
+    role?: UserRole
+  ): { success: boolean; error?: string; isPendingApproval?: boolean; isNewAccess?: boolean; isDeclined?: boolean } => {
     const trimmedEmail = email.trim().toLowerCase();
     const user = authorizedUsers.find(
       (u) => u.email.toLowerCase() === trimmedEmail
     );
 
-    if (!user) {
-      sound.playAlert();
-      return {
-        success: false,
-        error: 'Access Denied: This account is not authorized by the Admin. Please contact admin@ryd.studio to request platform access.',
-      };
-    }
+    if (user) {
+      if (!user.isAuthorized) {
+        sound.playAlert();
+        return {
+          success: false,
+          error: 'Access Denied: Your account authorization has been revoked by the Admin. Please contact admin@ryd.studio.',
+          isDeclined: true,
+        };
+      }
 
-    if (!user.isAuthorized) {
-      sound.playAlert();
-      return {
-        success: false,
-        error: 'Access Denied: Your account authorization has been revoked by the Admin. Please contact admin@ryd.studio.',
-      };
-    }
-
-    if (user.password !== password) {
-      sound.playAlert();
-      return { success: false, error: 'Incorrect password. Please check your password or click Forgot Password.' };
-    }
+      if (user.password !== password) {
+        sound.playAlert();
+        return { success: false, error: 'Incorrect password. Please check your password or click Forgot Password.' };
+      }
 
     sound.playSuccess();
     const { password: _, ...authData } = user;
@@ -1087,7 +1119,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return { success: true };
+  }
+
+  // 2. Check if an access request was submitted
+  const existingReq = accessRequests.find(
+    (r) => r.email.toLowerCase() === trimmedEmail
+  );
+
+  if (existingReq) {
+    if (existingReq.status === 'pending') {
+      sound.playAlert();
+      return {
+        success: false,
+        error: `Access Request Pending: Your request to log in as ${existingReq.role.toUpperCase()} has been submitted to the Admin. Please wait for the Admin to agree and grant your access before logging in.`,
+        isPendingApproval: true,
+      };
+    }
+    if (existingReq.status === 'declined') {
+      sound.playAlert();
+      return {
+        success: false,
+        error: 'Access Denied: Your access request was reviewed and declined by the Admin. Please contact admin@ryd.studio.',
+        isDeclined: true,
+      };
+    }
+  }
+
+  // 3. Admin credentials must be pre-authorized
+  if (role === 'admin') {
+    sound.playAlert();
+    return {
+      success: false,
+      error: 'Access Denied: Unrecognized Administrator credentials. Please contact the platform owner.',
+    };
+  }
+
+  // 4. New member trying to log in as tutor or parent
+  sound.playAlert();
+  return {
+    success: false,
+    error: 'Account not recognized. If you are a new Tutor or Parent, please submit an access request to the Admin for approval.',
+    isNewAccess: true,
   };
+};
 
   const loginWithGoogle = (account: {
     name: string;
@@ -1522,6 +1596,284 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: `${targetUser.name} (${targetUser.email}) has been permanently deleted from the platform.`,
     });
 
+    return { success: true };
+  };
+
+  const requestAccess = (requestData: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'tutor' | 'parent';
+    notes?: string;
+    phone?: string;
+  }): { success: boolean; error?: string; message?: string } => {
+    const trimmedEmail = requestData.email.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+    if (!requestData.name.trim()) {
+      return { success: false, error: 'Please enter your full name.' };
+    }
+    if (!requestData.password || requestData.password.length < 4) {
+      return { success: false, error: 'Please set a password with at least 4 characters.' };
+    }
+
+    // Check if already authorized
+    const existingUser = authorizedUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+    if (existingUser && existingUser.isAuthorized) {
+      return { success: false, error: 'An authorized account already exists for this email. You can sign in directly!' };
+    }
+
+    // Check if an access request is already pending
+    const existingReq = accessRequests.find((r) => r.email.toLowerCase() === trimmedEmail);
+    if (existingReq && existingReq.status === 'pending') {
+      return {
+        success: false,
+        error: 'An access request for this email is already pending Admin review and approval.',
+      };
+    }
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (' + new Date().toISOString().split('T')[0] + ')';
+    const newReq: AccessRequest = {
+      id: 'req-' + Date.now(),
+      name: requestData.name.trim(),
+      email: trimmedEmail,
+      password: requestData.password,
+      role: requestData.role,
+      notes: requestData.notes?.trim() || `New ${requestData.role} onboarding request`,
+      phone: requestData.phone?.trim() || '',
+      status: 'pending',
+      requestedAt: nowStr,
+    };
+
+    const nextReqs = [newReq, ...accessRequests.filter((r) => r.email.toLowerCase() !== trimmedEmail)];
+    setAccessRequests(nextReqs);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_access_requests`, JSON.stringify(nextReqs));
+    } catch {}
+
+    // Dispatch activity event and internal system update to alert Admin
+    addActivityEvent({
+      type: 'access_request',
+      actorId: newReq.id,
+      actorName: newReq.name,
+      actorRole: newReq.role,
+      title: `New ${newReq.role.toUpperCase()} Access Request: ${newReq.name}`,
+      description: `${newReq.name} (${newReq.email}) submitted an access request to log in as ${newReq.role}. Requires Admin agreement to grant access.`,
+    });
+
+    const adminAlert: UpdateMessage = {
+      id: 'update-' + Date.now(),
+      type: 'broadcast',
+      recipientName: 'Executive Director (Admin)',
+      batchName: 'Admin Authorization Gate',
+      subject: `🔐 New ${newReq.role.toUpperCase()} Access Request: ${newReq.name}`,
+      message: `${newReq.name} (${newReq.email}) has requested platform access with new credentials. Go to Access Control in the Admin Portal to grant or decline access.`,
+      sentAt: 'Just Now',
+      status: 'delivered',
+      channels: ['app'],
+    };
+    setUpdates((prev) => [adminAlert, ...prev]);
+
+    sound.playSuccess();
+    showToast({
+      type: 'info',
+      title: 'Access Request Sent to Admin!',
+      description: `Your request for ${newReq.role.toUpperCase()} access has been submitted. Once the Admin agrees and grants access, you can log in with your credentials.`,
+    });
+
+    return {
+      success: true,
+      message: `Your request has been submitted to the Admin for approval. You will be able to log in with ${newReq.email} once the Admin grants access.`,
+    };
+  };
+
+  const grantAccessRequest = (requestId: string): { success: boolean; error?: string } => {
+    const req = accessRequests.find((r) => r.id === requestId);
+    if (!req) {
+      return { success: false, error: 'Access request not found.' };
+    }
+
+    // 1. Mark request as approved
+    const nextReqs = accessRequests.map((r) =>
+      r.id === requestId
+        ? {
+            ...r,
+            status: 'approved' as const,
+            reviewedAt: new Date().toISOString().split('T')[0],
+            reviewedBy: currentUser?.name || 'Admin',
+          }
+        : r
+    );
+    setAccessRequests(nextReqs);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_access_requests`, JSON.stringify(nextReqs));
+    } catch {}
+
+    // 2. Authorize user account in authorizedUsers
+    const existingUserIndex = authorizedUsers.findIndex(
+      (u) => u.email.toLowerCase() === req.email.toLowerCase()
+    );
+
+    let nextAuthUsers: AuthorizedUser[];
+    if (existingUserIndex >= 0) {
+      nextAuthUsers = [...authorizedUsers];
+      nextAuthUsers[existingUserIndex] = {
+        ...nextAuthUsers[existingUserIndex],
+        name: req.name,
+        password: req.password,
+        role: req.role,
+        isAuthorized: true,
+        authorizedAt: new Date().toISOString().split('T')[0],
+        authorizedBy: currentUser?.email || 'admin@ryd.studio',
+      };
+    } else {
+      const newAuthUser: AuthorizedUser = {
+        id: `user-${req.role}-${Date.now()}`,
+        name: req.name,
+        email: req.email.toLowerCase(),
+        role: req.role,
+        password: req.password,
+        title: req.role === 'tutor' ? 'Faculty Tutor' : 'Parent & Learner',
+        studentId: req.role === 'parent' ? 'stud-3' : undefined,
+        avatarUrl:
+          req.role === 'tutor'
+            ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+            : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        isAuthorized: true,
+        authorizedAt: new Date().toISOString().split('T')[0],
+        authorizedBy: currentUser?.email || 'admin@ryd.studio',
+      };
+      nextAuthUsers = [newAuthUser, ...authorizedUsers];
+    }
+    setAuthorizedUsers(nextAuthUsers);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthUsers));
+    } catch {}
+
+    // 3. If tutor, ensure tutor account exists in tutors list
+    if (req.role === 'tutor') {
+      setTutors((prev) => {
+        const exists = prev.some((t) => t.email.toLowerCase() === req.email.toLowerCase());
+        if (exists) return prev;
+        const newTutor: TutorAccount = {
+          id: `tutor-${Date.now()}`,
+          name: req.name,
+          email: req.email,
+          subjects: [req.notes || 'Multi-Tutoring Faculty'],
+          avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+          hourlyRate: 850,
+          phone: req.phone || '+1 (555) 300-8800',
+          rating: 5.0,
+          status: 'offline',
+          totalHoursMonth: 0,
+          totalEarningsMonth: 0,
+          location: {
+            lat: 40.7128,
+            lng: -74.0060,
+            locationName: 'RYD Downtown Hub',
+            area: 'Downtown Studio',
+            status: 'off_duty',
+            lastPingTime: 'Just Now',
+            isWithinGeofence: false,
+          },
+        };
+        const updated = [newTutor, ...prev];
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    } else if (req.role === 'parent') {
+      setParents((prev) => {
+        const exists = prev.some((p) => p.email.toLowerCase() === req.email.toLowerCase());
+        if (exists) return prev;
+        const newParent: ParentAccount = {
+          id: `parent-${Date.now()}`,
+          parentName: req.name,
+          email: req.email,
+          phone: req.phone || '+1 (555) 400-9900',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+          children: [
+            {
+              studentId: 'stud-new-' + Date.now(),
+              studentName: req.notes ? req.notes.replace(/^Parent of /i, '') : 'Student',
+              grade: 'Active Learner',
+              enrolledBatches: ['batch-dance-01'],
+            },
+          ],
+        };
+        const updated = [newParent, ...prev];
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+
+    // 4. Activity log and toast
+    addActivityEvent({
+      type: 'access_granted',
+      actorId: currentUser?.id || 'admin',
+      actorName: currentUser?.name || 'Admin',
+      actorRole: 'admin',
+      title: `Access Agreed & Granted: ${req.name} (${req.role.toUpperCase()})`,
+      description: `Admin agreed and granted platform access to ${req.name} (${req.email}). Member can now log in with their credentials.`,
+    });
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Access Agreed & Granted!',
+      description: `${req.name} (${req.email}) has been authorized. They can now log in with their credentials.`,
+    });
+
+    return { success: true };
+  };
+
+  const declineAccessRequest = (requestId: string): { success: boolean; error?: string } => {
+    const req = accessRequests.find((r) => r.id === requestId);
+    if (!req) {
+      return { success: false, error: 'Access request not found.' };
+    }
+
+    const nextReqs = accessRequests.map((r) =>
+      r.id === requestId
+        ? {
+            ...r,
+            status: 'declined' as const,
+            reviewedAt: new Date().toISOString().split('T')[0],
+            reviewedBy: currentUser?.name || 'Admin',
+          }
+        : r
+    );
+    setAccessRequests(nextReqs);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_access_requests`, JSON.stringify(nextReqs));
+    } catch {}
+
+    sound.playClick();
+    showToast({
+      type: 'alert',
+      title: 'Access Request Declined',
+      description: `Request for ${req.name} (${req.email}) has been declined. Member cannot log in.`,
+    });
+
+    return { success: true };
+  };
+
+  const deleteAccessRequest = (requestId: string): { success: boolean } => {
+    const nextReqs = accessRequests.filter((r) => r.id !== requestId);
+    setAccessRequests(nextReqs);
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_access_requests`, JSON.stringify(nextReqs));
+    } catch {}
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Request Removed',
+      description: 'Access request record deleted.',
+    });
     return { success: true };
   };
 
@@ -2993,6 +3345,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteUser,
         accountSecurityModalOpen,
         setAccountSecurityModalOpen,
+        accessRequests,
+        pendingAccessRequestsCount,
+        requestAccess,
+        grantAccessRequest,
+        declineAccessRequest,
+        deleteAccessRequest,
         designatedHall,
         updateDesignatedHall,
         simulateTutorMovement,

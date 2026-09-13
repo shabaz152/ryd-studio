@@ -229,7 +229,7 @@ export interface ActivityEvent {
   timestamp: string;
   date?: string;
   createdAt?: string;
-  type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement';
+  type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement' | 'access_request' | 'access_granted';
   actorId: string;
   actorName: string;
   actorRole: UserRole;
@@ -316,5 +316,19 @@ export interface AuthorizedUser extends AuthUser {
   isAuthorized: boolean;
   authorizedAt: string;
   authorizedBy: string;
+}
+
+export interface AccessRequest {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: 'tutor' | 'parent';
+  status: 'pending' | 'approved' | 'declined';
+  requestedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  phone?: string;
+  notes?: string;
 }
 

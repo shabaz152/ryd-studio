@@ -80,6 +80,11 @@ export const AdminPortal: React.FC = () => {
     addCandidateReferral,
     disburseDayPayout,
     updateAdminProfileName,
+    accessRequests,
+    pendingAccessRequestsCount,
+    grantAccessRequest,
+    declineAccessRequest,
+    deleteAccessRequest,
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'activity' | 'map' | 'access' | 'tutors' | 'students' | 'schedules' | 'referrals'>('activity');
@@ -93,6 +98,10 @@ export const AdminPortal: React.FC = () => {
   const [newUserRole, setNewUserRole] = useState<UserRole>('tutor');
   const [newUserPassword, setNewUserPassword] = useState<string>('ryd2026');
   const [authorizeError, setAuthorizeError] = useState<string | null>(null);
+
+  // Access Requests Inbound Gate State
+  const [accessReqStatusFilter, setAccessReqStatusFilter] = useState<'pending' | 'approved' | 'declined' | 'all'>('pending');
+  const [grantSuccessNotice, setGrantSuccessNotice] = useState<string | null>(null);
 
   // Admin Profile Name Inline Editing State
   const [isEditingAdminName, setIsEditingAdminName] = useState<boolean>(false);
@@ -487,6 +496,41 @@ export const AdminPortal: React.FC = () => {
         </button>
       </div>
 
+      {/* Pending Access Requests Attention Banner (when not on access tab) */}
+      {pendingAccessRequestsCount > 0 && activeSubTab !== 'access' && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md animate-fadeIn">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+              <UserPlus className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  Action Required
+                </span>
+                <p className="text-xs font-black text-slate-900 dark:text-white">
+                  {pendingAccessRequestsCount} Inbound Access Request{pendingAccessRequestsCount > 1 ? 's' : ''} Awaiting Admin Agreement
+                </p>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
+                New Tutors or Parents have submitted credentials to log in. Per platform policy, users cannot log in until you explicitly agree and grant access.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              sound.playClick();
+              setActiveSubTab('access');
+              setAccessReqStatusFilter('pending');
+            }}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shrink-0 transition-all cursor-pointer shadow-md flex items-center gap-1.5 self-end sm:self-center"
+          >
+            <span>Review & Grant Access</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Portal Subtabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -542,6 +586,11 @@ export const AdminPortal: React.FC = () => {
           >
             <Shield className="w-4 h-4 text-amber-500" />
             <span>🔐 Access Control ({authorizedUsers.length})</span>
+            {pendingAccessRequestsCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
+                {pendingAccessRequestsCount} pending
+              </span>
+            )}
           </button>
 
           <button
@@ -655,6 +704,258 @@ export const AdminPortal: React.FC = () => {
                 {authorizedUsers.filter((u) => u.role !== 'admin').length}
               </p>
             </div>
+          </div>
+
+          {/* Section: Inbound Access Requests & Approvals Gate */}
+          <div className="p-5 rounded-3xl bg-gradient-to-b from-white to-slate-50/50 dark:from-[#131320] dark:to-[#0E0E18] border border-amber-500/30 shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                      Inbound Access Requests & Approvals
+                    </h3>
+                    {pendingAccessRequestsCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500 text-black text-[10px] font-black animate-pulse">
+                        {pendingAccessRequestsCount} Pending Action
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
+                    When new Tutors or Parents submit login credentials, they cannot log in until you explicitly agree and grant access.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                {[
+                  { key: 'pending', label: `Pending (${accessRequests.filter(r => r.status === 'pending').length})` },
+                  { key: 'approved', label: `Approved (${accessRequests.filter(r => r.status === 'approved').length})` },
+                  { key: 'declined', label: `Declined (${accessRequests.filter(r => r.status === 'declined').length})` },
+                  { key: 'all', label: `All (${accessRequests.length})` },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      sound.playClick();
+                      setAccessReqStatusFilter(item.key as any);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      accessReqStatusFilter === item.key
+                        ? 'bg-amber-500 text-black shadow-xs font-black'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grant Success Notice Banner */}
+            {grantSuccessNotice && (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                  <span className="font-semibold">{grantSuccessNotice}</span>
+                </div>
+                <button
+                  onClick={() => setGrantSuccessNotice(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Request Cards List */}
+            {accessRequests.filter(r => accessReqStatusFilter === 'all' ? true : r.status === accessReqStatusFilter).length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5">
+                <Shield className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  No {accessReqStatusFilter === 'all' ? '' : accessReqStatusFilter} access requests found.
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  When new Tutors or Parents attempt to log in or submit a request, their credentials will appear here for your agreement.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {accessRequests
+                  .filter(r => accessReqStatusFilter === 'all' ? true : r.status === accessReqStatusFilter)
+                  .map((req) => (
+                    <div
+                      key={req.id}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+                        req.status === 'pending'
+                          ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 ring-1 ring-amber-500/20'
+                          : req.status === 'approved'
+                          ? 'bg-white dark:bg-[#10101A] border-slate-200 dark:border-white/10'
+                          : 'bg-red-500/5 dark:bg-red-500/10 border-red-500/20 opacity-80'
+                      }`}
+                    >
+                      {/* Left: Applicant Details */}
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                        <div
+                          className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 border ${
+                            req.role === 'tutor'
+                              ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
+                              : 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                          }`}
+                        >
+                          {req.role === 'tutor' ? <GraduationCap className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                              {req.name}
+                            </h4>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                                req.role === 'tutor'
+                                  ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
+                                  : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+                              }`}
+                            >
+                              {req.role === 'tutor' ? 'Faculty Tutor' : 'Parent & Family'}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                req.status === 'pending'
+                                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse'
+                                  : req.status === 'approved'
+                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30'
+                              }`}
+                            >
+                              {req.status === 'pending'
+                                ? '⏳ Pending Admin Agreement'
+                                : req.status === 'approved'
+                                ? '✅ Access Granted & Active'
+                                : '❌ Declined'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+                              <Mail className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{req.email}</span>
+                            </span>
+                            {req.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                                <span>{req.phone}</span>
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Requested: {req.requestedAt}</span>
+                            </span>
+                            <span className="flex items-center gap-1 text-slate-400 italic">
+                              <Lock className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Password set by user</span>
+                            </span>
+                          </div>
+
+                          {req.notes && (
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-black/30 px-2.5 py-1 rounded-lg border border-slate-200/50 dark:border-white/5 inline-block mt-0.5">
+                              💬 <span className="font-semibold">Note:</span> {req.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Explicit Agreement Actions */}
+                      <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
+                        {req.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                sound.playSuccess();
+                                const res = grantAccessRequest(req.id);
+                                if (res.success) {
+                                  setGrantSuccessNotice(
+                                    `✅ Agreed & Granted: ${req.name} (${req.email}) has been authorized as ${req.role.toUpperCase()}! They can now log in with their credentials.`
+                                  );
+                                }
+                              }}
+                              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black transition-all cursor-pointer shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Agree & Grant Access</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                declineAccessRequest(req.id);
+                              }}
+                              className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 text-xs font-bold transition-all cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Decline</span>
+                            </button>
+                          </>
+                        )}
+
+                        {req.status === 'declined' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                sound.playSuccess();
+                                const res = grantAccessRequest(req.id);
+                                if (res.success) {
+                                  setGrantSuccessNotice(
+                                    `✅ Reconsidered & Granted: ${req.name} (${req.email}) has been authorized!`
+                                  );
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Re-Authorize</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                deleteAccessRequest(req.id);
+                              }}
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Delete request record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+
+                        {req.status === 'approved' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Granted by {req.reviewedBy || 'Admin'}</span>
+                            </span>
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                deleteAccessRequest(req.id);
+                              }}
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Clear record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Filters and Search Bar */}

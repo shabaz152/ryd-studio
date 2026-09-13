@@ -14,6 +14,7 @@ import {
   AuthUser,
   AuthorizedUser,
   DesignatedHallLocation,
+  AccessRequest,
 } from '../types';
 
 
@@ -958,4 +959,27 @@ export const INITIAL_ACTIVITY_EVENTS: ActivityEvent[] = [
     readByAdmin: true,
     readByParent: true
   }
+];
+
+export const INITIAL_ACCESS_REQUESTS: AccessRequest[] = [
+  {
+    id: 'req-1',
+    name: 'Ananya Sharma',
+    email: 'ananya.dance@gmail.com',
+    password: 'ananyaPass2026',
+    role: 'tutor',
+    status: 'pending',
+    requestedAt: '2026-09-13 11:30 AM',
+    notes: 'Classical Bharatanatyam & Indian Dance Faculty Applicant',
+  },
+  {
+    id: 'req-2',
+    name: 'Vikram Joshi',
+    email: 'vikram.parent@gmail.com',
+    password: 'vikramPass2026',
+    role: 'parent',
+    status: 'pending',
+    requestedAt: '2026-09-13 12:15 PM',
+    notes: 'Parent of Maya Joshi (Enrolling in Acoustic Guitar & Vocals)',
+  },
 ];
