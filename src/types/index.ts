@@ -143,6 +143,7 @@ export type ReferralProgressStage =
   | 'referred'
   | 'interviewed'
   | 'selected_successfully'
+  | 'rejected'
   // Backward compatibility
   | 'starting_referral'
   | 'interview'
@@ -160,8 +161,10 @@ export interface ReferredCandidate {
   referringTeacherId?: string;
   referringTeacherName?: string;
   payoutAmount?: number;
-  payoutStatus?: 'pending' | 'paid';
+  payoutStatus?: 'pending' | 'paid' | 'cancelled';
   payoutDate?: string;
+  rejectionReason?: string;
+  rejectionDate?: string;
   notes?: string;
 }
 

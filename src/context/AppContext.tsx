@@ -172,6 +172,7 @@ interface AppContextType {
   replyToReview: (reviewId: string, replyText: string) => void;
   shareReferralInvite: () => void;
   updateCandidateStage: (candidateId: string, stage: ReferralProgressStage) => void;
+  rejectCandidate: (candidateId: string, reason?: string) => void;
   disburseDayPayout: (payoutId: string) => void;
   addCandidateReferral: (candidate: {
     candidateName: string;
@@ -420,7 +421,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [referralStats, setReferralStats] = useState<ReferralStats>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_referrals`);
-      return saved ? JSON.parse(saved) : INITIAL_REFERRAL_STATS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.candidates)) {
+          if (parsed.candidates.length >= INITIAL_REFERRAL_STATS.candidates.length) {
+            return parsed;
+          }
+          const existingIds = new Set(parsed.candidates.map((c: any) => c.id));
+          const missing = INITIAL_REFERRAL_STATS.candidates.filter((c) => !existingIds.has(c.id));
+          const mergedCandidates = [...parsed.candidates, ...missing];
+          const existingPayoutIds = new Set((parsed.dayPayouts || []).map((p: any) => p.id));
+          const missingPayouts = (INITIAL_REFERRAL_STATS.dayPayouts || []).filter((p) => !existingPayoutIds.has(p.id));
+          return {
+            ...parsed,
+            candidates: mergedCandidates,
+            dayPayouts: [...(parsed.dayPayouts || []), ...missingPayouts],
+          };
+        }
+      }
+      return INITIAL_REFERRAL_STATS;
     } catch {
       return INITIAL_REFERRAL_STATS;
     }
@@ -3240,7 +3259,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const rejectCandidate = (candidateId: string, reason?: string) => {
+    const currentCandidate = referralStats.candidates?.find((c) => c.id === candidateId);
+    if (!currentCandidate) return;
+
+    const wasAlreadySelected =
+      currentCandidate.stage === 'selected_successfully' ||
+      currentCandidate.stage === 'successfully_joined';
+
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    setReferralStats((prev) => {
+      const updatedCandidates = (prev.candidates || []).map((c) =>
+        c.id === candidateId
+          ? {
+              ...c,
+              stage: 'rejected' as ReferralProgressStage,
+              rejectionReason: reason || 'Application requirements not met for current cohort',
+              rejectionDate: todayDate,
+              payoutStatus: 'cancelled' as const,
+              payoutAmount: 0,
+            }
+          : c
+      );
+
+      const hireDiff = wasAlreadySelected ? -1 : 0;
+      const bonusDiff = wasAlreadySelected ? -2500 : 0;
+
+      // Keep only paid payouts; cancel/remove pending payout for this candidate
+      const nextPayouts = (prev.dayPayouts || []).filter((p) => p.candidateId !== candidateId || p.status === 'paid');
+
+      const updated = {
+        ...prev,
+        candidates: updatedCandidates,
+        dayPayouts: nextPayouts,
+        onboardedTeachers: Math.max(0, prev.onboardedTeachers + hireDiff),
+        bonusEarned: Math.max(0, prev.bonusEarned + bonusDiff),
+      };
+
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_referrals`, JSON.stringify(updated));
+      } catch {}
+
+      return updated;
+    });
+
+    sound.playClick();
+    showToast({
+      type: 'info',
+      title: 'Candidate Application Rejected',
+      description: `${currentCandidate.candidateName} has been marked as Rejected.`,
+    });
+  };
+
   const updateCandidateStage = (candidateId: string, nextStage: ReferralProgressStage) => {
+    if (nextStage === 'rejected') {
+      rejectCandidate(candidateId);
+      return;
+    }
+
     const currentCandidate = referralStats.candidates?.find((c) => c.id === candidateId);
     if (!currentCandidate) return;
 
@@ -3258,7 +3335,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? {
               ...c,
               stage: nextStage,
-              payoutStatus: isNowSelected ? ('paid' as const) : c.payoutStatus || 'pending',
+              rejectionReason: undefined,
+              rejectionDate: undefined,
+              payoutAmount: 2500,
+              payoutStatus: isNowSelected ? ('paid' as const) : c.payoutStatus === 'cancelled' ? 'pending' : c.payoutStatus || 'pending',
               payoutDate: isNowSelected ? todayDate : c.payoutDate,
             }
           : c
@@ -3324,6 +3404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         referred: 'Referred',
         interviewed: 'Interviewed',
         selected_successfully: 'Selected Successfully',
+        rejected: 'Rejected',
         starting_referral: 'Referred',
         interview: 'Interviewed',
         selected: 'Interviewed',
@@ -3332,7 +3413,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast({
         type: 'info',
         title: `Pipeline Stage: ${stageLabels[nextStage] || nextStage}`,
-        description: `${currentCandidate.candidateName} advanced to ${stageLabels[nextStage] || nextStage}.`,
+        description: `${currentCandidate.candidateName} updated to ${stageLabels[nextStage] || nextStage}.`,
       });
     }
   };
@@ -3511,6 +3592,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         replyToReview,
         shareReferralInvite,
         updateCandidateStage,
+        rejectCandidate,
         addCandidateReferral,
         disburseDayPayout,
         syncStatus,

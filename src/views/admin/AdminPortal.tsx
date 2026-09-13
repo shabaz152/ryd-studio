@@ -34,6 +34,9 @@ import {
   Eye,
   EyeOff,
   Copy,
+  XCircle,
+  RotateCcw,
+  TrendingUp,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ActivityEvent, UserRole, AuthorizedUser, ReferralProgressStage, ReferredCandidate, TeacherDayPayout } from '../../types';
@@ -81,6 +84,7 @@ export const AdminPortal: React.FC = () => {
     currentUser,
     referralStats,
     updateCandidateStage,
+    rejectCandidate,
     addCandidateReferral,
     disburseDayPayout,
     updateAdminProfileName,
@@ -148,6 +152,9 @@ export const AdminPortal: React.FC = () => {
   const [refReferringTeacherId, setRefReferringTeacherId] = useState<string>(tutors[0]?.id || 'tutor-shazz');
   const [refNotes, setRefNotes] = useState<string>('');
   const [refModalError, setRefModalError] = useState<string | null>(null);
+  const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>('all');
+  const [rejectModalCandidate, setRejectModalCandidate] = useState<ReferredCandidate | null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState<string>('Demonstration & profile requirements not met for current faculty cohort');
 
   // Date Filter State (defaults to current day)
   const [auditDate, setAuditDate] = useState<string>(todayStr);
@@ -296,6 +303,16 @@ export const AdminPortal: React.FC = () => {
           nextLabel: 'Advance to Selected Successfully',
           nextStage: 'selected_successfully' as ReferralProgressStage,
         };
+      case 'rejected':
+        return {
+          key: 'rejected',
+          label: 'Rejected',
+          step: 0,
+          color: 'bg-rose-500/10 text-rose-500 border-rose-500/30',
+          badgeText: '❌ Rejected',
+          nextLabel: null,
+          nextStage: null,
+        };
       case 'selected_successfully':
       case 'selected':
       case 'successfully_joined':
@@ -305,25 +322,108 @@ export const AdminPortal: React.FC = () => {
           label: 'Selected Successfully',
           step: 3,
           color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-          badgeText: '3. Selected Successfully',
+          badgeText: '3. Selected Successfully (Succeeded)',
           nextLabel: null,
           nextStage: null,
         };
     }
   };
 
+  // Detect whether a particular teacher name has been entered in search or chosen from teacher selector
+  const matchedTeacherBySearch = referralSearch.trim()
+    ? tutors.find((t) => {
+        const query = referralSearch.trim().toLowerCase();
+        const tName = t.name.toLowerCase();
+        const tEmail = t.email.toLowerCase();
+        const first = tName.split(' ')[0];
+        return (
+          tName.includes(query) ||
+          query.includes(first) ||
+          tEmail.includes(query)
+        );
+      })
+    : null;
+
+  const activeParticularTeacher =
+    selectedTeacherFilter !== 'all'
+      ? tutors.find((t) => t.id === selectedTeacherFilter) || null
+      : matchedTeacherBySearch;
+
+  // Candidates & Payouts specific to the active particular teacher
+  const particularTeacherCandidates = activeParticularTeacher
+    ? allCandidates.filter(
+        (c) =>
+          c.referringTeacherId === activeParticularTeacher.id ||
+          (c.referringTeacherName &&
+            (c.referringTeacherName.toLowerCase().includes(activeParticularTeacher.name.toLowerCase().split(' ')[0]) ||
+             activeParticularTeacher.name.toLowerCase().includes(c.referringTeacherName.toLowerCase().split(' ')[0])))
+      )
+    : [];
+
+  const particularTeacherPayouts = activeParticularTeacher
+    ? allDayPayouts.filter(
+        (p) =>
+          p.teacherId === activeParticularTeacher.id ||
+          (p.teacherName &&
+            (p.teacherName.toLowerCase().includes(activeParticularTeacher.name.toLowerCase().split(' ')[0]) ||
+             activeParticularTeacher.name.toLowerCase().includes(p.teacherName.toLowerCase().split(' ')[0])))
+      )
+    : [];
+
+  const ptTotalCandidates = particularTeacherCandidates.length;
+  const ptSucceededCandidates = particularTeacherCandidates.filter(
+    (c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined'
+  );
+  const ptInProgressCandidates = particularTeacherCandidates.filter(
+    (c) => c.stage === 'referred' || c.stage === 'interviewed' || c.stage === 'starting_referral' || c.stage === 'interview'
+  );
+  const ptRejectedCandidates = particularTeacherCandidates.filter(
+    (c) => c.stage === 'rejected'
+  );
+
+  // Amount granted & payouts for this teacher:
+  // Each succeeded candidate earns ₹2,500 granted bonus
+  const ptAmountGranted = ptSucceededCandidates.reduce((sum, c) => sum + (c.payoutAmount || 2500), 0);
+  const ptDisbursedAmount = particularTeacherPayouts
+    .filter((p) => p.status === 'paid')
+    .reduce((sum, p) => sum + (p.amountINR || 2500), 0);
+  const ptPendingAmount = Math.max(0, ptAmountGranted - ptDisbursedAmount);
+  const ptSuccessRate = (ptSucceededCandidates.length + ptRejectedCandidates.length) > 0
+    ? Math.round((ptSucceededCandidates.length / (ptSucceededCandidates.length + ptRejectedCandidates.length)) * 100)
+    : 0;
+
   const filteredReferrals = allCandidates.filter((c) => {
+    // If a particular teacher is selected/entered, filter strictly to this teacher's candidate referrals
+    if (activeParticularTeacher) {
+      const isTeacherMatch =
+        c.referringTeacherId === activeParticularTeacher.id ||
+        (c.referringTeacherName &&
+          (c.referringTeacherName.toLowerCase().includes(activeParticularTeacher.name.toLowerCase().split(' ')[0]) ||
+           activeParticularTeacher.name.toLowerCase().includes(c.referringTeacherName.toLowerCase().split(' ')[0])));
+      if (!isTeacherMatch) return false;
+    }
+
     const matchesStage =
       referralStageFilter === 'all' ||
       c.stage === referralStageFilter ||
-      (referralStageFilter === 'referred' && c.stage === 'starting_referral') ||
-      (referralStageFilter === 'interviewed' && c.stage === 'interview') ||
-      (referralStageFilter === 'selected_successfully' && (c.stage === 'selected' || c.stage === 'successfully_joined'));
+      (referralStageFilter === 'referred' && (c.stage === 'referred' || c.stage === 'starting_referral')) ||
+      (referralStageFilter === 'interviewed' && (c.stage === 'interviewed' || c.stage === 'interview')) ||
+      (referralStageFilter === 'selected_successfully' && (c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined')) ||
+      (referralStageFilter === 'rejected' && c.stage === 'rejected');
+
+    // If teacher search only, don't require candidate name to match teacher name
+    const isTeacherSearchOnly =
+      activeParticularTeacher &&
+      (activeParticularTeacher.name.toLowerCase().includes(referralSearch.trim().toLowerCase()) ||
+       referralSearch.trim().toLowerCase().includes(activeParticularTeacher.name.toLowerCase().split(' ')[0]));
+
     const matchesSearch =
       referralSearch === '' ||
+      isTeacherSearchOnly ||
       c.candidateName.toLowerCase().includes(referralSearch.toLowerCase()) ||
       (c.specialty && c.specialty.toLowerCase().includes(referralSearch.toLowerCase())) ||
       (c.referringTeacherName && c.referringTeacherName.toLowerCase().includes(referralSearch.toLowerCase()));
+
     return matchesStage && matchesSearch;
   });
 
@@ -2272,34 +2372,272 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             {/* Quick KPI Overview */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 dark:border-white/5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 dark:border-white/5">
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Candidates</span>
-                <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{allCandidates.length}</p>
-                <span className="text-[10px] text-slate-500">Across 3 Stages</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {activeParticularTeacher ? `${activeParticularTeacher.name.split(' ')[0]}'s Total` : 'Total Candidates'}
+                </span>
+                <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+                  {activeParticularTeacher ? ptTotalCandidates : allCandidates.length}
+                </p>
+                <span className="text-[10px] text-slate-500">Across All Stages</span>
               </div>
               <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20">
                 <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">1. Referred</span>
                 <p className="text-xl font-black text-blue-500 mt-0.5">
-                  {allCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length}
+                  {activeParticularTeacher
+                    ? particularTeacherCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length
+                    : allCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length}
                 </p>
                 <span className="text-[10px] text-blue-400/80">Application Stage</span>
               </div>
               <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
                 <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">2. Interviewed</span>
                 <p className="text-xl font-black text-amber-500 mt-0.5">
-                  {allCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length}
+                  {activeParticularTeacher
+                    ? particularTeacherCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length
+                    : allCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length}
                 </p>
                 <span className="text-[10px] text-amber-500/80">Demonstration Stage</span>
               </div>
               <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">3. Selected Successfully</span>
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">3. Succeeded</span>
                 <p className="text-xl font-black text-emerald-500 mt-0.5">
-                  {allCandidates.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length}
+                  {activeParticularTeacher
+                    ? ptSucceededCandidates.length
+                    : allCandidates.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length}
                 </p>
                 <span className="text-[10px] text-emerald-400/80">₹2,500 Bonus Triggered</span>
               </div>
+              <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20">
+                <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1">
+                  <XCircle className="w-3 h-3" />
+                  <span>Rejected</span>
+                </span>
+                <p className="text-xl font-black text-rose-500 mt-0.5">
+                  {activeParticularTeacher
+                    ? ptRejectedCandidates.length
+                    : allCandidates.filter((c) => c.stage === 'rejected').length}
+                </p>
+                <span className="text-[10px] text-rose-400/80">Disqualified / Inactive</span>
+              </div>
             </div>
+          </div>
+
+          {/* DEDICATED PARTICULAR TEACHER OVERVIEW CARD (Triggered by entering name or selecting teacher) */}
+          {activeParticularTeacher && (
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/15 via-slate-900 to-black border-2 border-amber-500/40 p-5 sm:p-6 shadow-2xl space-y-5 animate-fadeIn">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+
+              {/* Teacher Header & Reset Control */}
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-500/20 pb-4">
+                <div className="flex items-center gap-3.5">
+                  {activeParticularTeacher.avatarUrl ? (
+                    <img
+                      src={activeParticularTeacher.avatarUrl}
+                      alt={activeParticularTeacher.name}
+                      className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-500/50 shadow-md shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 font-black text-xl flex items-center justify-center border-2 border-amber-500/50 shrink-0">
+                      {activeParticularTeacher.name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-amber-400" />
+                        <span>Particular Teacher Referral & Payout Record</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        activeParticularTeacher.status === 'online'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        ● {activeParticularTeacher.status === 'online' ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+                      {activeParticularTeacher.name}
+                    </h3>
+                    <p className="text-xs text-slate-300 flex items-center gap-2 flex-wrap mt-0.5">
+                      <span>{activeParticularTeacher.email}</span>
+                      <span>•</span>
+                      <span className="text-amber-400 font-semibold">{activeParticularTeacher.subjects?.join(', ') || 'Academic Faculty'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setSelectedTeacherFilter('all');
+                      setReferralSearch('');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold border border-white/15 transition-all cursor-pointer flex items-center gap-1.5"
+                    title="Reset filter and view all teachers"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Clear Filter (View All Teachers)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 1: Amount Granted & Payouts Financial Ledger */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-black/40 border border-amber-500/30 space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-amber-400" />
+                      <span>Amount Granted</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                      ₹2,500 / Succeeded
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-amber-400">
+                    ₹{ptAmountGranted.toLocaleString()} <span className="text-xs font-normal text-slate-400">INR</span>
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Total bonus earned from {ptSucceededCandidates.length} candidate(s) hired successfully
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-300">Disbursed Payouts</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                      Paid Out
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-emerald-400">
+                    ₹{ptDisbursedAmount.toLocaleString()} <span className="text-xs font-normal text-slate-400">INR</span>
+                  </p>
+                  <p className="text-[11px] text-emerald-400/80">
+                    Transferred directly to {activeParticularTeacher.name.split(' ')[0]}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/30 space-y-1">
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span className="text-amber-300">Pending Day Payouts</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                      Awaiting Action
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-amber-400">
+                    ₹{ptPendingAmount.toLocaleString()} <span className="text-xs font-normal text-slate-400">INR</span>
+                  </p>
+                  <p className="text-[11px] text-amber-300/80">
+                    {ptPendingAmount > 0
+                      ? 'Ready for admin disbursal'
+                      : 'All granted payouts settled'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 2: Referrals Breakdown (Total, Succeeded, In Progress, Rejected) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Referrals</span>
+                  <p className="text-xl font-black text-white mt-1">{ptTotalCandidates}</p>
+                  <span className="text-[10px] text-slate-400">Submitted by teacher</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Succeeded</span>
+                  </span>
+                  <p className="text-xl font-black text-emerald-400 mt-1">{ptSucceededCandidates.length}</p>
+                  <span className="text-[10px] text-emerald-400/80">Selected Successfully</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30">
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">In Progress</span>
+                  <p className="text-xl font-black text-blue-400 mt-1">{ptInProgressCandidates.length}</p>
+                  <span className="text-[10px] text-blue-400/80">Referred / Interviewing</span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30">
+                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block flex items-center gap-1">
+                    <XCircle className="w-3 h-3" />
+                    <span>Rejected</span>
+                  </span>
+                  <p className="text-xl font-black text-rose-400 mt-1">{ptRejectedCandidates.length}</p>
+                  <span className="text-[10px] text-rose-400/80">Did not qualify</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Teacher Quick Select Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap bg-white dark:bg-[#10101A] p-3.5 rounded-2xl border border-slate-200 dark:border-white/10">
+            <span className="text-xs font-bold text-slate-500 dark:text-gray-400 flex items-center gap-1 shrink-0 mr-1">
+              <Users className="w-3.5 h-3.5 text-amber-500" />
+              <span>Teacher Quick Filter:</span>
+            </span>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setSelectedTeacherFilter('all');
+                setReferralSearch('');
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedTeacherFilter === 'all' && !matchedTeacherBySearch
+                  ? 'bg-amber-500 text-black shadow-xs font-black'
+                  : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              All Teachers ({allCandidates.length})
+            </button>
+            {tutors.map((tutor) => {
+              const isSelected =
+                selectedTeacherFilter === tutor.id ||
+                (matchedTeacherBySearch && matchedTeacherBySearch.id === tutor.id);
+              const tutorCandCount = allCandidates.filter(
+                (c) =>
+                  c.referringTeacherId === tutor.id ||
+                  (c.referringTeacherName &&
+                    (c.referringTeacherName.toLowerCase().includes(tutor.name.toLowerCase().split(' ')[0]) ||
+                     tutor.name.toLowerCase().includes(c.referringTeacherName.toLowerCase().split(' ')[0])))
+              ).length;
+
+              return (
+                <button
+                  key={tutor.id}
+                  onClick={() => {
+                    sound.playClick();
+                    if (isSelected) {
+                      setSelectedTeacherFilter('all');
+                      setReferralSearch('');
+                    } else {
+                      setSelectedTeacherFilter(tutor.id);
+                      setReferralSearch('');
+                    }
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-amber-500 text-black shadow-sm ring-2 ring-amber-500/50 font-black'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>{tutor.name}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    isSelected ? 'bg-black/20 text-black' : 'bg-amber-500/20 text-amber-500'
+                  }`}>
+                    {tutorCandCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* VIEW 1: Referral Pipeline */}
@@ -2315,11 +2653,11 @@ export const AdminPortal: React.FC = () => {
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       referralStageFilter === 'all'
-                        ? 'bg-amber-500 text-black shadow-xs'
+                        ? 'bg-amber-500 text-black shadow-xs font-black'
                         : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    All Candidates ({allCandidates.length})
+                    All Candidates ({activeParticularTeacher ? ptTotalCandidates : allCandidates.length})
                   </button>
                   <button
                     onClick={() => {
@@ -2328,11 +2666,15 @@ export const AdminPortal: React.FC = () => {
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       referralStageFilter === 'referred'
-                        ? 'bg-blue-500 text-white shadow-xs'
+                        ? 'bg-blue-500 text-white shadow-xs font-black'
                         : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    1. Referred ({allCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length})
+                    1. Referred ({
+                      activeParticularTeacher
+                        ? particularTeacherCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length
+                        : allCandidates.filter((c) => c.stage === 'referred' || c.stage === 'starting_referral').length
+                    })
                   </button>
                   <button
                     onClick={() => {
@@ -2341,11 +2683,15 @@ export const AdminPortal: React.FC = () => {
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       referralStageFilter === 'interviewed'
-                        ? 'bg-amber-500 text-black shadow-xs'
+                        ? 'bg-amber-500 text-black shadow-xs font-black'
                         : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    2. Interviewed ({allCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length})
+                    2. Interviewed ({
+                      activeParticularTeacher
+                        ? particularTeacherCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length
+                        : allCandidates.filter((c) => c.stage === 'interviewed' || c.stage === 'interview').length
+                    })
                   </button>
                   <button
                     onClick={() => {
@@ -2354,23 +2700,53 @@ export const AdminPortal: React.FC = () => {
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       referralStageFilter === 'selected_successfully'
-                        ? 'bg-emerald-500 text-white shadow-xs'
+                        ? 'bg-emerald-500 text-white shadow-xs font-black'
                         : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    3. Selected Successfully ({allCandidates.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length})
+                    3. Succeeded ({
+                      activeParticularTeacher
+                        ? ptSucceededCandidates.length
+                        : allCandidates.filter((c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined').length
+                    })
+                  </button>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setReferralStageFilter('rejected');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      referralStageFilter === 'rejected'
+                        ? 'bg-rose-500 text-white shadow-xs font-black'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Rejected ({
+                      activeParticularTeacher
+                        ? ptRejectedCandidates.length
+                        : allCandidates.filter((c) => c.stage === 'rejected').length
+                    })</span>
                   </button>
                 </div>
 
-                <div className="relative min-w-[220px]">
+                <div className="relative min-w-[260px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
                   <input
                     type="text"
                     value={referralSearch}
                     onChange={(e) => setReferralSearch(e.target.value)}
-                    placeholder="Search candidate or teacher..."
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                    placeholder="Enter teacher name (e.g. Shazz, Alex) or candidate..."
+                    className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                   />
+                  {referralSearch && (
+                    <button
+                      onClick={() => setReferralSearch('')}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -2380,18 +2756,29 @@ export const AdminPortal: React.FC = () => {
                   <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
                     <Gift className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                     <p className="text-sm font-bold text-slate-700 dark:text-gray-300">No candidates found.</p>
-                    <p className="text-xs text-slate-400 mt-1">Try changing filters or add a new candidate referral.</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {activeParticularTeacher
+                        ? `No matching candidates for teacher "${activeParticularTeacher.name}".`
+                        : 'Try changing filters or adding a new candidate referral.'}
+                    </p>
                   </div>
                 ) : (
                   filteredReferrals.map((cand) => {
                     const meta = getStageMeta(cand.stage);
                     const matchingPayout = allDayPayouts.find((p) => p.candidateId === cand.id);
                     const isPayoutPaid = cand.payoutStatus === 'paid' || matchingPayout?.status === 'paid';
+                    const isRejected = cand.stage === 'rejected';
 
                     return (
                       <div
                         key={cand.id}
-                        className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs space-y-4"
+                        className={`p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#10101A] border shadow-xs space-y-4 ${
+                          isRejected
+                            ? 'border-rose-500/30 dark:border-rose-500/20'
+                            : meta.step === 3
+                            ? 'border-emerald-500/30 dark:border-emerald-500/20'
+                            : 'border-slate-200 dark:border-white/10'
+                        }`}
                       >
                         {/* Candidate Card Header */}
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -2410,7 +2797,7 @@ export const AdminPortal: React.FC = () => {
 
                             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-gray-400 mt-1.5">
                               <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                                🤝 Referring Teacher: <strong>{cand.referringTeacherName || 'Shazz (Lead Faculty)'}</strong>
+                                🤝 Referring Teacher: <strong>{cand.referringTeacherName || 'Faculty'}</strong>
                               </span>
                               <span>•</span>
                               <span className="flex items-center gap-1">
@@ -2427,101 +2814,160 @@ export const AdminPortal: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Top Advance Button */}
-                          {meta.nextStage && (
-                            <button
-                              onClick={() => {
-                                sound.playClick();
-                                updateCandidateStage(cand.id, meta.nextStage!);
-                              }}
-                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                            >
-                              <span>{meta.nextLabel}</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
+                          {/* Top Action Buttons (Advance / Reject) */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {!isRejected && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  setRejectModalCandidate(cand);
+                                  setRejectReasonInput('Demonstration & profile requirements not met for current faculty cohort');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                                title="Reject candidate application"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>Reject</span>
+                              </button>
+                            )}
 
-                        {/* 3-Stage Interactive Stepper */}
-                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-black/30 border border-slate-200/80 dark:border-white/5 space-y-2">
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            Hiring Pipeline Stepper (Click to update candidate stage):
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            {/* Step 1: Referred */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sound.playClick();
-                                updateCandidateStage(cand.id, 'referred');
-                              }}
-                              className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                                meta.step === 1
-                                  ? 'bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-xs'
-                                  : meta.step > 1
-                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between text-[11px] font-black mb-1">
-                                <span>Step 1: Referred</span>
-                                <span>{meta.step > 1 ? '✓ Complete' : meta.step === 1 ? '● In Progress' : 'Pending'}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
-                                Candidate submitted via faculty referral link
-                              </p>
-                            </button>
-
-                            {/* Step 2: Interviewed */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sound.playClick();
-                                updateCandidateStage(cand.id, 'interviewed');
-                              }}
-                              className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                                meta.step === 2
-                                  ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-xs'
-                                  : meta.step > 2
-                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between text-[11px] font-black mb-1">
-                                <span>Step 2: Interviewed</span>
-                                <span>{meta.step > 2 ? '✓ Complete' : meta.step === 2 ? '● In Progress' : 'Pending'}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
-                                Teaching demonstration & Director interview
-                              </p>
-                            </button>
-
-                            {/* Step 3: Selected Successfully */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sound.playClick();
-                                updateCandidateStage(cand.id, 'selected_successfully');
-                              }}
-                              className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
-                                meta.step === 3
-                                  ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between text-[11px] font-black mb-1">
-                                <span>Step 3: Selected Successfully</span>
-                                <span>{meta.step === 3 ? '✓ Complete' : 'Pending'}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
-                                Onboarded • ₹2,500 Day Payout awarded
-                              </p>
-                            </button>
+                            {meta.nextStage && !isRejected && (
+                              <button
+                                onClick={() => {
+                                  sound.playClick();
+                                  updateCandidateStage(cand.id, meta.nextStage!);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                              >
+                                <span>{meta.nextLabel}</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        {/* Particular Teacher Day Payout Banner (for selected candidate) */}
-                        {meta.step === 3 && (
+                        {/* REJECTED OUTCOME BANNER */}
+                        {isRejected ? (
+                          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-start gap-2.5">
+                              <span className="p-1.5 rounded-lg bg-rose-500/20 text-rose-500 font-black text-xs shrink-0 mt-0.5">
+                                <XCircle className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                                  Candidate Application Rejected {cand.rejectionDate ? `on ${cand.rejectionDate}` : ''}
+                                </p>
+                                <p className="text-[11px] text-slate-700 dark:text-gray-300 mt-0.5">
+                                  Reason: <span className="font-semibold text-rose-600 dark:text-rose-300">{cand.rejectionReason || 'Did not meet criteria for current faculty cohort'}</span>
+                                </p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  Referral day payout cancelled (₹0 INR granted to {cand.referringTeacherName || 'Referring Teacher'})
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => {
+                                  sound.playClick();
+                                  updateCandidateStage(cand.id, 'interviewed');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-gray-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                                title="Reconsider candidate and move back to Interview stage"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+                                <span>↩ Reconsider Candidate</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* 3-Stage Interactive Stepper */
+                          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-black/30 border border-slate-200/80 dark:border-white/5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                Hiring Pipeline Stepper (Click step to advance):
+                              </p>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                Bonus on hire: ₹2,500 INR
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                              {/* Step 1: Referred */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  updateCandidateStage(cand.id, 'referred');
+                                }}
+                                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                                  meta.step === 1
+                                    ? 'bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-xs'
+                                    : meta.step > 1
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[11px] font-black mb-1">
+                                  <span>Step 1: Referred</span>
+                                  <span>{meta.step > 1 ? '✓ Complete' : meta.step === 1 ? '● In Progress' : 'Pending'}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
+                                  Candidate submitted via faculty referral link
+                                </p>
+                              </button>
+
+                              {/* Step 2: Interviewed */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  updateCandidateStage(cand.id, 'interviewed');
+                                }}
+                                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                                  meta.step === 2
+                                    ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-xs'
+                                    : meta.step > 2
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[11px] font-black mb-1">
+                                  <span>Step 2: Interviewed</span>
+                                  <span>{meta.step > 2 ? '✓ Complete' : meta.step === 2 ? '● In Progress' : 'Pending'}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
+                                  Teaching demonstration & Director interview
+                                </p>
+                              </button>
+
+                              {/* Step 3: Selected Successfully */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  updateCandidateStage(cand.id, 'selected_successfully');
+                                }}
+                                className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                                  meta.step === 3
+                                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                                    : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 text-slate-500'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[11px] font-black mb-1">
+                                  <span>Step 3: Selected (Succeeded)</span>
+                                  <span>{meta.step === 3 ? '✓ Complete' : 'Pending'}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">
+                                  Onboarded • ₹2,500 Day Payout awarded
+                                </p>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Particular Teacher Day Payout Banner (for selected/succeeded candidate) */}
+                        {meta.step === 3 && !isRejected && (
                           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <span className="p-1.5 rounded-lg bg-amber-500 text-black font-black text-xs">
@@ -2573,13 +3019,17 @@ export const AdminPortal: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs">
                   <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
-                    <span>Total Referral Bonuses</span>
+                    <span>
+                      {activeParticularTeacher ? `${activeParticularTeacher.name.split(' ')[0]}'s Granted Bonus` : 'Total Referral Bonuses'}
+                    </span>
                     <Coins className="w-4 h-4 text-amber-500" />
                   </div>
                   <p className="text-2xl font-black text-amber-500 mt-2">
-                    ₹{totalPayoutsAmount.toLocaleString()}
+                    ₹{(activeParticularTeacher ? ptAmountGranted : totalPayoutsAmount).toLocaleString()}
                   </p>
-                  <span className="text-[11px] text-slate-500">Earned across all teacher referrals</span>
+                  <span className="text-[11px] text-slate-500">
+                    {activeParticularTeacher ? `Granted to ${activeParticularTeacher.name}` : 'Earned across all teacher referrals'}
+                  </span>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs">
@@ -2588,9 +3038,11 @@ export const AdminPortal: React.FC = () => {
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   </div>
                   <p className="text-2xl font-black text-emerald-500 mt-2">
-                    ₹{disbursedPayoutsAmount.toLocaleString()}
+                    ₹{(activeParticularTeacher ? ptDisbursedAmount : disbursedPayoutsAmount).toLocaleString()}
                   </p>
-                  <span className="text-[11px] text-slate-500">Paid out to referring teachers</span>
+                  <span className="text-[11px] text-slate-500">
+                    {activeParticularTeacher ? `Paid out to ${activeParticularTeacher.name.split(' ')[0]}` : 'Paid out to referring teachers'}
+                  </span>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs">
@@ -2599,7 +3051,7 @@ export const AdminPortal: React.FC = () => {
                     <Clock className="w-4 h-4 text-amber-500" />
                   </div>
                   <p className="text-2xl font-black text-amber-500 mt-2">
-                    ₹{pendingPayoutsAmount.toLocaleString()}
+                    ₹{(activeParticularTeacher ? ptPendingAmount : pendingPayoutsAmount).toLocaleString()}
                   </p>
                   <span className="text-[11px] text-slate-500">Pending approval / disbursal</span>
                 </div>
@@ -2607,12 +3059,30 @@ export const AdminPortal: React.FC = () => {
 
               {/* Particular Teacher Breakdown Cards */}
               <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-amber-500" />
-                  <span>Teacher-by-Teacher Referral & Day Payout Breakdown</span>
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-amber-500" />
+                    <span>
+                      {activeParticularTeacher
+                        ? `Particular Teacher Ledger: ${activeParticularTeacher.name}`
+                        : 'Teacher-by-Teacher Referral & Day Payout Breakdown'}
+                    </span>
+                  </h3>
+                  {activeParticularTeacher && (
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setSelectedTeacherFilter('all');
+                        setReferralSearch('');
+                      }}
+                      className="text-xs text-amber-500 font-bold hover:underline cursor-pointer"
+                    >
+                      Show All Teachers
+                    </button>
+                  )}
+                </div>
 
-                {tutors.map((tutor) => {
+                {(activeParticularTeacher ? [activeParticularTeacher] : tutors).map((tutor) => {
                   // All referrals for this particular teacher
                   const teacherCandidates = allCandidates.filter(
                     (c) =>
@@ -2625,18 +3095,28 @@ export const AdminPortal: React.FC = () => {
                       (p.teacherName && p.teacherName.toLowerCase().includes(tutor.name.toLowerCase().split(' ')[0]))
                   );
 
-                  const teacherTotalEarned = teacherPayouts.reduce((sum, p) => sum + (p.amountINR || 2500), 0);
+                  const teacherSucceeded = teacherCandidates.filter(
+                    (c) => c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined'
+                  );
+                  const teacherRejected = teacherCandidates.filter((c) => c.stage === 'rejected');
+                  const teacherInProgress = teacherCandidates.filter(
+                    (c) => c.stage === 'referred' || c.stage === 'interviewed' || c.stage === 'starting_referral' || c.stage === 'interview'
+                  );
+
+                  const teacherTotalEarned = teacherSucceeded.reduce((sum, c) => sum + (c.payoutAmount || 2500), 0);
                   const teacherDisbursed = teacherPayouts
                     .filter((p) => p.status === 'paid')
                     .reduce((sum, p) => sum + (p.amountINR || 2500), 0);
-                  const teacherPending = teacherPayouts
-                    .filter((p) => p.status === 'pending')
-                    .reduce((sum, p) => sum + (p.amountINR || 2500), 0);
+                  const teacherPending = Math.max(0, teacherTotalEarned - teacherDisbursed);
 
                   return (
                     <div
                       key={tutor.id}
-                      className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs space-y-4"
+                      className={`p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#10101A] border shadow-xs space-y-4 ${
+                        activeParticularTeacher?.id === tutor.id
+                          ? 'border-amber-500/50 ring-2 ring-amber-500/20'
+                          : 'border-slate-200 dark:border-white/10'
+                      }`}
                     >
                       {/* Teacher Card Header */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
@@ -2662,7 +3142,7 @@ export const AdminPortal: React.FC = () => {
                               </span>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-                              {tutor.email} • {teacherCandidates.length} Total Candidate Referrals
+                              {tutor.email} • {teacherCandidates.length} Referrals ({teacherSucceeded.length} Succeeded • {teacherInProgress.length} In Progress • {teacherRejected.length} Rejected)
                             </p>
                           </div>
                         </div>
@@ -2670,7 +3150,7 @@ export const AdminPortal: React.FC = () => {
                         {/* Teacher Financial Summary Pills */}
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-right">
-                            <span className="text-[10px] text-slate-400 block font-semibold uppercase">Earned</span>
+                            <span className="text-[10px] text-slate-400 block font-semibold uppercase">Granted</span>
                             <span className="text-sm font-black text-amber-500">₹{teacherTotalEarned.toLocaleString()}</span>
                           </div>
                           <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-right">
@@ -2699,11 +3179,16 @@ export const AdminPortal: React.FC = () => {
                               const meta = getStageMeta(c.stage);
                               const matchingPayout = teacherPayouts.find((p) => p.candidateId === c.id);
                               const isPaid = c.payoutStatus === 'paid' || matchingPayout?.status === 'paid';
+                              const isRejected = c.stage === 'rejected';
 
                               return (
                                 <div
                                   key={c.id}
-                                  className="p-3 rounded-xl bg-slate-50 dark:bg-black/30 border border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                                    isRejected
+                                      ? 'bg-rose-500/5 border-rose-500/20'
+                                      : 'bg-slate-50 dark:bg-black/30 border-slate-200/60 dark:border-white/5'
+                                  }`}
                                 >
                                   <div>
                                     <div className="flex items-center gap-2 flex-wrap">
@@ -2720,17 +3205,26 @@ export const AdminPortal: React.FC = () => {
                                     <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
                                       {c.specialty} • {c.email}
                                     </p>
+                                    {isRejected && c.rejectionReason && (
+                                      <p className="text-[11px] text-rose-500 dark:text-rose-400 font-semibold mt-0.5">
+                                        Rejected: {c.rejectionReason}
+                                      </p>
+                                    )}
                                   </div>
 
                                   <div className="flex items-center gap-3 shrink-0">
                                     <div className="text-right">
-                                      <span className="font-black text-amber-500 block">
-                                        ₹2,500 INR
+                                      <span className={`font-black block ${isRejected ? 'text-slate-400 line-through' : 'text-amber-500'}`}>
+                                        {isRejected ? '₹0 INR' : '₹2,500 INR'}
                                       </span>
                                       <span className="text-[10px] text-slate-400">Day Payout</span>
                                     </div>
 
-                                    {isPaid ? (
+                                    {isRejected ? (
+                                      <span className="px-2.5 py-1 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[11px] font-bold">
+                                        Cancelled
+                                      </span>
+                                    ) : isPaid ? (
                                       <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-[11px] font-black flex items-center gap-1">
                                         <CheckCircle2 className="w-3.5 h-3.5" />
                                         <span>Paid</span>
@@ -2902,6 +3396,104 @@ export const AdminPortal: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Candidate Confirmation Modal */}
+      {rejectModalCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Reject Candidate Application
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">
+                    Mark candidate as not selected & cancel day payout
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModalCandidate(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 space-y-1 text-xs">
+              <p className="text-slate-500 dark:text-gray-400">
+                Candidate: <strong className="text-slate-900 dark:text-white">{rejectModalCandidate.candidateName}</strong>
+              </p>
+              <p className="text-slate-500 dark:text-gray-400">
+                Referring Teacher: <strong className="text-amber-500">{rejectModalCandidate.referringTeacherName || 'Faculty'}</strong>
+              </p>
+              <p className="text-slate-500 dark:text-gray-400">
+                Specialty: <span>{rejectModalCandidate.specialty}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-gray-300 block">
+                Select Rejection Reason:
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  'Demonstration & profile requirements not met for current faculty cohort',
+                  'Schedule availability conflicts with required studio timings',
+                  'Academic credential verification incomplete or could not be validated',
+                  'Candidate withdrew or did not attend scheduled demonstration',
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setRejectReasonInput(reason)}
+                    className={`w-full text-left p-2 rounded-xl text-xs border transition-all cursor-pointer ${
+                      rejectReasonInput === reason
+                        ? 'bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-400 font-semibold'
+                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={rejectReasonInput}
+                onChange={(e) => setRejectReasonInput(e.target.value)}
+                rows={2}
+                className="w-full mt-2 p-2.5 rounded-xl bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500"
+                placeholder="Or type custom rejection reason..."
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setRejectModalCandidate(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  rejectCandidate(rejectModalCandidate.id, rejectReasonInput.trim());
+                  setRejectModalCandidate(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Confirm Rejection</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -20,6 +20,7 @@ import {
   Lock,
   Eye,
   Filter,
+  XCircle,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -139,6 +140,7 @@ export const ReferralView: React.FC = () => {
     if (filterStage === 'interviewed') return c.stage === 'interviewed' || c.stage === 'interview';
     if (filterStage === 'selected_successfully')
       return c.stage === 'selected_successfully' || c.stage === 'selected' || c.stage === 'successfully_joined';
+    if (filterStage === 'rejected') return c.stage === 'rejected';
     return c.stage === filterStage;
   });
 
@@ -155,7 +157,8 @@ export const ReferralView: React.FC = () => {
     (c) =>
       c.stage !== 'selected_successfully' &&
       c.stage !== 'selected' &&
-      c.stage !== 'successfully_joined'
+      c.stage !== 'successfully_joined' &&
+      c.stage !== 'rejected'
   ).length;
 
   const selectedSuccessfullyCount = tutorCandidates.filter(
@@ -164,6 +167,8 @@ export const ReferralView: React.FC = () => {
       c.stage === 'selected' ||
       c.stage === 'successfully_joined'
   ).length;
+
+  const rejectedCount = tutorCandidates.filter((c) => c.stage === 'rejected').length;
 
   const shareUrl = `https://ryd.studio/faculty/join?code=${activeReferralCode}&ref=${encodeURIComponent(
     activeTutorName
@@ -241,6 +246,13 @@ export const ReferralView: React.FC = () => {
         return (
           <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider">
             2. Interviewed
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+            <XCircle className="w-3 h-3" />
+            Rejected
           </span>
         );
       case 'selected_successfully':
@@ -498,24 +510,34 @@ export const ReferralView: React.FC = () => {
         </div>
 
         {/* Analytics Summary - Isolated to Current Tutor */}
-        <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
             <span className="text-[10px] text-gray-400 font-bold uppercase">
-              {isTutorLoggedIn ? 'My Referred Candidates' : 'Total Candidates'}
+              {isTutorLoggedIn ? 'My Referrals' : 'Total Candidates'}
             </span>
             <p className="text-2xl font-black text-white mt-0.5">{tutorCandidates.length}</p>
           </div>
           <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
-            <span className="text-[10px] text-purple-400 font-bold uppercase">In Faculty Pipeline</span>
+            <span className="text-[10px] text-purple-400 font-bold uppercase">In Pipeline</span>
             <p className="text-2xl font-black text-purple-400 mt-0.5">{inPipelineCount}</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
-            <span className="text-[10px] text-emerald-400 font-bold uppercase">Selected Successfully</span>
+          <div className="p-4 rounded-2xl bg-[#08080C] border border-emerald-500/20">
+            <span className="text-[10px] text-emerald-400 font-bold uppercase flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Succeeded</span>
+            </span>
             <p className="text-2xl font-black text-emerald-400 mt-0.5">{selectedSuccessfullyCount}</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10">
+          <div className="p-4 rounded-2xl bg-[#08080C] border border-rose-500/20">
+            <span className="text-[10px] text-rose-400 font-bold uppercase flex items-center gap-1">
+              <XCircle className="w-3 h-3" />
+              <span>Rejected</span>
+            </span>
+            <p className="text-2xl font-black text-rose-400 mt-0.5">{rejectedCount}</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-[#08080C] border border-white/10 col-span-2 sm:col-span-1">
             <span className="text-[10px] text-[#FFD000] font-bold uppercase">
-              {isTutorLoggedIn ? 'My Day Payouts Earned' : 'Total Day Payouts'}
+              {isTutorLoggedIn ? 'Day Payouts' : 'Total Payouts'}
             </span>
             <p className="text-2xl font-black text-[#FFD000] mt-0.5">
               ₹{myTotalEarned.toLocaleString()}
@@ -683,6 +705,17 @@ export const ReferralView: React.FC = () => {
             >
               3. Selected Successfully ({selectedSuccessfullyCount})
             </button>
+            <button
+              onClick={() => setFilterStage('rejected')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                filterStage === 'rejected'
+                  ? 'bg-rose-500 text-white shadow-xs'
+                  : 'bg-white/5 text-gray-400 hover:text-white'
+              }`}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Rejected ({rejectedCount})</span>
+            </button>
           </div>
         </div>
 
@@ -744,8 +777,13 @@ export const ReferralView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Stage Advancer Button */}
-                    {!isJoined ? (
+                    {/* Stage Action Button */}
+                    {cand.stage === 'rejected' ? (
+                      <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold">
+                        <XCircle className="w-4 h-4" />
+                        <span>Application Not Selected</span>
+                      </div>
+                    ) : !isJoined ? (
                       <button
                         onClick={() => {
                           advanceCandidate(cand);
@@ -768,70 +806,85 @@ export const ReferralView: React.FC = () => {
                     )}
                   </div>
 
-                  {/* 3-Stage Interactive Visual Stepper */}
-                  <div className="pt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {stages.map((stg, idx) => {
-                        const isCompleted = idx < currentStageIndex;
-                        const isCurrent = idx === currentStageIndex;
+                  {/* 3-Stage Stepper OR Rejected Notice */}
+                  {cand.stage === 'rejected' ? (
+                    <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs space-y-1">
+                      <p className="font-bold flex items-center gap-1.5 text-rose-400">
+                        <XCircle className="w-4 h-4" />
+                        <span>Candidate not selected for current faculty cohort {cand.rejectionDate ? `(${cand.rejectionDate})` : ''}</span>
+                      </p>
+                      {cand.rejectionReason && (
+                        <p className="text-[11px] text-gray-300">
+                          Review Note: <span className="text-rose-300 font-semibold">{cand.rejectionReason}</span>
+                        </p>
+                      )}
+                      <p className="text-[10px] text-gray-500">Day Payout: Cancelled (₹0 INR)</p>
+                    </div>
+                  ) : (
+                    <div className="pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {stages.map((stg, idx) => {
+                          const isCompleted = idx < currentStageIndex;
+                          const isCurrent = idx === currentStageIndex;
 
-                        return (
-                          <button
-                            key={stg.key}
-                            type="button"
-                            onClick={() => {
-                              sound.playClick();
-                              updateCandidateStage(cand.id, stg.key);
-                            }}
-                            className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
-                              isCurrent
-                                ? 'bg-[#FFD000]/10 border-[#FFD000] shadow-[0_0_15px_rgba(255,208,0,0.2)]'
-                                : isCompleted
-                                ? 'bg-emerald-500/10 border-emerald-500/30'
-                                : 'bg-[#0A0A10] border-white/5 hover:border-white/20'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span
-                                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                                  isCurrent
-                                    ? 'bg-[#FFD000] text-black'
-                                    : isCompleted
-                                    ? 'bg-emerald-400 text-black'
-                                    : 'bg-white/10 text-gray-400'
-                                }`}
-                              >
-                                {isCompleted ? '✓' : stg.stepNumber}
-                              </span>
-                              <span
-                                className={`text-[9px] font-mono uppercase ${
-                                  isCurrent
-                                    ? 'text-[#FFD000] font-bold'
-                                    : isCompleted
-                                    ? 'text-emerald-400'
-                                    : 'text-gray-500'
-                                }`}
-                              >
-                                {isCurrent ? 'Current' : isCompleted ? 'Done' : 'Pending'}
-                              </span>
-                            </div>
-
-                            <p
-                              className={`text-xs font-extrabold ${
+                          return (
+                            <button
+                              key={stg.key}
+                              type="button"
+                              onClick={() => {
+                                sound.playClick();
+                                updateCandidateStage(cand.id, stg.key);
+                              }}
+                              className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                                 isCurrent
-                                  ? 'text-white'
+                                  ? 'bg-[#FFD000]/10 border-[#FFD000] shadow-[0_0_15px_rgba(255,208,0,0.2)]'
                                   : isCompleted
-                                  ? 'text-emerald-300'
-                                  : 'text-gray-400'
+                                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                                  : 'bg-[#0A0A10] border-white/5 hover:border-white/20'
                               }`}
                             >
-                              {stg.label}
-                            </p>
-                          </button>
-                        );
-                      })}
+                              <div className="flex items-center justify-between mb-1">
+                                <span
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                    isCurrent
+                                      ? 'bg-[#FFD000] text-black'
+                                      : isCompleted
+                                      ? 'bg-emerald-400 text-black'
+                                      : 'bg-white/10 text-gray-400'
+                                  }`}
+                                >
+                                  {isCompleted ? '✓' : stg.stepNumber}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-mono uppercase ${
+                                    isCurrent
+                                      ? 'text-[#FFD000] font-bold'
+                                      : isCompleted
+                                      ? 'text-emerald-400'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
+                                  {isCurrent ? 'Current' : isCompleted ? 'Done' : 'Pending'}
+                                </span>
+                              </div>
+
+                              <p
+                                className={`text-xs font-extrabold ${
+                                  isCurrent
+                                    ? 'text-white'
+                                    : isCompleted
+                                    ? 'text-emerald-300'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                {stg.label}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Candidate Stage Note */}
                   <div className="p-3 rounded-2xl bg-[#08080C] border border-white/5 flex items-center justify-between text-xs text-gray-400">
