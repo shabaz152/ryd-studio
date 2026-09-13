@@ -31,6 +31,9 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
+  Eye,
+  EyeOff,
+  Copy,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ActivityEvent, UserRole, AuthorizedUser, ReferralProgressStage, ReferredCandidate, TeacherDayPayout } from '../../types';
@@ -71,6 +74,7 @@ export const AdminPortal: React.FC = () => {
     rewardsINR,
     authorizedUsers,
     authorizeNewUser,
+    updateUserCredentials,
     toggleUserAuthorization,
     deleteUser,
     setAccountSecurityModalOpen,
@@ -93,11 +97,35 @@ export const AdminPortal: React.FC = () => {
   const [accessSearch, setAccessSearch] = useState<string>('');
   const [isAuthorizeModalOpen, setIsAuthorizeModalOpen] = useState<boolean>(false);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<AuthorizedUser | null>(null);
+
+  // Authorize / Add Required User Modal State
   const [newUserName, setNewUserName] = useState<string>('');
   const [newUserEmail, setNewUserEmail] = useState<string>('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('tutor');
-  const [newUserPassword, setNewUserPassword] = useState<string>('ryd2026');
+  const [newUserPassword, setNewUserPassword] = useState<string>('Ryd#2026');
+  const [newUserTitle, setNewUserTitle] = useState<string>('');
+  const [newUserPhone, setNewUserPhone] = useState<string>('');
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [authorizeError, setAuthorizeError] = useState<string | null>(null);
+  const [newAuthSuccessNotice, setNewAuthSuccessNotice] = useState<{
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+  } | null>(null);
+
+  // Edit / Grant Credentials on Particular User Modal State
+  const [editingCredentialsUser, setEditingCredentialsUser] = useState<AuthorizedUser | null>(null);
+  const [editCredName, setEditCredName] = useState<string>('');
+  const [editCredEmail, setEditCredEmail] = useState<string>('');
+  const [editCredRole, setEditCredRole] = useState<UserRole>('tutor');
+  const [editCredPassword, setEditCredPassword] = useState<string>('');
+  const [editCredTitle, setEditCredTitle] = useState<string>('');
+  const [editCredPhone, setEditCredPhone] = useState<string>('');
+  const [showEditPassword, setShowEditPassword] = useState<boolean>(false);
+  const [editCredError, setEditCredError] = useState<string | null>(null);
+  const [editCredSuccess, setEditCredSuccess] = useState<string | null>(null);
+  const [copiedCredentialsToast, setCopiedCredentialsToast] = useState<boolean>(false);
 
   // Access Requests Inbound Gate State
   const [accessReqStatusFilter, setAccessReqStatusFilter] = useState<'pending' | 'approved' | 'declined' | 'all'>('pending');
@@ -990,6 +1018,27 @@ export const AdminPortal: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                setNewUserName('');
+                setNewUserEmail('');
+                setNewUserRole(accessFilterRole === 'tutor' || accessFilterRole === 'parent' ? accessFilterRole : 'tutor');
+                setNewUserPassword('Ryd#' + Math.floor(1000 + Math.random() * 9000));
+                setNewUserTitle('');
+                setNewUserPhone('');
+                setShowNewPassword(false);
+                setAuthorizeError(null);
+                setNewAuthSuccessNotice(null);
+                setIsAuthorizeModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black text-xs font-black shadow-md shadow-amber-500/20 hover:brightness-110 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+              title="Add a required faculty tutor or parent and grant their login credentials"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ Add Tutor / Parent (Grant Credentials)</span>
+            </button>
           </div>
 
           {/* User Cards / Table */}
@@ -1044,7 +1093,7 @@ export const AdminPortal: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                    <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center flex-wrap">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
                           user.isAuthorized
@@ -1064,6 +1113,35 @@ export const AdminPortal: React.FC = () => {
                           </>
                         )}
                       </span>
+
+                      {/* Explicit Grant / Edit Credentials Button for that Particular User */}
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          setEditingCredentialsUser(user);
+                          setEditCredName(user.name);
+                          setEditCredEmail(user.email);
+                          setEditCredRole(user.role);
+                          setEditCredPassword(user.password);
+                          setEditCredTitle(user.title || '');
+                          setEditCredPhone(
+                            user.role === 'tutor'
+                              ? tutors.find((t) => t.email.toLowerCase() === user.email.toLowerCase())?.phone || ''
+                              : user.role === 'parent'
+                              ? parents.find((p) => p.email.toLowerCase() === user.email.toLowerCase())?.phone || ''
+                              : ''
+                          );
+                          setShowEditPassword(false);
+                          setEditCredError(null);
+                          setEditCredSuccess(null);
+                          setCopiedCredentialsToast(false);
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-amber-500/15 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-black border border-amber-500/30 flex items-center gap-1.5 shadow-xs"
+                        title={`Grant or edit login credentials for ${user.name}`}
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Grant Credentials</span>
+                      </button>
 
                       {isRoot ? (
                         <span className="text-[11px] text-amber-500 font-semibold italic px-2">
@@ -1100,16 +1178,22 @@ export const AdminPortal: React.FC = () => {
               })}
           </div>
 
-          {/* Authorize New User Modal */}
+          {/* Modal 1: Add Required Tutor / Parent & Grant Credentials */}
           {isAuthorizeModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-              <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+              <div className="relative w-full max-w-lg bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4 text-slate-900 dark:text-white max-h-[92vh] overflow-y-auto">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
-                  <div className="flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-amber-500" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+                      <UserPlus className="w-5 h-5" />
+                    </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Authorize New Platform User</h3>
-                      <p className="text-[11px] text-slate-500 dark:text-gray-400">Grant login access to faculty or parent</p>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Add Required User & Grant Credentials
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                        Admin direct onboarding for faculty tutors or parents
+                      </p>
                     </div>
                   </div>
                   <button
@@ -1120,31 +1204,343 @@ export const AdminPortal: React.FC = () => {
                   </button>
                 </div>
 
-                {authorizeError && (
+                {newAuthSuccessNotice ? (
+                  <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs space-y-3.5 animate-fadeIn">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <h4 className="font-black text-white text-sm">User Added & Credentials Active!</h4>
+                      <p className="text-slate-300 text-[11px]">
+                        The user has been authorized with immediate login access. You can copy their credentials below to send to them.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/20 space-y-1.5 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Name:</span>
+                        <span className="font-bold text-white">{newAuthSuccessNotice.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Role:</span>
+                        <span className="font-bold uppercase text-amber-400">{newAuthSuccessNotice.role}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Login Email:</span>
+                        <span className="font-bold text-emerald-400">{newAuthSuccessNotice.email}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Granted Password:</span>
+                        <span className="font-mono font-bold text-amber-300">{newAuthSuccessNotice.password}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const text = `RYD STUDIO Login Credentials\nRole: ${newAuthSuccessNotice.role.toUpperCase()}\nEmail: ${newAuthSuccessNotice.email}\nPassword: ${newAuthSuccessNotice.password}\nLogin URL: https://ryd-studio.vercel.app`;
+                          navigator.clipboard.writeText(text);
+                          setCopiedCredentialsToast(true);
+                          setTimeout(() => setCopiedCredentialsToast(false), 2000);
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
+                      >
+                        {copiedCredentialsToast ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-400" />
+                            <span>Copied to Clipboard!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copy Login Credentials</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAuthorizeModalOpen(false);
+                          setNewAuthSuccessNotice(null);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all cursor-pointer shadow-md"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setAuthorizeError(null);
+                      const res = authorizeNewUser({
+                        name: newUserName,
+                        email: newUserEmail,
+                        role: newUserRole,
+                        password: newUserPassword,
+                        title: newUserTitle,
+                        phone: newUserPhone,
+                        subjects: newUserTitle,
+                      });
+                      if (!res.success) {
+                        setAuthorizeError(res.error || 'Failed to authorize user.');
+                      } else {
+                        setNewAuthSuccessNotice({
+                          name: newUserName,
+                          email: newUserEmail.trim().toLowerCase(),
+                          role: newUserRole,
+                          password: newUserPassword,
+                        });
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    {authorizeError && (
+                      <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                        <span>{authorizeError}</span>
+                      </div>
+                    )}
+
+                    {/* Role Selection */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Select Required Role
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewUserRole('tutor')}
+                          className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                            newUserRole === 'tutor'
+                              ? 'bg-blue-500/20 border-blue-500 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/40'
+                              : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <GraduationCap className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-bold">Faculty Tutor</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewUserRole('parent')}
+                          className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                            newUserRole === 'parent'
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/40'
+                              : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <Users className="w-4 h-4 text-emerald-500" />
+                          <span className="text-xs font-bold">Parent & Family</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewUserRole('admin')}
+                          className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                            newUserRole === 'admin'
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/40'
+                              : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <Shield className="w-4 h-4 text-amber-500" />
+                          <span className="text-xs font-bold">Admin</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        placeholder={newUserRole === 'tutor' ? 'e.g. Dr. Elena Rostova' : newUserRole === 'parent' ? 'e.g. David Miller' : 'e.g. Co-Director'}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Login Email Address
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="e.g. elena@ryd.studio"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Role-specific title / subject / child */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {newUserRole === 'tutor' ? 'Specialty / Subjects / Discipline' : newUserRole === 'parent' ? 'Student / Child Name & Grade' : 'Executive Role Title'}
+                      </label>
+                      <input
+                        type="text"
+                        value={newUserTitle}
+                        onChange={(e) => setNewUserTitle(e.target.value)}
+                        placeholder={
+                          newUserRole === 'tutor'
+                            ? 'e.g. Classical Dance, Western Piano, AP Math'
+                            : newUserRole === 'parent'
+                            ? 'e.g. Maya Miller (Grade 8 STEM)'
+                            : 'Operations Director'
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Phone / WhatsApp <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={newUserPhone}
+                        onChange={(e) => setNewUserPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Granted Password */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Required Password to Grant
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            const prefix = newUserRole === 'tutor' ? 'Tutor' : newUserRole === 'parent' ? 'Parent' : 'Ryd';
+                            setNewUserPassword(`Ryd${prefix}#${Math.floor(1000 + Math.random() * 9000)}`);
+                          }}
+                          className="text-[11px] font-bold text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Generate Strong Password</span>
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          required
+                          value={newUserPassword}
+                          onChange={(e) => setNewUserPassword(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        This password will be immediately active for their login credentials.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setIsAuthorizeModalOpen(false)}
+                        className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Add & Grant Credentials</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal 2: Grant / Update Credentials for Particular User */}
+          {editingCredentialsUser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+              <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Grant / Edit Credentials
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                        {editingCredentialsUser.name} ({editingCredentialsUser.role.toUpperCase()})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditingCredentialsUser(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {editCredError && (
                   <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span>{authorizeError}</span>
+                    <span>{editCredError}</span>
+                  </div>
+                )}
+
+                {editCredSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                    <span>{editCredSuccess}</span>
                   </div>
                 )}
 
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setAuthorizeError(null);
-                    const res = authorizeNewUser({
-                      name: newUserName,
-                      email: newUserEmail,
-                      role: newUserRole,
-                      password: newUserPassword,
+                    setEditCredError(null);
+                    setEditCredSuccess(null);
+                    const res = updateUserCredentials(editingCredentialsUser.id, {
+                      name: editCredName,
+                      email: editCredEmail,
+                      password: editCredPassword,
+                      role: editCredRole,
+                      title: editCredTitle,
+                      phone: editCredPhone,
                     });
                     if (!res.success) {
-                      setAuthorizeError(res.error || 'Failed to authorize user.');
+                      setEditCredError(res.error || 'Failed to update credentials.');
                     } else {
-                      setIsAuthorizeModalOpen(false);
+                      setEditCredSuccess('Credentials updated & granted successfully!');
+                      setTimeout(() => {
+                        setEditingCredentialsUser(null);
+                      }, 1100);
                     }
                   }}
                   className="space-y-3.5"
                 >
+                  {/* Name */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Full Name
@@ -1152,41 +1548,41 @@ export const AdminPortal: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={newUserName}
-                      onChange={(e) => setNewUserName(e.target.value)}
-                      placeholder="e.g. Dr. Sarah Jenkins"
+                      value={editCredName}
+                      onChange={(e) => setEditCredName(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
+                  {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Authorized Email Address
+                      Login Email Address
                     </label>
                     <input
                       type="email"
                       required
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                      placeholder="e.g. s.jenkins@ryd.edu"
+                      value={editCredEmail}
+                      onChange={(e) => setEditCredEmail(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
+                  {/* Role Selector */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Portal Access Role
+                      Account Role
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {(['tutor', 'parent', 'admin'] as UserRole[]).map((r) => (
                         <button
                           key={r}
                           type="button"
-                          onClick={() => setNewUserRole(r)}
+                          onClick={() => setEditCredRole(r)}
                           className={`py-1.5 px-2 rounded-xl border text-xs font-bold capitalize transition-all cursor-pointer ${
-                            newUserRole === r
-                              ? 'bg-amber-500 text-black border-amber-500'
-                              : 'border-slate-200 dark:border-white/10 text-slate-500'
+                            editCredRole === r
+                              ? 'bg-amber-500 text-black border-amber-500 shadow-xs'
+                              : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5'
                           }`}
                         >
                           {r}
@@ -1195,35 +1591,97 @@ export const AdminPortal: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Title / Specialty */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Initial Temporary Password
+                      Title / Specialty / Discipline
                     </label>
                     <input
                       type="text"
-                      required
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
+                      value={editCredTitle}
+                      onChange={(e) => setEditCredTitle(e.target.value)}
+                      placeholder="e.g. Lead Faculty / Dance Instructor"
                       className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-400"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      User can change this password at any time via Account Security.
-                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
+                  {/* Password Field */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Granted Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          const prefix = editCredRole === 'tutor' ? 'Tutor' : editCredRole === 'parent' ? 'Parent' : 'Admin';
+                          setEditCredPassword(`Ryd${prefix}#${Math.floor(1000 + Math.random() * 9000)}`);
+                        }}
+                        className="text-[11px] font-bold text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Generate Password</span>
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showEditPassword ? 'text' : 'password'}
+                        required
+                        value={editCredPassword}
+                        onChange={(e) => setEditCredPassword(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEditPassword(!showEditPassword)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Copy Quick Action */}
+                  <div className="flex items-center justify-between pt-1">
                     <button
                       type="button"
-                      onClick={() => setIsAuthorizeModalOpen(false)}
-                      className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                      onClick={() => {
+                        const text = `RYD STUDIO Credentials\nRole: ${editCredRole.toUpperCase()}\nEmail: ${editCredEmail}\nPassword: ${editCredPassword}`;
+                        navigator.clipboard.writeText(text);
+                        setCopiedCredentialsToast(true);
+                        setTimeout(() => setCopiedCredentialsToast(false), 2000);
+                      }}
+                      className="text-[11px] font-bold text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedCredentialsToast ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copied to Clipboard!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Login Details</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setEditingCredentialsUser(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-md cursor-pointer"
+                      className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      Grant Access
+                      <Check className="w-4 h-4" />
+                      <span>Save & Grant Credentials</span>
                     </button>
                   </div>
                 </form>

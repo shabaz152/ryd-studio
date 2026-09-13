@@ -240,7 +240,28 @@ interface AppContextType {
   updateAdminProfileName: (newName: string) => { success: boolean; error?: string };
   requestPasswordReset: (email: string) => { success: boolean; error?: string; otpCode?: string };
   resetPasswordWithCode: (email: string, code: string, newPassword: string) => { success: boolean; error?: string };
-  authorizeNewUser: (user: { name: string; email: string; role: UserRole; password?: string; studentId?: string }) => { success: boolean; error?: string };
+  authorizeNewUser: (user: {
+    name: string;
+    email: string;
+    role: UserRole;
+    password?: string;
+    title?: string;
+    phone?: string;
+    subjects?: string;
+    studentId?: string;
+  }) => { success: boolean; error?: string };
+  updateUserCredentials: (
+    userId: string,
+    updates: {
+      name?: string;
+      email?: string;
+      password?: string;
+      role?: UserRole;
+      title?: string;
+      phone?: string;
+      isAuthorized?: boolean;
+    }
+  ) => { success: boolean; error?: string };
   toggleUserAuthorization: (userId: string) => { success: boolean; error?: string };
   deleteUser: (userId: string) => { success: boolean; error?: string };
   accountSecurityModalOpen: boolean;
@@ -1464,6 +1485,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     email: string;
     role: UserRole;
     password?: string;
+    title?: string;
+    phone?: string;
+    subjects?: string;
     studentId?: string;
   }): { success: boolean; error?: string } => {
     const trimmedEmail = user.email.trim().toLowerCase();
@@ -1476,18 +1500,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, error: 'An authorized account already exists for this email.' };
     }
 
+    const assignedPassword = user.password && user.password.trim() ? user.password.trim() : 'ryd2026';
+    const assignedTitle =
+      user.title?.trim() ||
+      (user.role === 'admin'
+        ? 'Authorized Executive'
+        : user.role === 'tutor'
+        ? (user.subjects?.trim() || 'Faculty Tutor')
+        : 'Parent & Learner');
+
     const newUser: AuthorizedUser = {
       id: `user-auth-${Date.now()}`,
       name: user.name.trim(),
       email: trimmedEmail,
       role: user.role,
-      password: user.password && user.password.trim() ? user.password.trim() : 'ryd2026',
-      title:
-        user.role === 'admin'
-          ? 'Authorized Executive'
-          : user.role === 'tutor'
-          ? 'Faculty Tutor'
-          : 'Parent & Learner',
+      password: assignedPassword,
+      title: assignedTitle,
       studentId: user.studentId || (user.role === 'parent' ? 'stud-3' : undefined),
       avatarUrl:
         user.role === 'admin'
@@ -1507,11 +1535,200 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextList));
     } catch {}
 
+    // Synchronize into tutors or parents list if tutor or parent
+    if (user.role === 'tutor') {
+      setTutors((prev) => {
+        const alreadyExists = prev.some((t) => t.email.toLowerCase() === trimmedEmail);
+        if (alreadyExists) return prev;
+        const newTutor: TutorAccount = {
+          id: `tutor-${Date.now()}`,
+          name: user.name.trim(),
+          email: trimmedEmail,
+          subjects: [user.subjects?.trim() || user.title?.trim() || 'Multi-Discipline Faculty'],
+          avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+          hourlyRate: 850,
+          phone: user.phone?.trim() || '+1 (555) 300-8800',
+          rating: 5.0,
+          status: 'offline',
+          totalHoursMonth: 0,
+          totalEarningsMonth: 0,
+          location: {
+            lat: 40.7128,
+            lng: -74.0060,
+            locationName: 'RYD Downtown Hub',
+            area: 'Downtown Studio',
+            status: 'off_duty',
+            lastPingTime: 'Just Now',
+            isWithinGeofence: false,
+          },
+        };
+        const updated = [newTutor, ...prev];
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    } else if (user.role === 'parent') {
+      setParents((prev) => {
+        const alreadyExists = prev.some((p) => p.email.toLowerCase() === trimmedEmail);
+        if (alreadyExists) return prev;
+        const newParent: ParentAccount = {
+          id: `parent-${Date.now()}`,
+          parentName: user.name.trim(),
+          email: trimmedEmail,
+          phone: user.phone?.trim() || '+1 (555) 400-9900',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+          children: [
+            {
+              studentId: 'stud-new-' + Date.now(),
+              studentName: user.title?.trim() || 'Student',
+              grade: 'Active Learner',
+              enrolledBatches: ['batch-dance-01'],
+            },
+          ],
+        };
+        const updated = [newParent, ...prev];
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+
+    addActivityEvent({
+      type: 'access_granted',
+      actorId: currentUser?.id || 'admin',
+      actorName: currentUser?.name || 'Admin',
+      actorRole: 'admin',
+      title: `User Added & Credentials Granted: ${newUser.name} (${newUser.role.toUpperCase()})`,
+      description: `Admin added ${newUser.name} (${newUser.email}) with granted login credentials.`,
+    });
+
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: 'User Authorized',
-      description: `${newUser.name} (${newUser.email}) has been granted ${newUser.role.toUpperCase()} access.`,
+      title: 'User Added & Credentials Granted',
+      description: `${newUser.name} (${newUser.email}) added as ${newUser.role.toUpperCase()} with active credentials.`,
+    });
+
+    return { success: true };
+  };
+
+  const updateUserCredentials = (
+    userId: string,
+    updates: {
+      name?: string;
+      email?: string;
+      password?: string;
+      role?: UserRole;
+      title?: string;
+      phone?: string;
+      isAuthorized?: boolean;
+    }
+  ): { success: boolean; error?: string } => {
+    const userIndex = authorizedUsers.findIndex((u) => u.id === userId);
+    if (userIndex === -1) {
+      return { success: false, error: 'User account not found.' };
+    }
+
+    const currentTarget = authorizedUsers[userIndex];
+    let newEmail = currentTarget.email;
+    if (updates.email && updates.email.trim()) {
+      const trimmed = updates.email.trim().toLowerCase();
+      if (!trimmed.includes('@')) {
+        return { success: false, error: 'Please provide a valid email address.' };
+      }
+      if (trimmed !== currentTarget.email.toLowerCase()) {
+        const conflict = authorizedUsers.some(
+          (u) => u.id !== userId && u.email.toLowerCase() === trimmed
+        );
+        if (conflict) {
+          return { success: false, error: 'This email is already used by another account.' };
+        }
+        newEmail = trimmed;
+      }
+    }
+
+    const updatedUser: AuthorizedUser = {
+      ...currentTarget,
+      name: updates.name?.trim() || currentTarget.name,
+      email: newEmail,
+      role: updates.role || currentTarget.role,
+      password: updates.password?.trim() ? updates.password.trim() : currentTarget.password,
+      title: updates.title?.trim() || currentTarget.title,
+      isAuthorized: updates.isAuthorized !== undefined ? updates.isAuthorized : currentTarget.isAuthorized,
+    };
+
+    const nextAuthUsers = [...authorizedUsers];
+    nextAuthUsers[userIndex] = updatedUser;
+    setAuthorizedUsers(nextAuthUsers);
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthUsers));
+    } catch {}
+
+    // Synchronize with tutors if tutor
+    if (updatedUser.role === 'tutor') {
+      setTutors((prev) => {
+        const updated = prev.map((t) => {
+          if (t.email.toLowerCase() === currentTarget.email.toLowerCase()) {
+            return {
+              ...t,
+              name: updatedUser.name,
+              email: updatedUser.email,
+              subjects: updates.title ? [updates.title] : t.subjects,
+              phone: updates.phone || t.phone,
+            };
+          }
+          return t;
+        });
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    } else if (updatedUser.role === 'parent') {
+      setParents((prev) => {
+        const updated = prev.map((p) => {
+          if (p.email.toLowerCase() === currentTarget.email.toLowerCase()) {
+            return {
+              ...p,
+              parentName: updatedUser.name,
+              email: updatedUser.email,
+              phone: updates.phone || p.phone,
+            };
+          }
+          return p;
+        });
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+
+    // If currently logged in user was modified, update currentUser state
+    if (currentUser?.id === userId || currentUser?.email.toLowerCase() === currentTarget.email.toLowerCase()) {
+      setCurrentUser(updatedUser);
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_current_user`, JSON.stringify(updatedUser));
+      } catch {}
+    }
+
+    addActivityEvent({
+      type: 'access_granted',
+      actorId: currentUser?.id || 'admin',
+      actorName: currentUser?.name || 'Admin',
+      actorRole: 'admin',
+      title: `Credentials Granted: ${updatedUser.name}`,
+      description: `Admin updated and granted new login credentials for ${updatedUser.name} (${updatedUser.email}) as ${updatedUser.role.toUpperCase()}.`,
+    });
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Credentials Updated & Granted',
+      description: `Granted credentials for ${updatedUser.name} (${updatedUser.email}).`,
     });
 
     return { success: true };
@@ -3341,6 +3558,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         requestPasswordReset,
         resetPasswordWithCode,
         authorizeNewUser,
+        updateUserCredentials,
         toggleUserAuthorization,
         deleteUser,
         accountSecurityModalOpen,
