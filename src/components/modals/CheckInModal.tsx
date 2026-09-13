@@ -133,7 +133,7 @@ export const CheckInModal: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold truncate text-white">{session.batchName}</span>
+                      <span className="text-xs font-bold truncate text-white">{session.sessionName || session.batchName}</span>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-black/80 text-[#FACC15] border border-[#FACC15]/30">
                         {session.calendarCode || '2:3'}
                       </span>

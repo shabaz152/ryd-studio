@@ -117,7 +117,7 @@ export const QuickActionBar: React.FC = () => {
           </h3>
           <p className="text-xs text-gray-400 mt-1">
             {isCheckedIn && checkedInSession
-              ? `Active: ${checkedInSession.batchName}. Check out required after class.`
+              ? `Active: ${checkedInSession.sessionName || checkedInSession.batchName}. Check out required after class.`
               : 'Review class timings, roster planner & venue map'}
           </p>
 
@@ -180,7 +180,7 @@ export const QuickActionBar: React.FC = () => {
           </h3>
           <p className="text-xs text-gray-400 mt-1">
             {isCheckedIn && checkedInSession
-              ? `Active: ${checkedInSession.batchName}. Tap to complete its one-and-only check-out.`
+              ? `Active: ${checkedInSession.sessionName || checkedInSession.batchName}. Tap to complete its one-and-only check-out.`
               : 'For 1 check-in there is 1 and only 1 check-out. Check into a class first to unlock.'}
           </p>
 

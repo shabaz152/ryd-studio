@@ -14,6 +14,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
+import { getDisciplineBadge } from '../data/mockData';
 
 export const RescheduleView: React.FC = () => {
   const {
@@ -34,8 +35,9 @@ export const RescheduleView: React.FC = () => {
 
   const handleSyncCalendar = (s: Session) => {
     sound.playClick();
+    const title = `${s.sessionName || s.batchName} (${s.status.toUpperCase()})`;
     const url = createGoogleCalendarUrl({
-      title: `${s.batchName} (${s.status.toUpperCase()})`,
+      title,
       description: `Studio Session. Code: ${s.calendarCode || 'N/A'}. Reason: ${s.rescheduleReason || 'Scheduled class'}.`,
       location: `${s.locationName}, ${s.studioRoom}`,
       dateStr: s.proposedDate || s.date,
@@ -47,8 +49,9 @@ export const RescheduleView: React.FC = () => {
 
   const handleExportIcs = (s: Session) => {
     sound.playClick();
+    const title = `${s.sessionName || s.batchName} (${s.status.toUpperCase()})`;
     downloadIcsFile({
-      title: `${s.batchName} (${s.status.toUpperCase()})`,
+      title,
       description: `Studio Session. Code: ${s.calendarCode || 'N/A'}. Reason: ${s.rescheduleReason || 'Scheduled class'}.`,
       location: `${s.locationName}, ${s.studioRoom}`,
       dateStr: s.proposedDate || s.date,
@@ -160,14 +163,22 @@ export const RescheduleView: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(activeTabFilter === 'proposals' ? rescheduleProposals : sessions).map((s) => (
+          {(activeTabFilter === 'proposals' ? rescheduleProposals : sessions).map((s) => {
+            const discipline = getDisciplineBadge(s.disciplineCategory);
+            const displayName = s.sessionName || s.batchName;
+
+            return (
             <div
               key={s.id}
               className="p-6 rounded-3xl bg-[#101015] border border-white/[0.08] hover:border-white/20 transition-all space-y-4 shadow-card-dark"
             >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${discipline.color}`}>
+                      <span>{discipline.icon}</span>
+                      <span>{discipline.label}</span>
+                    </span>
                     <span
                       className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                         s.status === 'rescheduled'
@@ -181,14 +192,14 @@ export const RescheduleView: React.FC = () => {
                     >
                       {s.status.toUpperCase()}
                     </span>
-                    <h3 className="text-sm font-bold text-white">{s.batchName}</h3>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <h3 className="text-sm font-bold text-white truncate">{displayName}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
                     {s.locationName} • {s.studioRoom}
                   </p>
                 </div>
 
-                <span className="text-xs font-mono font-bold text-[#FACC15] bg-black/60 px-2.5 py-1 rounded-xl border border-[#FACC15]/30 inline-block">
+                <span className="text-xs font-mono font-bold text-[#FACC15] bg-black/60 px-2.5 py-1 rounded-xl border border-[#FACC15]/30 inline-block shrink-0">
                   Code: {s.calendarCode || '2:3'}
                 </span>
               </div>
@@ -304,7 +315,8 @@ export const RescheduleView: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

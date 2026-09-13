@@ -17,12 +17,139 @@ import {
 } from '../types';
 
 
+export interface DisciplinePreset {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  suggestions: string[];
+}
+
+export const DISCIPLINE_PRESETS: DisciplinePreset[] = [
+  {
+    id: 'dance',
+    label: 'Dance',
+    icon: '💃',
+    color: 'text-pink-400 bg-pink-500/10 border-pink-500/25',
+    suggestions: [
+      'Classical Bharatanatyam',
+      'Contemporary Choreography',
+      'Hip-Hop Basics',
+      'Zumba & Fitness Groove',
+      'Kathak Rhythms & Expressions',
+      'Bollywood Semi-Classical',
+    ],
+  },
+  {
+    id: 'music',
+    label: 'Music',
+    icon: '🎵',
+    color: 'text-purple-400 bg-purple-500/10 border-purple-500/25',
+    suggestions: [
+      'Acoustic Guitar Lessons',
+      'Western Piano Level 1',
+      'Carnatic & Classical Vocals',
+      'Drum Rhythms Jam',
+      'Violin Solos & Scales',
+      'Keyboard & Harmonies',
+    ],
+  },
+  {
+    id: 'tuition',
+    label: 'Tuitions',
+    icon: '📚',
+    color: 'text-blue-400 bg-blue-500/10 border-blue-500/25',
+    suggestions: [
+      'Grade 10 Math Revision',
+      'Physics Dynamics & Mechanics',
+      'Chemistry Concepts Coaching',
+      'English Grammar & Speaking',
+      'Biology Exam Mastery',
+      'Python Coding for Beginners',
+    ],
+  },
+  {
+    id: 'art',
+    label: 'Arts & Crafts',
+    icon: '🎨',
+    color: 'text-amber-400 bg-amber-500/10 border-amber-500/25',
+    suggestions: [
+      'Watercolor Landscapes',
+      'Digital Drawing & Sketching',
+      'Clay Sculpting & Crafts',
+      'Oil Pastels & Calligraphy',
+    ],
+  },
+  {
+    id: 'fitness',
+    label: 'Yoga & Wellness',
+    icon: '🧘',
+    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25',
+    suggestions: [
+      'Morning Hatha Yoga',
+      'Breathwork & Mindful Meditation',
+      'Kids Gymnastics & Flexibility',
+      'Chess Strategy & Tactics',
+    ],
+  },
+  {
+    id: 'custom',
+    label: 'Custom Class',
+    icon: '✨',
+    color: 'text-[#FFD000] bg-[#FFD000]/10 border-[#FFD000]/25',
+    suggestions: [
+      'Special Weekend Workshop',
+      'Student Recital Prep',
+      '1-on-1 Personalized Coaching',
+      'Creative Studio Jam',
+    ],
+  },
+];
+
+export const getDisciplineBadge = (categoryId?: string): DisciplinePreset => {
+  const match = DISCIPLINE_PRESETS.find((p) => p.id === categoryId);
+  return match || DISCIPLINE_PRESETS[5];
+};
+
 export const INITIAL_BATCHES: Batch[] = [
+  {
+    id: 'batch-dance-01',
+    name: 'Classical Bharatanatyam & Indian Dance',
+    code: 'RYD-DANCE-01',
+    style: 'Classical Bharatanatyam & Expressions',
+    disciplineCategory: 'dance',
+    level: 'Beginner',
+    scheduleTime: '17:00 - 18:30',
+    days: ['Mon', 'Wed', 'Fri'],
+    studioRoom: 'Dance Studio Alpha (Mirror Hall)',
+    locationName: 'RYD Performing Arts & Learning Hub',
+    address: '742 Broadway Ave, Floor 3, Downtown',
+    mapCoordinates: { lat: 40.7128, lng: -74.0060 },
+    navigationUrl: 'https://maps.google.com/?q=742+Broadway+Ave+Downtown',
+    students: [],
+  },
+  {
+    id: 'batch-music-02',
+    name: 'Acoustic Guitar & Western Vocals',
+    code: 'RYD-MUSIC-02',
+    style: 'Acoustic Chords, Strumming & Vocals',
+    disciplineCategory: 'music',
+    level: 'Beginner',
+    scheduleTime: '15:30 - 17:00',
+    days: ['Tue', 'Thu'],
+    studioRoom: 'Acoustic Sound Suite 2',
+    locationName: 'RYD Sound & Music Lab',
+    address: '128 West End Blvd, Academic Pavilion',
+    mapCoordinates: { lat: 40.7589, lng: -73.9851 },
+    navigationUrl: 'https://maps.google.com/?q=128+West+End+Blvd',
+    students: [],
+  },
   {
     id: 'batch-math-01',
     name: 'Advanced Calculus & Vectors',
     code: 'RYD-MATH-01',
     style: 'Pure Mathematics & Calculus',
+    disciplineCategory: 'tuition',
     level: 'Advanced',
     scheduleTime: '16:00 - 17:30',
     days: ['Mon', 'Wed', 'Fri'],
@@ -31,13 +158,14 @@ export const INITIAL_BATCHES: Batch[] = [
     address: '742 Broadway Ave, Floor 3, Downtown',
     mapCoordinates: { lat: 40.7128, lng: -74.0060 },
     navigationUrl: 'https://maps.google.com/?q=742+Broadway+Ave+Downtown',
-    students: []
+    students: [],
   },
   {
     id: 'batch-physics-02',
     name: 'Physics Mechanics & Dynamics',
     code: 'RYD-PHYS-02',
     style: 'Classical Mechanics & Problem Solving',
+    disciplineCategory: 'tuition',
     level: 'Intermediate',
     scheduleTime: '18:00 - 19:30',
     days: ['Tue', 'Thu'],
@@ -46,38 +174,24 @@ export const INITIAL_BATCHES: Batch[] = [
     address: '128 West End Blvd, Academic Pavilion',
     mapCoordinates: { lat: 40.7589, lng: -73.9851 },
     navigationUrl: 'https://maps.google.com/?q=128+West+End+Blvd',
-    students: []
+    students: [],
   },
   {
-    id: 'batch-chem-03',
-    name: 'Organic & Physical Chemistry',
-    code: 'RYD-CHEM-03',
-    style: 'Reaction Mechanisms & Stoichiometry',
-    level: 'Masterclass',
-    scheduleTime: '19:45 - 21:15',
-    days: ['Wed', 'Sat'],
-    studioRoom: 'Chemistry Lab Gamma - Hall 2',
-    locationName: 'RYD Metro Academic Hub',
-    address: '500 Metroplex Way, Science Hall',
+    id: 'batch-art-03',
+    name: 'Creative Watercolor & Sketching',
+    code: 'RYD-ART-03',
+    style: 'Watercolor Painting & Mixed Media',
+    disciplineCategory: 'art',
+    level: 'Beginner',
+    scheduleTime: '11:00 - 12:30',
+    days: ['Sat', 'Sun'],
+    studioRoom: 'Creative Art Atelier Room 4',
+    locationName: 'RYD Creative Arts Pavilion',
+    address: '500 Metroplex Way, Arts Wing',
     mapCoordinates: { lat: 40.7484, lng: -73.9857 },
     navigationUrl: 'https://maps.google.com/?q=500+Metroplex+Way',
-    students: []
+    students: [],
   },
-  {
-    id: 'batch-cs-04',
-    name: 'Computer Science & Python Coding',
-    code: 'RYD-CS-04',
-    style: 'Algorithms, Logic & Data Structures',
-    level: 'Beginner',
-    scheduleTime: '14:30 - 15:45',
-    days: ['Tue', 'Fri'],
-    studioRoom: 'Computing Lab Delta - Room 4',
-    locationName: 'RYD Uptown Study Center',
-    address: '88 Park Avenue, Suite 100',
-    mapCoordinates: { lat: 40.7712, lng: -73.9742 },
-    navigationUrl: 'https://maps.google.com/?q=88+Park+Avenue+Uptown',
-    students: []
-  }
 ];
 
 // Clean 0-Baseline by default for a new teacher/account
@@ -86,9 +200,43 @@ export const INITIAL_SESSIONS: Session[] = [];
 // Sample Demo Sessions for Demo Mode
 export const DEMO_SESSIONS: Session[] = [
   {
+    id: 'sess-today-dance',
+    batchId: 'batch-dance-01',
+    batchName: 'Classical Bharatanatyam & Indian Dance',
+    sessionName: 'Bharatanatyam Foundations & Expressions',
+    disciplineCategory: 'dance',
+    date: '2026-09-10',
+    timeSlot: '17:00 - 18:30',
+    studioRoom: 'Dance Studio Alpha (Mirror Hall)',
+    locationName: 'RYD Performing Arts & Learning Hub',
+    monthIndex: 2,
+    classIndex: 1,
+    status: 'scheduled',
+    durationMinutes: 90,
+    calendarCode: '2:1dance',
+  },
+  {
+    id: 'sess-today-music',
+    batchId: 'batch-music-02',
+    batchName: 'Acoustic Guitar & Western Vocals',
+    sessionName: 'Acoustic Guitar Chords & Ear Training',
+    disciplineCategory: 'music',
+    date: '2026-09-10',
+    timeSlot: '15:30 - 17:00',
+    studioRoom: 'Acoustic Sound Suite 2',
+    locationName: 'RYD Sound & Music Lab',
+    monthIndex: 2,
+    classIndex: 2,
+    status: 'scheduled',
+    durationMinutes: 90,
+    calendarCode: '2:2mus',
+  },
+  {
     id: 'sess-today-01',
     batchId: 'batch-math-01',
     batchName: 'Advanced Calculus & Vectors',
+    sessionName: 'Calculus Integration & Area Under Curves',
+    disciplineCategory: 'tuition',
     date: '2026-09-10',
     timeSlot: '16:00 - 17:30',
     studioRoom: 'Tutoring Pod Alpha - Room 1',
@@ -97,12 +245,14 @@ export const DEMO_SESSIONS: Session[] = [
     classIndex: 3,
     status: 'scheduled',
     durationMinutes: 90,
-    calendarCode: '2:3ab'
+    calendarCode: '2:3ab',
   },
   {
     id: 'sess-today-02',
     batchId: 'batch-physics-02',
     batchName: 'Physics Mechanics & Dynamics',
+    sessionName: 'Newtonian Dynamics & Pulley Systems',
+    disciplineCategory: 'tuition',
     date: '2026-09-10',
     timeSlot: '18:00 - 19:30',
     studioRoom: 'STEM Suite Beta - Room 3',
@@ -111,24 +261,26 @@ export const DEMO_SESSIONS: Session[] = [
     classIndex: 4,
     status: 'scheduled',
     durationMinutes: 90,
-    calendarCode: '2:4sch'
+    calendarCode: '2:4sch',
   },
   {
     id: 'sess-prev-01',
-    batchId: 'batch-chem-03',
-    batchName: 'Organic & Physical Chemistry',
+    batchId: 'batch-art-03',
+    batchName: 'Creative Watercolor & Sketching',
+    sessionName: 'Landscape Wash & Color Theory',
+    disciplineCategory: 'art',
     date: '2026-09-09',
-    timeSlot: '19:45 - 21:15',
-    studioRoom: 'Chemistry Lab Gamma - Hall 2',
-    locationName: 'RYD Metro Academic Hub',
+    timeSlot: '11:00 - 12:30',
+    studioRoom: 'Creative Art Atelier Room 4',
+    locationName: 'RYD Creative Arts Pavilion',
     monthIndex: 2,
     classIndex: 2,
     status: 'scheduled',
     durationMinutes: 90,
     teacherHoursLogged: 0,
     teacherEarnings: 0,
-    calendarCode: '2:2pr'
-  }
+    calendarCode: '2:2pr',
+  },
 ];
 
 export const INITIAL_LEADS: Lead[] = [];

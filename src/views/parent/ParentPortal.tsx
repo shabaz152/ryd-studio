@@ -261,7 +261,7 @@ export const ParentPortal: React.FC = () => {
                   Action Required: Reschedule Proposed
                 </span>
                 <h3 className="text-sm font-black text-slate-900 dark:text-white mt-1">
-                  Tutor requested slot change for {pendingRescheduleSession.batchName}
+                  Tutor requested slot change for {pendingRescheduleSession.sessionName || pendingRescheduleSession.batchName}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-gray-300 mt-0.5">
                   Proposed: <strong className="text-purple-600 dark:text-purple-400">{pendingRescheduleSession.proposedDate} at {pendingRescheduleSession.proposedTime}</strong> (Reason: {pendingRescheduleSession.rescheduleReason || 'Academic schedule conflict'})

@@ -32,6 +32,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
+import { getDisciplineBadge } from '../data/mockData';
 
 export const HomeView: React.FC = () => {
   const {
@@ -389,7 +390,7 @@ export const HomeView: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Schedule & Session</span>
+              <span>+ Add Class / Session</span>
             </button>
 
             {currentAuthRole === 'admin' && (
@@ -400,7 +401,7 @@ export const HomeView: React.FC = () => {
                 }}
                 className="text-xs font-bold text-[#FFD000] hover:underline flex items-center gap-1 cursor-pointer pl-1"
               >
-                <span>View All Batches</span>
+                <span>View All Groups</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -413,9 +414,9 @@ export const HomeView: React.FC = () => {
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">No Academic Sessions Scheduled Today</h4>
+              <h4 className="text-sm font-bold text-white">No Classes Scheduled for Today</h4>
               <p className="text-xs text-gray-400 mt-1">
-                All class sessions for today have been removed or completed.
+                You're all clear! Schedule a dance, music, or tuition class to get started.
               </p>
             </div>
             <button
@@ -426,7 +427,7 @@ export const HomeView: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Schedule & Session</span>
+              <span>+ Add Class / Session</span>
             </button>
           </div>
         ) : (
@@ -434,6 +435,8 @@ export const HomeView: React.FC = () => {
             {todaySessions.map((session) => {
               const batch = batches.find((b) => b.id === session.batchId);
               const isSessionActive = checkedInSession?.id === session.id;
+              const discipline = getDisciplineBadge(session.disciplineCategory || batch?.disciplineCategory);
+              const displayName = session.sessionName || session.batchName;
 
               return (
                 <div
@@ -445,15 +448,21 @@ export const HomeView: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#FFD000] text-black font-mono">
-                          {batch?.level || 'Master'}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${discipline.color}`}>
+                          <span>{discipline.icon}</span>
+                          <span>{discipline.label}</span>
                         </span>
-                        <h3 className="text-sm font-bold text-white">{session.batchName}</h3>
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-mono">
+                          {batch?.level || 'All Levels'}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {batch?.style} • {batch?.students.length || 0} Students Enrolled
+                      <h3 className="text-sm font-bold text-white truncate" title={displayName}>
+                        {displayName}
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {batch?.style || 'Special Class'} • {batch?.students?.length || 0} Students Enrolled
                       </p>
                     </div>
 

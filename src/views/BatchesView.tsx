@@ -18,6 +18,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { sound } from '../utils/sound';
+import { getDisciplineBadge, DISCIPLINE_PRESETS } from '../data/mockData';
 
 export const BatchesView: React.FC = () => {
   const {
@@ -34,6 +35,7 @@ export const BatchesView: React.FC = () => {
   } = useApp();
   const [selectedBatchId, setSelectedBatchId] = useState<string>(batches[0]?.id || '');
   const [filterQuery, setFilterQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [mapType, setMapType] = useState<'floorplan' | 'tutors'>('floorplan');
 
@@ -57,7 +59,7 @@ export const BatchesView: React.FC = () => {
       parentEmail: newParentEmail.trim() || `${newStudentName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
       age: Number(newStudentAge) || 16,
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      notes: newStudentNotes.trim() || 'Registered cohort member',
+      notes: newStudentNotes.trim() || 'Registered class member',
     });
 
     setNewStudentName('');
@@ -71,12 +73,15 @@ export const BatchesView: React.FC = () => {
 
   const activeBatch = batches.find((b) => b.id === selectedBatchId) || batches[0];
 
-  const filteredBatches = batches.filter(
-    (b) =>
+  const filteredBatches = batches.filter((b) => {
+    const matchesQuery =
       b.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
       b.style.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      b.locationName.toLowerCase().includes(filterQuery.toLowerCase())
-  );
+      b.locationName.toLowerCase().includes(filterQuery.toLowerCase());
+    const matchesCat =
+      selectedCategory === 'all' || (b.disciplineCategory || 'tuition') === selectedCategory;
+    return matchesQuery && matchesCat;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
@@ -113,9 +118,47 @@ export const BatchesView: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 rounded-2xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm transition-all cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4 text-black" />
-            <span>Add Batch / Schedule</span>
+            <span>+ Add Batch / Group</span>
           </button>
         </div>
+      </div>
+
+      {/* Discipline Category Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => {
+            sound.playClick();
+            setSelectedCategory('all');
+          }}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            selectedCategory === 'all'
+              ? 'bg-[#FFD000] text-black shadow-gold-glow-sm'
+              : 'bg-[#101017] border border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+          }`}
+        >
+          All Disciplines ({batches.length})
+        </button>
+        {DISCIPLINE_PRESETS.map((preset) => {
+          const count = batches.filter((b) => (b.disciplineCategory || 'tuition') === preset.id).length;
+          return (
+            <button
+              key={preset.id}
+              onClick={() => {
+                sound.playClick();
+                setSelectedCategory(preset.id);
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                selectedCategory === preset.id
+                  ? 'bg-[#FFD000] text-black shadow-gold-glow-sm'
+                  : 'bg-[#101017] border border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+              }`}
+            >
+              <span>{preset.icon}</span>
+              <span>{preset.label}</span>
+              <span className="text-[10px] opacity-75">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Grid */}
@@ -125,9 +168,9 @@ export const BatchesView: React.FC = () => {
             <Users className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-base font-bold text-white">No Cohort Schedules Found</h3>
+            <h3 className="text-base font-bold text-white">No Class Groups Found</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              All student cohorts and recurring schedules have been removed. Click below to add a new schedule and cohort batch.
+              All student groups and recurring schedules have been removed. Click below to add a new dance, music, or tuition group.
             </p>
           </div>
           <button
@@ -135,7 +178,7 @@ export const BatchesView: React.FC = () => {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl glossy-button-yellow text-xs font-black shadow-gold-glow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4 text-black" />
-            <span>+ Add Batch / Schedule</span>
+            <span>+ Add Batch / Group</span>
           </button>
         </div>
       ) : (
@@ -144,6 +187,7 @@ export const BatchesView: React.FC = () => {
           <div className="lg:col-span-5 space-y-3">
             {filteredBatches.map((batch) => {
               const isSelected = batch.id === activeBatch?.id;
+              const discipline = getDisciplineBadge(batch.disciplineCategory);
 
             return (
               <div
@@ -159,16 +203,20 @@ export const BatchesView: React.FC = () => {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2.5">
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${discipline.color}`}>
+                        <span>{discipline.icon}</span>
+                        <span>{discipline.label}</span>
+                      </span>
                       <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#FACC15] text-black">
                         {batch.level}
                       </span>
-                      <h3 className="text-sm font-bold text-white">{batch.name}</h3>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{batch.style}</p>
+                    <h3 className="text-sm font-bold text-white truncate">{batch.name}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{batch.style}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-[#FACC15] bg-black/60 px-2.5 py-1 rounded-xl border border-[#FACC15]/30 font-mono">
+                  <span className="text-[10px] font-bold text-[#FACC15] bg-black/60 px-2.5 py-1 rounded-xl border border-[#FACC15]/30 font-mono shrink-0">
                     {batch.code}
                   </span>
                 </div>

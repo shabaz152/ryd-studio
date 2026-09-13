@@ -310,7 +310,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [batches, setBatches] = useState<Batch[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_batches`);
-      return saved ? JSON.parse(saved) : INITIAL_BATCHES;
+      if (saved) {
+        const parsed: Batch[] = JSON.parse(saved);
+        const missing = INITIAL_BATCHES.filter((ib) => !parsed.some((b) => b.id === ib.id));
+        return missing.length > 0 ? [...parsed, ...missing] : parsed;
+      }
+      return INITIAL_BATCHES;
     } catch {
       return INITIAL_BATCHES;
     }
@@ -2285,9 +2290,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createNewSession = (sessionData: AddSessionParams) => {
     const batch = batches.find((b) => b.id === sessionData.batchId);
-    const batchName = batch
-      ? `${batch.name} (${sessionData.type})`
-      : (sessionData.customBatchName || 'Custom Masterclass');
+    const customName = sessionData.sessionName?.trim() || sessionData.customBatchName?.trim();
+    const batchName = customName || (batch ? `${batch.name} (${sessionData.type})` : 'Special Class');
+    const disciplineCategory = sessionData.disciplineCategory || batch?.disciplineCategory || 'tuition';
     const locationName = batch ? batch.locationName : (sessionData.locationName || 'RYD Downtown Central');
     const classNum = sessions.length + 1;
     const calendarCode = generateCalendarCode(2, classNum, 'scheduled');
@@ -2296,6 +2301,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'sess-' + Date.now(),
       batchId: batch ? batch.id : ('custom-' + Date.now()),
       batchName,
+      sessionName: customName || batchName,
+      disciplineCategory,
       date: sessionData.date || '2026-09-10',
       timeSlot: sessionData.timeSlot,
       studioRoom: sessionData.studioRoom,
@@ -2327,8 +2334,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: `Session Scheduled (Code: ${calendarCode})`,
-      description: `${batchName} scheduled for ${newSess.date} (${newSess.timeSlot}). Google Calendar code created.`,
+      title: `Class Scheduled (Code: ${calendarCode})`,
+      description: `${batchName} scheduled for ${newSess.date} (${newSess.timeSlot}).`,
     });
     setNewSessionModalOpen(false);
   };
@@ -2364,7 +2371,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newBatch: Batch = {
       id: batchId,
       name: batchData.name,
-      code: batchData.code || ('RYD-' + batchData.name.slice(0, 3).toUpperCase() + '-0' + (batches.length + 1)),
+      code: batchData.code || ('RYD-' + (batchData.disciplineCategory ? batchData.disciplineCategory.slice(0, 3).toUpperCase() : 'CLS') + '-0' + (batches.length + 1)),
+      disciplineCategory: batchData.disciplineCategory || 'tuition',
       style: batchData.style,
       level: batchData.level,
       scheduleTime: batchData.scheduleTime,
@@ -2386,6 +2394,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: 'sess-' + Date.now(),
         batchId: newBatch.id,
         batchName: newBatch.name,
+        sessionName: newBatch.name,
+        disciplineCategory: newBatch.disciplineCategory,
         date: '2026-09-10',
         timeSlot: newBatch.scheduleTime,
         studioRoom: newBatch.studioRoom,
@@ -2402,8 +2412,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     sound.playSuccess();
     showToast({
       type: 'success',
-      title: 'New Batch Schedule Created!',
-      description: `${newBatch.name} (${newBatch.scheduleTime}) is now active in your Studio Schedule & Roster Planner.`,
+      title: 'New Class Group Created!',
+      description: `${newBatch.name} (${newBatch.scheduleTime}) is now active in your class schedule.`,
     });
     setNewSessionModalOpen(false);
   };

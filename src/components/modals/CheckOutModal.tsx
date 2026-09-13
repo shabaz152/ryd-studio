@@ -64,7 +64,7 @@ export const CheckOutModal: React.FC = () => {
   const matchingBatch = batches.find((b) => b.id === activeSession?.batchId);
   const currentBatch: Batch = matchingBatch || {
     id: activeSession?.batchId || 'custom-batch',
-    name: activeSession?.batchName || 'Studio Masterclass',
+    name: activeSession?.sessionName || activeSession?.batchName || 'Studio Masterclass',
     code: activeSession?.calendarCode || 'RYD-CLASS',
     style: 'Studio Class',
     level: 'Intermediate',
@@ -165,7 +165,7 @@ export const CheckOutModal: React.FC = () => {
                   className="p-3 rounded-2xl bg-[#14141E] border border-white/10 flex items-center justify-between gap-2"
                 >
                   <div>
-                    <p className="text-xs font-bold text-white">{sess.batchName}</p>
+                    <p className="text-xs font-bold text-white">{sess.sessionName || sess.batchName}</p>
                     <p className="text-[10px] text-gray-400">{sess.timeSlot} • {sess.studioRoom}</p>
                   </div>
                   <button
@@ -302,7 +302,7 @@ export const CheckOutModal: React.FC = () => {
                           : 'bg-[#14141E] text-gray-300 border-white/10 hover:border-white/20'
                       }`}
                     >
-                      <span>{sess.batchName}</span>
+                      <span>{sess.sessionName || sess.batchName}</span>
                       <span className="text-[10px] opacity-75 font-mono">({sess.timeSlot})</span>
                       <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-300 text-[9px] font-extrabold uppercase">
                         Active
@@ -333,8 +333,8 @@ export const CheckOutModal: React.FC = () => {
             </div>
 
             <div className="text-right bg-black/50 px-3.5 py-2 rounded-2xl border border-white/10">
-              <p className="text-[10px] text-gray-400 uppercase font-semibold">Active Cohort</p>
-              <p className="text-xs font-bold text-white">{activeSession.batchName}</p>
+              <p className="text-[10px] text-gray-400 uppercase font-semibold">Active Class</p>
+              <p className="text-xs font-bold text-white">{activeSession.sessionName || activeSession.batchName}</p>
               <p className="text-[10px] text-[#FACC15] font-mono">{activeSession.timeSlot}</p>
             </div>
           </div>

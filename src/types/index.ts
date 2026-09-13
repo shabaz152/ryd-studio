@@ -15,8 +15,9 @@ export interface Student {
 export interface Batch {
   id: string;
   name: string;
-  code: string; // e.g. "RYD-MATH-01"
-  style: string; // e.g. "Pure Mathematics & Calculus", "Classical Mechanics"
+  code: string; // e.g. "RYD-MATH-01", "RYD-DANCE-01", "RYD-MUSIC-01"
+  style: string; // e.g. "Classical Bharatanatyam", "Acoustic Guitar", "Pure Mathematics & Calculus"
+  disciplineCategory?: string; // 'dance' | 'music' | 'tuition' | 'art' | 'fitness' | 'custom'
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Masterclass';
   scheduleTime: string; // "16:00 - 17:30"
   days: string[]; // ["Mon", "Wed", "Fri"]
@@ -44,6 +45,8 @@ export interface Session {
   id: string;
   batchId: string;
   batchName: string;
+  sessionName?: string; // Custom Class / Session Name e.g. "Bharatanatyam Morning Workshop", "Electric Guitar Basics"
+  disciplineCategory?: string; // 'dance' | 'music' | 'tuition' | 'art' | 'fitness' | 'custom'
   date: string; // "2026-09-10"
   timeSlot: string; // "16:00 - 17:30"
   studioRoom: string;
@@ -188,6 +191,8 @@ export interface ReferralStats {
 
 export interface AddSessionParams {
   batchId: string;
+  sessionName?: string; // Custom Session / Class Name addition
+  disciplineCategory?: string; // 'dance' | 'music' | 'tuition' | 'art' | 'fitness' | 'custom'
   date: string;
   timeSlot: string;
   studioRoom: string;
@@ -201,6 +206,7 @@ export interface AddSessionParams {
 export interface AddBatchParams {
   name: string;
   code?: string;
+  disciplineCategory?: string; // 'dance' | 'music' | 'tuition' | 'art' | 'fitness' | 'custom'
   style: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Masterclass';
   scheduleTime: string;
