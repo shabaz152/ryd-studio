@@ -168,6 +168,14 @@ export const LoginView: React.FC = () => {
     }, 300);
   };
 
+  const handleRoleSelect = (role: 'admin' | 'tutor' | 'parent') => {
+    sound.playClick();
+    setSelectedRole(role);
+    setEmail('');
+    setPassword('');
+    setErrorMessage(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-[#0a0a14] to-slate-950 text-white flex flex-col justify-center items-center px-4 py-8 sm:py-12 relative overflow-hidden">
       {/* Ambient background illumination */}
@@ -246,11 +254,7 @@ export const LoginView: React.FC = () => {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setSelectedRole('tutor');
-                  setErrorMessage(null);
-                }}
+                onClick={() => handleRoleSelect('tutor')}
                 className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                   selectedRole === 'tutor'
                     ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
@@ -264,11 +268,7 @@ export const LoginView: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setSelectedRole('parent');
-                  setErrorMessage(null);
-                }}
+                onClick={() => handleRoleSelect('parent')}
                 className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                   selectedRole === 'parent'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/40'
@@ -282,11 +282,7 @@ export const LoginView: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setSelectedRole('admin');
-                  setErrorMessage(null);
-                }}
+                onClick={() => handleRoleSelect('admin')}
                 className={`py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                   selectedRole === 'admin'
                     ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40'
@@ -323,6 +319,7 @@ export const LoginView: React.FC = () => {
                     setErrorMessage(null);
                   }}
                   required
+                  autoComplete="off"
                   placeholder={
                     selectedRole === 'admin'
                       ? 'admin@ryd.studio'
@@ -365,6 +362,7 @@ export const LoginView: React.FC = () => {
                     setErrorMessage(null);
                   }}
                   required
+                  autoComplete="new-password"
                   placeholder="Enter your private password"
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
                 />
