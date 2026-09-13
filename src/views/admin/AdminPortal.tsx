@@ -23,9 +23,10 @@ import {
   UserX,
   Search,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ActivityEvent, UserRole } from '../../types';
+import { ActivityEvent, UserRole, AuthorizedUser } from '../../types';
 import { TutorLocationMap } from '../../components/admin/TutorLocationMap';
 import { sound } from '../../utils/sound';
 
@@ -46,6 +47,7 @@ export const AdminPortal: React.FC = () => {
     authorizedUsers,
     authorizeNewUser,
     toggleUserAuthorization,
+    deleteUser,
     setAccountSecurityModalOpen,
     currentUser,
   } = useApp();
@@ -55,6 +57,7 @@ export const AdminPortal: React.FC = () => {
   const [accessFilterRole, setAccessFilterRole] = useState<string>('all');
   const [accessSearch, setAccessSearch] = useState<string>('');
   const [isAuthorizeModalOpen, setIsAuthorizeModalOpen] = useState<boolean>(false);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<AuthorizedUser | null>(null);
   const [newUserName, setNewUserName] = useState<string>('');
   const [newUserEmail, setNewUserEmail] = useState<string>('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('tutor');
@@ -387,7 +390,7 @@ export const AdminPortal: React.FC = () => {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
-              <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Total Authorized</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Total Users</p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{authorizedUsers.length}</p>
             </div>
             <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
@@ -397,15 +400,15 @@ export const AdminPortal: React.FC = () => {
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">Faculty Tutors</p>
-              <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-                {authorizedUsers.filter((u) => u.role === 'tutor').length}
+              <p className="text-xs font-semibold text-red-600 dark:text-red-400">Revoked / Inactive</p>
+              <p className="text-2xl font-black text-red-600 dark:text-red-400 mt-1">
+                {authorizedUsers.filter((u) => !u.isAuthorized).length}
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10">
-              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">Parents & Students</p>
-              <p className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
-                {authorizedUsers.filter((u) => u.role === 'parent').length}
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">Faculty & Parents</p>
+              <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
+                {authorizedUsers.filter((u) => u.role !== 'admin').length}
               </p>
             </div>
           </div>
@@ -424,7 +427,7 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto">
-              {['all', 'admin', 'tutor', 'parent'].map((roleKey) => (
+              {['all', 'admin', 'tutor', 'parent', 'revoked'].map((roleKey) => (
                 <button
                   key={roleKey}
                   onClick={() => setAccessFilterRole(roleKey)}
@@ -434,7 +437,11 @@ export const AdminPortal: React.FC = () => {
                       : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {roleKey === 'all' ? 'All Roles' : roleKey}
+                  {roleKey === 'all'
+                    ? 'All Roles'
+                    : roleKey === 'revoked'
+                    ? `Revoked (${authorizedUsers.filter((u) => !u.isAuthorized).length})`
+                    : roleKey}
                 </button>
               ))}
             </div>
@@ -444,7 +451,11 @@ export const AdminPortal: React.FC = () => {
           <div className="space-y-2.5">
             {authorizedUsers
               .filter((u) => {
-                if (accessFilterRole !== 'all' && u.role !== accessFilterRole) return false;
+                if (accessFilterRole === 'revoked') {
+                  if (u.isAuthorized) return false;
+                } else if (accessFilterRole !== 'all' && u.role !== accessFilterRole) {
+                  return false;
+                }
                 if (accessSearch) {
                   const q = accessSearch.toLowerCase();
                   return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -514,16 +525,29 @@ export const AdminPortal: React.FC = () => {
                           👑 Root Director
                         </span>
                       ) : (
-                        <button
-                          onClick={() => toggleUserAuthorization(user.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            user.isAuthorized
-                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          }`}
-                        >
-                          {user.isAuthorized ? 'Revoke Access' : 'Re-Authorize'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleUserAuthorization(user.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              user.isAuthorized
+                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20'
+                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            }`}
+                          >
+                            {user.isAuthorized ? 'Revoke Access' : 'Re-Authorize'}
+                          </button>
+
+                          {!user.isAuthorized && (
+                            <button
+                              onClick={() => setConfirmDeleteUser(user)}
+                              className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-red-600/10 hover:bg-red-600 text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white border border-red-500/30 flex items-center gap-1.5 shadow-xs"
+                              title={`Permanently delete ${user.name}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -658,6 +682,77 @@ export const AdminPortal: React.FC = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Revoked User Confirmation Modal */}
+          {confirmDeleteUser && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+              <div className="relative w-full max-w-md bg-white dark:bg-[#0E0E18] border border-red-500/30 rounded-2xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-500">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Revoked User</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-gray-400">Permanently purge this account</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setConfirmDeleteUser(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+                  <img
+                    src={confirmDeleteUser.avatarUrl}
+                    alt={confirmDeleteUser.name}
+                    className="w-11 h-11 rounded-xl object-cover border border-red-500/30 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                        {confirmDeleteUser.name}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-500 border border-red-500/30">
+                        {confirmDeleteUser.role}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-gray-300 truncate mt-0.5">
+                      {confirmDeleteUser.email} • {confirmDeleteUser.title}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
+                  Are you sure you want to permanently delete this revoked user? Their login credentials and profile will be completely erased from the platform. This action cannot be undone.
+                </p>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteUser(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteUser(confirmDeleteUser.id);
+                      setConfirmDeleteUser(null);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md shadow-red-600/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete User Permanently</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

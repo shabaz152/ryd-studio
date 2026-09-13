@@ -230,6 +230,7 @@ interface AppContextType {
   resetPasswordWithCode: (email: string, code: string, newPassword: string) => { success: boolean; error?: string };
   authorizeNewUser: (user: { name: string; email: string; role: UserRole; password?: string; studentId?: string }) => { success: boolean; error?: string };
   toggleUserAuthorization: (userId: string) => { success: boolean; error?: string };
+  deleteUser: (userId: string) => { success: boolean; error?: string };
   accountSecurityModalOpen: boolean;
   setAccountSecurityModalOpen: (open: boolean) => void;
 
@@ -1354,6 +1355,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: newStatus ? 'success' : 'alert',
       title: newStatus ? 'Access Restored' : 'Access Revoked',
       description: `${targetUser.name}'s platform access is now ${newStatus ? 'AUTHORIZED' : 'REVOKED'}.`,
+    });
+
+    return { success: true };
+  };
+
+  const deleteUser = (userId: string): { success: boolean; error?: string } => {
+    const userIndex = authorizedUsers.findIndex((u) => u.id === userId);
+    if (userIndex === -1) {
+      return { success: false, error: 'User not found.' };
+    }
+
+    const targetUser = authorizedUsers[userIndex];
+    if (targetUser.id === 'user-admin' || targetUser.email.toLowerCase() === 'admin@ryd.studio') {
+      return { success: false, error: 'Cannot delete the primary Administrator account.' };
+    }
+
+    const nextAuthorizedUsers = authorizedUsers.filter((u) => u.id !== userId);
+    setAuthorizedUsers(nextAuthorizedUsers);
+
+    // Also remove corresponding tutor or parent records if present
+    setTutors((prev) => {
+      const next = prev.filter(
+        (t) => t.id !== userId && t.email.toLowerCase() !== targetUser.email.toLowerCase()
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_tutors`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    setParents((prev) => {
+      const next = prev.filter(
+        (p) => p.id !== userId && p.email.toLowerCase() !== targetUser.email.toLowerCase()
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(nextAuthorizedUsers));
+    } catch {}
+
+    sound.playSuccess();
+    showToast({
+      type: 'alert',
+      title: 'User Deleted',
+      description: `${targetUser.name} (${targetUser.email}) has been permanently deleted from the platform.`,
     });
 
     return { success: true };
@@ -2605,6 +2655,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetPasswordWithCode,
         authorizeNewUser,
         toggleUserAuthorization,
+        deleteUser,
         accountSecurityModalOpen,
         setAccountSecurityModalOpen,
         simulateTutorMovement,
