@@ -580,10 +580,14 @@ export const INITIAL_PARENTS: ParentAccount[] = [
   }
 ];
 
+const todayDateStr = new Date().toISOString().split('T')[0];
+const yesterdayDateStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
 export const INITIAL_ACTIVITY_EVENTS: ActivityEvent[] = [
   {
     id: 'act-init-1',
     timestamp: '15:45',
+    date: todayDateStr,
     type: 'login',
     actorId: 'tutor-shazz',
     actorName: 'Shazz (Lead Faculty)',
@@ -598,6 +602,7 @@ export const INITIAL_ACTIVITY_EVENTS: ActivityEvent[] = [
   {
     id: 'act-init-2',
     timestamp: '14:30',
+    date: todayDateStr,
     type: 'login',
     actorId: 'tutor-alex',
     actorName: 'Dr. Alex Mercer',
@@ -606,6 +611,32 @@ export const INITIAL_ACTIVITY_EVENTS: ActivityEvent[] = [
     targetBatchName: 'Organic & Physical Chemistry',
     title: 'Tutor Online & Shift Started',
     description: 'Dr. Alex Mercer logged into the academic hub.',
+    readByAdmin: true,
+    readByParent: true
+  },
+  {
+    id: 'act-hist-1',
+    timestamp: '17:00',
+    date: yesterdayDateStr,
+    type: 'logout',
+    actorId: 'tutor-alex',
+    actorName: 'Dr. Alex Mercer',
+    actorRole: 'tutor',
+    title: 'Tutor Offline / Shift Ended',
+    description: 'Dr. Alex Mercer signed out after completing academic chemistry cohort.',
+    readByAdmin: true,
+    readByParent: true
+  },
+  {
+    id: 'act-hist-2',
+    timestamp: '09:15',
+    date: yesterdayDateStr,
+    type: 'login',
+    actorId: 'tutor-shazz',
+    actorName: 'Shazz (Lead Faculty)',
+    actorRole: 'tutor',
+    title: 'Tutor Online & Shift Started',
+    description: 'Shazz logged into the academic hub for calculus lectures.',
     readByAdmin: true,
     readByParent: true
   }

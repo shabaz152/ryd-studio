@@ -1015,6 +1015,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (authData.role === 'tutor') {
       loginTutor();
+    } else {
+      addActivityEvent({
+        type: 'login',
+        actorId: authData.id,
+        actorName: authData.name,
+        actorRole: authData.role,
+        title: `${authData.role === 'admin' ? 'Admin' : 'Parent'} Online & Signed In`,
+        description: `${authData.name} logged into the ${authData.role === 'admin' ? 'Executive Director' : 'Parent'} portal.`,
+      });
     }
 
     try {
@@ -1092,6 +1101,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (authData.role === 'tutor') {
       loginTutor();
+    } else {
+      addActivityEvent({
+        type: 'login',
+        actorId: authData.id,
+        actorName: authData.name,
+        actorRole: authData.role,
+        title: `${authData.role === 'admin' ? 'Admin' : 'Parent'} Online (Google)`,
+        description: `${authData.name} logged in via Google Authentication.`,
+      });
     }
 
     try {
@@ -1411,6 +1429,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     sound.playClick();
+    if (currentUser) {
+      addActivityEvent({
+        type: 'logout',
+        actorId: currentUser.id,
+        actorName: currentUser.name,
+        actorRole: currentUser.role,
+        title: `${currentUser.role === 'tutor' ? 'Tutor' : currentUser.role === 'parent' ? 'Parent' : 'Admin'} Offline / Logged Out`,
+        description: `${currentUser.name} logged out from the portal.`,
+      });
+      if (currentUser.role === 'tutor') {
+        setTutorOnlineStatus('offline');
+      }
+    }
     setIsAuthenticated(false);
     setCurrentUser(null);
     setCurrentAuthRole('admin');
@@ -1533,16 +1564,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addActivityEvent = useCallback((event: Omit<ActivityEvent, 'id' | 'timestamp' | 'readByAdmin' | 'readByParent'>) => {
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toISOString().split('T')[0];
     const newEvent: ActivityEvent = {
       ...event,
       id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       timestamp: timeStr,
+      date: event.date || dateStr,
+      createdAt: now.toISOString(),
       readByAdmin: activeRole === 'admin',
       readByParent: activeRole === 'parent',
     };
     setActivityEvents((prev) => {
-      const updated = [newEvent, ...prev.slice(0, 49)];
+      const updated = [newEvent, ...prev.slice(0, 199)];
       try {
         localStorage.setItem(`${STORAGE_KEY}_activity`, JSON.stringify(updated));
       } catch {}

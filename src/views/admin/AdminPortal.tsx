@@ -30,6 +30,24 @@ import { ActivityEvent, UserRole, AuthorizedUser } from '../../types';
 import { TutorLocationMap } from '../../components/admin/TutorLocationMap';
 import { sound } from '../../utils/sound';
 
+const getEventDate = (event: ActivityEvent): string => {
+  if (event.date) return event.date;
+  if (event.createdAt) return event.createdAt.split('T')[0];
+  if (event.id && event.id.startsWith('act-')) {
+    const parts = event.id.split('-');
+    if (parts.length >= 2) {
+      const ts = parseInt(parts[1], 10);
+      if (!isNaN(ts) && ts > 1000000000000) {
+        return new Date(ts).toISOString().split('T')[0];
+      }
+    }
+  }
+  return new Date().toISOString().split('T')[0];
+};
+
+const todayStr = new Date().toISOString().split('T')[0];
+const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
 export const AdminPortal: React.FC = () => {
   const {
     tutors,
@@ -64,13 +82,30 @@ export const AdminPortal: React.FC = () => {
   const [newUserPassword, setNewUserPassword] = useState<string>('ryd2026');
   const [authorizeError, setAuthorizeError] = useState<string | null>(null);
 
-  // Filtered activity events
+  // Date Filter State (defaults to current day)
+  const [auditDate, setAuditDate] = useState<string>(todayStr);
+  const [isDateFilterActive, setIsDateFilterActive] = useState<boolean>(true);
+
+  // Filtered activity events (filtered by category and selected date)
   const filteredEvents = activityEvents.filter((ev) => {
-    if (filterType === 'all') return true;
-    if (filterType === 'auth') return ev.type === 'login' || ev.type === 'logout';
-    if (filterType === 'sessions') return ev.type === 'check_in' || ev.type === 'check_out';
-    if (filterType === 'delays') return ev.type === 'running_late';
-    if (filterType === 'reschedule') return ev.type === 'reschedule';
+    if (filterType === 'all') {
+      // no category filter
+    } else if (filterType === 'auth') {
+      if (!(ev.type === 'login' || ev.type === 'logout')) return false;
+    } else if (filterType === 'sessions') {
+      if (!(ev.type === 'check_in' || ev.type === 'check_out')) return false;
+    } else if (filterType === 'delays') {
+      if (ev.type !== 'running_late') return false;
+    } else if (filterType === 'reschedule') {
+      if (ev.type !== 'reschedule') return false;
+    }
+
+    // Filter to current day or searched date
+    if (isDateFilterActive && auditDate) {
+      const evDate = getEventDate(ev);
+      if (evDate !== auditDate) return false;
+    }
+
     return true;
   });
 
@@ -762,11 +797,89 @@ export const AdminPortal: React.FC = () => {
       {/* Subtab 1: Live Activity Stream */}
       {activeSubTab === 'activity' && (
         <div className="space-y-4">
+          {/* Audit Date Search & Range Bar */}
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                <Calendar className="w-4 h-4 text-amber-500" />
+                <span>Audit Date:</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={isDateFilterActive ? auditDate : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      sound.playClick();
+                      setAuditDate(e.target.value);
+                      setIsDateFilterActive(true);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-white/15 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setAuditDate(todayStr);
+                  setIsDateFilterActive(true);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isDateFilterActive && auditDate === todayStr
+                    ? 'bg-amber-500 text-black shadow-xs font-black'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setAuditDate(yesterdayStr);
+                  setIsDateFilterActive(true);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isDateFilterActive && auditDate === yesterdayStr
+                    ? 'bg-amber-500 text-black shadow-xs font-black'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsDateFilterActive(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !isDateFilterActive
+                    ? 'bg-amber-500 text-black shadow-xs font-black'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All Dates History
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 self-start md:self-center">
+              <span className="px-3 py-1 rounded-full text-[11px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                {isDateFilterActive
+                  ? auditDate === todayStr
+                    ? `📅 Today (${filteredEvents.length} records)`
+                    : `📅 Date: ${auditDate} (${filteredEvents.length} records)`
+                  : `📅 All Dates History (${filteredEvents.length} records)`}
+              </span>
+            </div>
+          </div>
+
           {/* Filters Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 shadow-xs">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-gray-400 font-semibold">
               <Filter className="w-3.5 h-3.5" />
-              <span>Filter Events:</span>
+              <span>Event Type:</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -795,58 +908,103 @@ export const AdminPortal: React.FC = () => {
           {/* Activity Event Feed List */}
           <div className="space-y-2.5">
             {filteredEvents.length === 0 ? (
-              <div className="p-8 text-center bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 dark:text-gray-400">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-500" />
-                <p className="text-sm font-semibold">No activity events found in this category.</p>
-                <p className="text-xs mt-1">Activities from tutors (logging in, checking in, late notices) will appear here live.</p>
+              <div className="p-8 text-center bg-white dark:bg-[#10101A] border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 dark:text-gray-400 space-y-3">
+                <Calendar className="w-8 h-8 mx-auto opacity-40 text-amber-500" />
+                <div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {isDateFilterActive
+                      ? `No activity or login/logout records found for ${auditDate === todayStr ? 'Today' : auditDate}.`
+                      : 'No activity events found in this category.'}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                    {isDateFilterActive
+                      ? 'You can pick or type another date to search past logins and logouts, or return to Today.'
+                      : 'Activities from tutors (logging in, checking in, late notices) will appear here live.'}
+                  </p>
+                </div>
+                {isDateFilterActive && auditDate !== todayStr && (
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setAuditDate(todayStr);
+                        setIsDateFilterActive(true);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                    >
+                      View Today's Logins & Logouts
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setIsDateFilterActive(false);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-xs font-bold transition-colors cursor-pointer text-slate-700 dark:text-white"
+                    >
+                      View All Dates
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              filteredEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    !event.readByAdmin
-                      ? 'bg-amber-500/[0.04] border-amber-500/30 dark:border-amber-500/30'
-                      : 'bg-white dark:bg-[#10101A] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 shrink-0 mt-0.5">
-                      {getEventIcon(event.type)}
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${getEventBadge(event.type)}`}>
-                          {event.type.replace('_', ' ')}
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                          {event.title}
-                        </h4>
-                        {!event.readByAdmin && (
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
-                        {event.description}
-                      </p>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-gray-500 mt-2">
-                        <span>Actor: <strong className="text-slate-700 dark:text-gray-300">{event.actorName}</strong></span>
-                        {event.targetBatchName && (
-                          <>
-                            <span>•</span>
-                            <span>Cohort: <strong className="text-amber-600 dark:text-amber-400">{event.targetBatchName}</strong></span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              filteredEvents.map((event) => {
+                const eventDate = getEventDate(event);
+                const isToday = eventDate === todayStr;
 
-                  <div className="flex items-center gap-2 text-xs text-slate-400 shrink-0 self-end sm:self-center">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="font-mono font-semibold">{event.timestamp}</span>
+                return (
+                  <div
+                    key={event.id}
+                    className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      !event.readByAdmin
+                        ? 'bg-amber-500/[0.04] border-amber-500/30 dark:border-amber-500/30'
+                        : 'bg-white dark:bg-[#10101A] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 shrink-0 mt-0.5">
+                        {getEventIcon(event.type)}
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${getEventBadge(event.type)}`}>
+                            {event.type.replace('_', ' ')}
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                            {event.title}
+                          </h4>
+                          {!event.readByAdmin && (
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
+                          {event.description}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-gray-500 mt-2">
+                          <span>Actor: <strong className="text-slate-700 dark:text-gray-300">{event.actorName}</strong></span>
+                          {event.targetBatchName && (
+                            <>
+                              <span>•</span>
+                              <span>Cohort: <strong className="text-amber-600 dark:text-amber-400">{event.targetBatchName}</strong></span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:items-end gap-1 text-xs text-slate-400 shrink-0 self-end sm:self-center">
+                      <div className="flex items-center gap-1.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{event.timestamp}</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {isToday ? 'Today' : eventDate}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

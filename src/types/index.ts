@@ -198,6 +198,8 @@ export type TutorOnlineStatus = 'offline' | 'online' | 'in_session' | 'running_l
 export interface ActivityEvent {
   id: string;
   timestamp: string;
+  date?: string;
+  createdAt?: string;
   type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement';
   actorId: string;
   actorName: string;
