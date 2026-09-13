@@ -27,6 +27,10 @@ export const NewSessionModal: React.FC = () => {
     batches,
     createNewSession,
     addNewBatch,
+    parents,
+    designatedHall,
+    currentUser,
+    teacher,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'session' | 'batch'>('session');
@@ -35,12 +39,14 @@ export const NewSessionModal: React.FC = () => {
   const [sessionCategory, setSessionCategory] = useState<string>('dance');
   const [customSessionName, setCustomSessionName] = useState<string>('');
   const [selectedBatchId, setSelectedBatchId] = useState<string>('custom');
+  const [selectedTargetStudentId, setSelectedTargetStudentId] = useState<string>('all');
   const [classFormat, setClassFormat] = useState('Regular Group Class');
   const [date, setDate] = useState('2026-09-13');
   const [timeSlot, setTimeSlot] = useState('17:00 - 18:30');
   const [durationMinutes, setDurationMinutes] = useState(90);
   const [studioRoom, setStudioRoom] = useState('Dance Studio Alpha (Mirror Hall)');
-  const [locationName, setLocationName] = useState('RYD Performing Arts & Learning Hub');
+  const [locationName, setLocationName] = useState(designatedHall?.name || 'RYD Central Academic Hall A');
+  const [locationAddress, setLocationAddress] = useState(designatedHall?.address || '124 Academic Way, Campus Central');
   const [notifyParents, setNotifyParents] = useState(true);
 
   // Batch Form State
@@ -122,6 +128,9 @@ export const NewSessionModal: React.FC = () => {
   const handleSessionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalSessionName = customSessionName.trim() || (selectedBatchId !== 'custom' ? batches.find(b => b.id === selectedBatchId)?.name : 'Special Session');
+    const targetStudent = selectedTargetStudentId !== 'all'
+      ? parents.flatMap((p) => p.children).find((c) => c.studentId === selectedTargetStudentId)
+      : undefined;
 
     createNewSession({
       batchId: selectedBatchId,
@@ -132,6 +141,11 @@ export const NewSessionModal: React.FC = () => {
       timeSlot,
       studioRoom,
       locationName,
+      locationAddress: locationAddress || designatedHall?.address || '124 Academic Way, Campus Central',
+      assignedPlace: locationName,
+      targetStudentId: selectedTargetStudentId !== 'all' ? selectedTargetStudentId : undefined,
+      targetStudentName: targetStudent?.studentName,
+      assignedTutorName: currentUser?.name || teacher.name,
       type: classFormat,
       durationMinutes,
       sendParentNotification: notifyParents,
@@ -316,6 +330,27 @@ export const NewSessionModal: React.FC = () => {
               </select>
             </div>
 
+            {/* Target Learner / Student Selection */}
+            <div>
+              <label className="text-xs font-bold text-gray-300 block mb-1">
+                Assign to Specific Student / Learner (Optional)
+              </label>
+              <select
+                value={selectedTargetStudentId}
+                onChange={(e) => setSelectedTargetStudentId(e.target.value)}
+                className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FFD000]"
+              >
+                <option value="all">All Enrolled Students / Open Batch</option>
+                {parents.flatMap((p) =>
+                  p.children.map((c) => (
+                    <option key={c.studentId} value={c.studentId}>
+                      {c.studentName} ({c.grade} • Parent: {p.parentName})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
             {/* Class Format */}
             <div>
               <label className="text-xs font-bold text-gray-300 block mb-1">
@@ -447,6 +482,21 @@ export const NewSessionModal: React.FC = () => {
                   className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD000]"
                 />
               </div>
+            </div>
+
+            {/* Assigned Place Address */}
+            <div>
+              <label className="text-xs font-bold text-gray-300 block mb-1">
+                Assigned Place / Venue Address (Visible to Students & Parents)
+              </label>
+              <input
+                type="text"
+                required
+                value={locationAddress}
+                onChange={(e) => setLocationAddress(e.target.value)}
+                placeholder="e.g. 124 Academic Way, Campus Central"
+                className="w-full bg-[#101018] border border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD000]"
+              />
             </div>
 
             {/* Parent Notification */}

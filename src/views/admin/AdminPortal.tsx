@@ -2200,7 +2200,7 @@ export const AdminPortal: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Last shift log: {tutor.lastLoginTime ? `${tutor.lastLoginTime} (Logged In)` : 'Offline'}</span>
+                  <span>Status: <strong className={status === 'online' ? 'text-emerald-500 font-bold' : 'text-slate-400'}>{status === 'online' ? '● Active on Platform' : '○ Offline'}</strong></span>
                   {isSelf && (
                     <button
                       onClick={status === 'online' ? logoutTutor : loginTutor}

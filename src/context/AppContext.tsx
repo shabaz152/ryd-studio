@@ -290,6 +290,10 @@ interface AppContextType {
   pingTutor: (tutorId: string) => void;
   pingParent: (parentId: string) => void;
   setParents: React.Dispatch<React.SetStateAction<ParentAccount[]>>;
+
+  // Student Profile Management & Manual Learner Addition
+  updateStudentName: (studentId: string, newName: string, newGrade?: string) => void;
+  addNewStudentToParent: (parentId: string, studentData: { name: string; grade?: string; enrolledBatches?: string[] }) => string;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1134,15 +1138,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (authData.role === 'tutor') {
       loginTutor();
-    } else {
-      addActivityEvent({
-        type: 'login',
-        actorId: authData.id,
-        actorName: authData.name,
-        actorRole: authData.role,
-        title: `${authData.role === 'admin' ? 'Admin' : 'Parent'} Online & Signed In`,
-        description: `${authData.name} logged into the ${authData.role === 'admin' ? 'Executive Director' : 'Parent'} portal.`,
-      });
     }
 
     try {
@@ -1262,15 +1257,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (authData.role === 'tutor') {
       loginTutor();
-    } else {
-      addActivityEvent({
-        type: 'login',
-        actorId: authData.id,
-        actorName: authData.name,
-        actorRole: authData.role,
-        title: `${authData.role === 'admin' ? 'Admin' : 'Parent'} Online (Google)`,
-        description: `${authData.name} logged in via Google Authentication.`,
-      });
     }
 
     try {
@@ -2116,14 +2102,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     sound.playClick();
     if (currentUser) {
-      addActivityEvent({
-        type: 'logout',
-        actorId: currentUser.id,
-        actorName: currentUser.name,
-        actorRole: currentUser.role,
-        title: `${currentUser.role === 'tutor' ? 'Tutor' : currentUser.role === 'parent' ? 'Parent' : 'Admin'} Offline / Logged Out`,
-        description: `${currentUser.name} logged out from the portal.`,
-      });
       if (currentUser.role === 'tutor') {
         setTutorOnlineStatus('offline');
       }
@@ -2300,6 +2278,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const updateStudentName = (studentId: string, newName: string, newGrade?: string) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) return;
+
+    setParents((prev) => {
+      const updated = prev.map((p) => ({
+        ...p,
+        children: p.children.map((c) =>
+          c.studentId === studentId
+            ? {
+                ...c,
+                studentName: trimmedName,
+                grade: newGrade && newGrade.trim() ? newGrade.trim() : c.grade,
+              }
+            : c
+        ),
+      }));
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Also update authorizedUsers if any parent record has studentId
+    setAuthorizedUsers((prev) => {
+      const updated = prev.map((u) => {
+        if (u.studentId === studentId) {
+          return { ...u, title: `Parent of ${trimmedName}` };
+        }
+        return u;
+      });
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_authorized_users`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Also update batches students if present
+    setBatches((prev) => {
+      const updated = prev.map((b) => ({
+        ...b,
+        students: b.students.map((s) =>
+          s.id === studentId ? { ...s, name: trimmedName } : s
+        ),
+      }));
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_batches`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'Learner Name Updated',
+      description: `Student name successfully changed to "${trimmedName}".`,
+    });
+  };
+
+  const addNewStudentToParent = (
+    parentId: string,
+    studentData: { name: string; grade?: string; enrolledBatches?: string[] }
+  ): string => {
+    const trimmedName = studentData.name.trim();
+    if (!trimmedName) return '';
+
+    const newStudentId = 'stud-' + Date.now();
+    const newStudent = {
+      studentId: newStudentId,
+      studentName: trimmedName,
+      grade: studentData.grade?.trim() || 'Active Learner',
+      enrolledBatches:
+        studentData.enrolledBatches && studentData.enrolledBatches.length > 0
+          ? studentData.enrolledBatches
+          : ['batch-dance-01', 'batch-math-01'],
+    };
+
+    setParents((prev) => {
+      const updated = prev.map((p) =>
+        p.id === parentId
+          ? {
+              ...p,
+              children: [...p.children, newStudent],
+            }
+          : p
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_parents`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    setSelectedParentStudentId(newStudentId);
+
+    sound.playSuccess();
+    showToast({
+      type: 'success',
+      title: 'New Student Added',
+      description: `"${trimmedName}" has been successfully added to your learners.`,
+    });
+
+    return newStudentId;
+  };
+
   const setActiveRole = (role: UserRole) => {
     // Admin is the Head: ONLY Admin can switch active view to tutor or parent!
     if (currentAuthRole !== 'admin') {
@@ -2375,20 +2457,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
-    addActivityEvent({
-      type: 'login',
-      actorId: 'tutor-shazz',
-      actorName: teacher.name,
-      actorRole: 'tutor',
-      targetBatchId: 'batch-math-01',
-      targetBatchName: 'Advanced Calculus & Vectors',
-      title: 'Tutor Online & Shift Started',
-      description: `${teacher.name} has logged into the academic hub. Alerts dispatched to Admin & Parents.`,
-    });
     showToast({
       type: 'success',
-      title: 'Tutor Online (Alerts Dispatched)',
-      description: `${teacher.name} is now ONLINE. Instant notifications dispatched to App Owner and all linked Parents.`,
+      title: 'Tutor Online',
+      description: `${teacher.name} is now ONLINE. Sessions ready.`,
     });
   };
 
@@ -2406,18 +2478,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
-    addActivityEvent({
-      type: 'logout',
-      actorId: 'tutor-shazz',
-      actorName: teacher.name,
-      actorRole: 'tutor',
-      title: 'Tutor Offline / Shift Ended',
-      description: `${teacher.name} logged out from the academic portal.`,
-    });
     showToast({
       type: 'info',
-      title: 'Tutor Logged Out (Alerts Dispatched)',
-      description: `${teacher.name} is now OFFLINE. Activity logged and notified to Admin & Parents.`,
+      title: 'Tutor Logged Out',
+      description: `${teacher.name} is now OFFLINE.`,
     });
   };
 
@@ -2881,7 +2945,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const customName = sessionData.sessionName?.trim() || sessionData.customBatchName?.trim();
     const batchName = customName || (batch ? `${batch.name} (${sessionData.type})` : 'Special Class');
     const disciplineCategory = sessionData.disciplineCategory || batch?.disciplineCategory || 'tuition';
-    const locationName = batch ? batch.locationName : (sessionData.locationName || 'RYD Downtown Central');
+    const locationName = sessionData.locationName || (batch ? batch.locationName : designatedHall.name);
+    const locationAddress = sessionData.locationAddress || (batch ? batch.address : designatedHall.address);
+    const assignedPlace = sessionData.assignedPlace || (batch ? batch.locationName : designatedHall.name);
+    const assignedTutorName = sessionData.assignedTutorName || (currentUser?.name || teacher.name);
+    const targetStudentId = sessionData.targetStudentId;
+    const targetStudentName = sessionData.targetStudentName;
     const classNum = sessions.length + 1;
     const calendarCode = generateCalendarCode(2, classNum, 'scheduled');
 
@@ -2891,10 +2960,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       batchName,
       sessionName: customName || batchName,
       disciplineCategory,
-      date: sessionData.date || '2026-09-10',
+      date: sessionData.date || '2026-09-13',
       timeSlot: sessionData.timeSlot,
       studioRoom: sessionData.studioRoom,
       locationName,
+      locationAddress,
+      assignedPlace,
+      assignedTutorName,
+      targetStudentId,
+      targetStudentName,
       monthIndex: 2,
       classIndex: classNum,
       status: 'scheduled',
@@ -2904,14 +2978,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setSessions((prev) => [newSess, ...prev]);
 
+    // Live alert dispatch for parents & students showing timings and location of assigned place
+    addActivityEvent({
+      type: 'session_scheduled',
+      actorId: currentUser?.id || 'tutor-shazz',
+      actorName: assignedTutorName,
+      actorRole: 'tutor',
+      targetBatchId: batch ? batch.id : undefined,
+      targetBatchName: batchName,
+      title: `📅 New Class Scheduled: ${newSess.sessionName || newSess.batchName}`,
+      description: `Tutor ${assignedTutorName} scheduled ${newSess.sessionName || newSess.batchName} on ${newSess.date} at ${newSess.timeSlot} in ${newSess.studioRoom} (${locationName}, ${locationAddress}).`,
+    });
+
     if (sessionData.sendParentNotification) {
       const newUpdate: UpdateMessage = {
         id: 'update-' + Date.now(),
         type: 'broadcast',
-        recipientName: `All Parents (${batchName})`,
+        recipientName: targetStudentName ? `Parent of ${targetStudentName}` : `All Parents (${batchName})`,
         batchName,
         subject: `New Class Scheduled: ${batchName}`,
-        message: `A new session has been added for ${newSess.date} at ${newSess.timeSlot} in ${newSess.studioRoom}. Structured Calendar Code: ${calendarCode}.`,
+        message: `A new session has been added for ${newSess.date} at ${newSess.timeSlot} in ${newSess.studioRoom} (${locationName}, ${locationAddress}). Structured Calendar Code: ${calendarCode}.`,
         sentAt: 'Just Now',
         status: 'delivered',
         channels: ['app', 'whatsapp', 'sms'],
@@ -2923,7 +3009,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast({
       type: 'success',
       title: `Class Scheduled (Code: ${calendarCode})`,
-      description: `${batchName} scheduled for ${newSess.date} (${newSess.timeSlot}).`,
+      description: `${batchName} scheduled for ${newSess.date} (${newSess.timeSlot}) at ${newSess.studioRoom}.`,
     });
     setNewSessionModalOpen(false);
   };
@@ -3657,6 +3743,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pingTutor,
         pingParent,
         setParents,
+        updateStudentName,
+        addNewStudentToParent,
       }}
     >
       {children}

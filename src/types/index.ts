@@ -68,6 +68,11 @@ export interface Session {
   parentAcceptedAt?: string;
   isLateArrival?: boolean;
   calendarCode?: string; // e.g. "2:3ab" or "2:3res"
+  targetStudentId?: string; // specific student ID or 'all'
+  targetStudentName?: string;
+  assignedTutorName?: string;
+  locationAddress?: string; // full address of assigned place
+  assignedPlace?: string; // designated venue / hall name
 }
 
 export interface Lead {
@@ -203,6 +208,11 @@ export interface AddSessionParams {
   durationMinutes?: number;
   customBatchName?: string;
   locationName?: string;
+  locationAddress?: string;
+  assignedPlace?: string;
+  targetStudentId?: string;
+  targetStudentName?: string;
+  assignedTutorName?: string;
   sendParentNotification?: boolean;
 }
 
@@ -232,7 +242,7 @@ export interface ActivityEvent {
   timestamp: string;
   date?: string;
   createdAt?: string;
-  type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement' | 'access_request' | 'access_granted';
+  type: 'login' | 'logout' | 'check_in' | 'check_out' | 'running_late' | 'reschedule' | 'announcement' | 'access_request' | 'access_granted' | 'session_scheduled';
   actorId: string;
   actorName: string;
   actorRole: UserRole;
